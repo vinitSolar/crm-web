@@ -1,0 +1,314 @@
+import * as React from 'react';
+import { createPortal } from 'react-dom';
+import { cn } from '@/lib/utils';
+import { ChevronDownIcon, CloseIcon, CheckIcon } from '@/components/icons';
+
+const Portal = ({ children }: { children: React.ReactNode }) => {
+    if (typeof document === 'undefined') return null;
+    return createPortal(children, document.body);
+};
+
+export interface SelectOption {
+    value: string;
+    label: string;
+    disabled?: boolean;
+}
+
+export interface SelectProps {
+    options: SelectOption[];
+    value?: string | string[];
+    onChange?: (value: string | string[]) => void;
+    placeholder?: string;
+    label?: string;
+    error?: string;
+    disabled?: boolean;
+    multiple?: boolean;
+
+    className?: string;
+    containerClassName?: string;
+    required?: boolean;
+}
+
+export function Select({
+    options,
+    value,
+    onChange,
+    placeholder = 'Select...',
+    label,
+    error,
+    disabled = false,
+    multiple = false,
+
+    className,
+    containerClassName,
+    required,
+}: SelectProps) {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const [searchQuery, setSearchQuery] = React.useState('');
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+
+    // Normalize value to array for easier handling
+    const selectedValues = React.useMemo(() => {
+        if (!value) return [];
+        return Array.isArray(value) ? value : [value];
+    }, [value]);
+
+    // Filter options based on search query
+    const filteredOptions = React.useMemo(() => {
+        if (!searchQuery) return options;
+        return options.filter(option =>
+            option.label.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [options, searchQuery]);
+
+    // Get display label for selected values
+    const displayLabel = React.useMemo(() => {
+        if (selectedValues.length === 0) return '';
+        if (multiple) {
+            return selectedValues
+                .map(v => options.find(o => o.value === v)?.label)
+                .filter(Boolean)
+                .join(', ');
+        }
+        return options.find(o => o.value === selectedValues[0])?.label || '';
+    }, [selectedValues, options, multiple]);
+
+    // Handle click outside to close dropdown
+    React.useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Node;
+            if (
+                containerRef.current &&
+                !containerRef.current.contains(target) &&
+                dropdownRef.current &&
+                !dropdownRef.current.contains(target)
+            ) {
+                setIsOpen(false);
+                setSearchQuery('');
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Handle keyboard input for type-ahead search when dropdown is open
+    React.useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            // Handle Escape to close dropdown
+            if (event.key === 'Escape') {
+                setIsOpen(false);
+                setSearchQuery('');
+                return;
+            }
+
+            // Handle Backspace to remove last character from search
+            if (event.key === 'Backspace') {
+                setSearchQuery(prev => prev.slice(0, -1));
+                return;
+            }
+
+            // Only handle printable characters
+            if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
+                setSearchQuery(prev => prev + event.key);
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen]);
+
+
+
+    const handleToggle = () => {
+        if (!disabled) {
+            setIsOpen(!isOpen);
+            if (!isOpen) {
+                setSearchQuery('');
+            }
+        }
+    };
+
+    const handleSelect = (optionValue: string) => {
+        if (multiple) {
+            const newValues = selectedValues.includes(optionValue)
+                ? selectedValues.filter(v => v !== optionValue)
+                : [...selectedValues, optionValue];
+            onChange?.(newValues);
+        } else {
+            onChange?.(optionValue);
+            setIsOpen(false);
+            setSearchQuery('');
+        }
+    };
+
+    const handleRemoveTag = (optionValue: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (multiple) {
+            onChange?.(selectedValues.filter(v => v !== optionValue));
+        }
+    };
+
+    const handleClear = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onChange?.(multiple ? [] : '');
+    };
+
+    return (
+        <div className={cn("w-full space-y-1", containerClassName)} ref={containerRef}>
+            {label && (
+                <label className="text-sm font-medium text-title block">
+                    {label}
+                    {required && <span className="text-destructive ml-1">*</span>}
+                </label>
+            )}
+            <div className="relative">
+                {/* Trigger Button */}
+                <button
+                    type="button"
+                    onClick={handleToggle}
+                    disabled={disabled}
+                    className={cn(
+                        "flex items-center justify-between w-full h-10 px-3 py-2",
+                        "border border-input rounded-md bg-background text-sm",
+                        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                        "disabled:cursor-not-allowed disabled:opacity-50",
+                        error && "border-destructive focus:ring-destructive",
+                        className
+                    )}
+                >
+                    <span className={cn(
+                        "truncate text-left flex-1",
+                        !displayLabel && "text-muted-foreground"
+                    )}>
+                        {displayLabel || placeholder}
+                    </span>
+                    <div className="flex items-center gap-1 ml-2">
+                        {multiple && selectedValues.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={handleClear}
+                                className="p-0.5 hover:bg-muted rounded"
+                            >
+                                <CloseIcon size={14} />
+                            </button>
+                        )}
+                        <ChevronDownIcon
+                            size={16}
+                            className={cn(
+                                "transition-transform text-muted-foreground",
+                                isOpen && "rotate-180"
+                            )}
+                        />
+                    </div>
+                </button>
+
+                {/* Dropdown with Portal */}
+                {isOpen && (
+                    <Portal>
+                        <div
+                            ref={dropdownRef}
+                            style={{
+                                position: 'fixed',
+                                top: containerRef.current ? containerRef.current.getBoundingClientRect().bottom + window.scrollY + 4 : 0,
+                                left: containerRef.current ? containerRef.current.getBoundingClientRect().left + window.scrollX : 0,
+                                width: containerRef.current ? containerRef.current.getBoundingClientRect().width : 'auto',
+                                zIndex: 9999
+                            }}
+                            className="bg-background border border-border rounded-md shadow-lg max-h-60 overflow-hidden"
+                        >
+
+                            {/* Search Query Display */}
+                            {searchQuery && (
+                                <div className="px-3 py-2 border-b border-border bg-muted/50">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">
+                                            <span className="font-medium text-foreground">{searchQuery}</span>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSearchQuery('')}
+                                            className="text-xs text-muted-foreground hover:text-foreground"
+                                        >
+                                            <CloseIcon size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Options List */}
+                            <ul className="overflow-auto max-h-48 py-1">
+                                {filteredOptions.length === 0 ? (
+                                    <li className="px-3 py-2 text-sm text-muted-foreground text-center">
+                                        No options found
+                                    </li>
+                                ) : (
+                                    filteredOptions.map((option) => {
+                                        const isSelected = selectedValues.includes(option.value);
+                                        return (
+                                            <li
+                                                key={option.value}
+                                                onClick={() => !option.disabled && handleSelect(option.value)}
+                                                className={cn(
+                                                    "flex items-center gap-2 px-3 py-2 text-sm cursor-pointer",
+                                                    "hover:bg-accent hover:text-accent-foreground",
+                                                    isSelected && "bg-accent/50",
+                                                    option.disabled && "opacity-50 cursor-not-allowed"
+                                                )}
+                                            >
+                                                {multiple && (
+                                                    <div className={cn(
+                                                        "w-4 h-4 border rounded flex items-center justify-center",
+                                                        isSelected ? "bg-primary border-primary" : "border-input"
+                                                    )}>
+                                                        {isSelected && <CheckIcon size={12} className="text-primary-foreground" />}
+                                                    </div>
+                                                )}
+                                                <span className="flex-1">{option.label}</span>
+                                                {!multiple && isSelected && (
+                                                    <CheckIcon size={16} className="text-primary" />
+                                                )}
+                                            </li>
+                                        );
+                                    })
+                                )}
+                            </ul>
+                        </div>
+                    </Portal>
+                )}
+            </div>
+
+            {/* Selected Tags for Multi-select */}
+            {multiple && selectedValues.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                    {selectedValues.map((val) => {
+                        const option = options.find(o => o.value === val);
+                        return (
+                            <span
+                                key={val}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-muted rounded-md"
+                            >
+                                {option?.label}
+                                <button
+                                    type="button"
+                                    onClick={(e) => handleRemoveTag(val, e)}
+                                    className="hover:text-destructive"
+                                >
+                                    <CloseIcon size={12} />
+                                </button>
+                            </span>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+                <p className="text-sm text-destructive">{error}</p>
+            )}
+        </div>
+    );
+}
