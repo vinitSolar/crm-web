@@ -185,7 +185,7 @@ export const GET_CUSTOMERS = gql`
 `;
 
 export const GET_CUSTOMERS_LIST = gql`
-    query Customers($page: Int, $limit: Int) {
+    query CustomersList($page: Int, $limit: Int) {
         customers(page: $page, limit: $limit) {
             data {
                 id
