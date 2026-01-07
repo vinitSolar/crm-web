@@ -302,7 +302,7 @@ export const OfferAccessPage = () => {
     const canSign = (directDebitOptIn ? isDirectDebitValid() : true) && isPhoneVerified;
 
     // Check if signature section is complete for enabling save button
-    const isSignatureComplete = mode === 'type' ? typed.trim().length > 0 : true; // For pad, we rely on user action or could use pad's isEmpty() if reliable. User said check pad ref.
+    // const isSignatureComplete = mode === 'type' ? typed.trim().length > 0 : true;
 
     // Better check for pad empty on every change? SignaturePad doesn't trigger react render on draw.
     // We might need a manual trigger or just assume if they clicked 'Draw' they might draw. 
@@ -630,7 +630,7 @@ export const OfferAccessPage = () => {
                                                         name="accountType"
                                                         value="business"
                                                         checked={ddDetails.accountType === 'business'}
-                                                        onChange={(e) => setDdDetails({ ...ddDetails, accountType: 'business' })}
+                                                        onChange={() => setDdDetails({ ...ddDetails, accountType: 'business' })}
                                                         className="text-neutral-900 focus:ring-neutral-900 border-gray-300"
                                                     />
                                                     <span className="text-sm text-gray-600">Business account</span>
@@ -641,7 +641,7 @@ export const OfferAccessPage = () => {
                                                         name="accountType"
                                                         value="personal"
                                                         checked={ddDetails.accountType === 'personal'}
-                                                        onChange={(e) => setDdDetails({ ...ddDetails, accountType: 'personal' })}
+                                                        onChange={() => setDdDetails({ ...ddDetails, accountType: 'personal' })}
                                                         className="text-neutral-900 focus:ring-neutral-900 border-gray-300"
                                                     />
                                                     <span className="text-sm text-gray-600">Personal account</span>
@@ -887,6 +887,9 @@ export const OfferAccessPage = () => {
                                 <button
                                     className={`px-2 py-1 rounded-full ${mode === 'pad' ? 'bg-black text-white' : 'bg-neutral-100'
                                         }`}
+                                    onPointerDown={() => {
+                                        // Start drawing
+                                    }}
                                     onClick={() => {
                                         setMode('pad')
                                         setTyped('')

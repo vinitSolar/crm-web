@@ -74,7 +74,7 @@ const ToggleSwitch = ({ checked, onChange }: { checked: boolean, onChange: (chec
 // TYPES
 // ============================================================================
 
-import type { CustomerFormData, RatePlan, RateOffer } from '@/types';
+import type { CustomerFormData, RatePlan } from '@/types';
 
 // ============================================================================
 // CONSTANTS

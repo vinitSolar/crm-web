@@ -1,7 +1,7 @@
 // Customer GraphQL Queries
 
 import { gql } from '@apollo/client';
-import { CUSTOMER_BASIC_FIELDS, CUSTOMER_ADDRESS_FIELDS } from '../fragments';
+// import { CUSTOMER_BASIC_FIELDS, CUSTOMER_ADDRESS_FIELDS } from '../fragments';
 
 export const GET_CUSTOMERS = gql`
     query Customers($page: Int, $limit: Int) {
