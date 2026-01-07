@@ -415,7 +415,14 @@ export function CustomersPage() {
         // Only show actions column if user has at least one action permission
         ...(showActionsColumn ? [{
             key: 'actions' as const,
-            header: 'Actions',
+            header: (
+                <div className="flex flex-col gap-1 min-w-[100px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Actions</span>
+                    </div>
+                    <div className="h-7"></div>
+                </div>
+            ),
             width: 'w-[120px]',
             render: (row: Customer) => (
                 <div className="flex items-center gap-2">
@@ -456,14 +463,15 @@ export function CustomersPage() {
         {
             key: 'id',
             header: (
-                <div className="flex flex-col gap-2 min-w-[100px]">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground">ID</span>
+                <div className="flex flex-col gap-1 min-w-[90px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">ID</span>
+                    </div>
                     <Input
                         value={searchFilters.id}
                         onChange={(e) => handleSearchChange('id', e.target.value)}
                         placeholder="Search ID..."
-                        className="h-7 text-xs px-2"
-                        containerClassName="mb-1"
+                        className="h-7 text-xs"
                     />
                 </div>
             ),
@@ -485,14 +493,15 @@ export function CustomersPage() {
         {
             key: 'name',
             header: (
-                <div className="flex flex-col gap-2 min-w-[140px]">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground">Customer</span>
+                <div className="flex flex-col gap-1 min-w-[140px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Customer</span>
+                    </div>
                     <Input
                         value={searchFilters.name}
                         onChange={(e) => handleSearchChange('name', e.target.value)}
-                        placeholder="Search Name..."
-                        className="h-7 text-xs px-2"
-                        containerClassName="mb-1"
+                        placeholder="Search name..."
+                        className="h-7 text-xs"
                     />
                 </div>
             ),
@@ -502,14 +511,15 @@ export function CustomersPage() {
         {
             key: 'mobile',
             header: (
-                <div className="flex flex-col gap-2 min-w-[120px]">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground">Number</span>
+                <div className="flex flex-col gap-1 min-w-[110px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Mobile</span>
+                    </div>
                     <Input
                         value={searchFilters.mobile}
                         onChange={(e) => handleSearchChange('mobile', e.target.value)}
-                        placeholder="Search No..."
-                        className="h-7 text-xs px-2"
-                        containerClassName="mb-1"
+                        placeholder="Search mobile..."
+                        className="h-7 text-xs"
                     />
                 </div>
             ),
@@ -518,14 +528,15 @@ export function CustomersPage() {
         {
             key: 'address',
             header: (
-                <div className="flex flex-col gap-2 min-w-[160px]">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground">Address</span>
+                <div className="flex flex-col gap-1 min-w-[160px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Address</span>
+                    </div>
                     <Input
                         value={searchFilters.address}
                         onChange={(e) => handleSearchChange('address', e.target.value)}
-                        placeholder="Search Addr..."
-                        className="h-7 text-xs px-2"
-                        containerClassName="mb-1"
+                        placeholder="Search address..."
+                        className="h-7 text-xs"
                     />
                 </div>
             ),
@@ -544,14 +555,15 @@ export function CustomersPage() {
         {
             key: 'tariff',
             header: (
-                <div className="flex flex-col gap-2 min-w-[100px]">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground">Tariff</span>
+                <div className="flex flex-col gap-1 min-w-[100px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Tariff</span>
+                    </div>
                     <Input
                         value={searchFilters.tariff}
                         onChange={(e) => handleSearchChange('tariff', e.target.value)}
-                        placeholder="Search..."
-                        className="h-7 text-xs px-2"
-                        containerClassName="mb-1"
+                        placeholder="Search tariff..."
+                        className="h-7 text-xs"
                     />
                 </div>
             ),
@@ -560,15 +572,16 @@ export function CustomersPage() {
         {
             key: 'dnsp',
             header: (
-                <div className="flex flex-col gap-2 min-w-[120px]">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground">DNSP</span>
+                <div className="flex flex-col gap-1 min-w-[120px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">DNSP</span>
+                    </div>
                     <Select
                         options={[{ value: '', label: 'All DNSPs' }, ...DNSP_OPTIONS]}
                         value={searchFilters.dnsp}
                         onChange={(val) => handleSearchChange('dnsp', val as string)}
-                        placeholder="Select DNSP"
-                        containerClassName="mb-1"
-                        className="h-7 text-xs px-2"
+                        placeholder="All DNSPs"
+                        className="h-7 text-xs"
                     />
                 </div>
             ),
@@ -577,33 +590,34 @@ export function CustomersPage() {
         {
             key: 'discount',
             header: (
-                <div className="flex flex-col gap-2 min-w-[100px]">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground">Discount</span>
+                <div className="flex flex-col gap-1 min-w-[120px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Discount</span>
+                    </div>
                     <Select
-                        options={[{ value: '', label: 'All Discounts' }, ...DISCOUNT_OPTIONS]}
+                        options={[{ value: '', label: 'All discounts' }, ...DISCOUNT_OPTIONS]}
                         value={searchFilters.discount}
                         onChange={(val) => handleSearchChange('discount', val as string)}
-                        placeholder="Select Discount"
-                        containerClassName="mb-1"
-                        className="h-7 text-xs px-2"
+                        placeholder="All discounts"
+                        className="h-7 text-xs"
                     />
                 </div>
             ),
             render: (row) => <span className="text-foreground">{row.discount ? `${row.discount} %` : '0 %'}</span>,
         },
-
         {
             key: 'status',
             header: (
-                <div className="flex flex-col gap-2 min-w-[140px]">
-                    <span className="text-xs font-semibold uppercase text-muted-foreground">Status</span>
+                <div className="flex flex-col gap-1 min-w-[140px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Status</span>
+                    </div>
                     <Select
-                        options={[{ value: '', label: 'All Statuses' }, ...CUSTOMER_STATUS_OPTIONS]}
+                        options={[{ value: '', label: 'Select Status' }, ...CUSTOMER_STATUS_OPTIONS]}
                         value={searchFilters.status}
                         onChange={(val) => handleSearchChange('status', val as string)}
                         placeholder="Select Status"
-                        containerClassName="mb-1"
-                        className="h-7 text-xs px-2"
+                        className="h-7 text-xs"
                     />
                 </div>
             ),
@@ -619,25 +633,23 @@ export function CustomersPage() {
         {
             key: 'vppConnected',
             header: (
-                <div className="flex flex-col gap-2 min-w-[100px]">
+                <div className="flex flex-col gap-1 min-w-[140px]">
                     <div className='flex gap-2 items-center'>
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">VPP</span>
+                        <span className="text-xs font-semibold uppercase text-muted-foreground whitespace-nowrap">VPP</span>
                         <Select
-                            options={[{ value: '', label: 'All' }, ...VPP_OPTIONS]}
+                            options={[{ value: '', label: 'Select VPP' }, ...VPP_OPTIONS]}
                             value={searchFilters.vpp}
                             onChange={(val) => handleSearchChange('vpp', val as string)}
                             placeholder="Select VPP"
-                            containerClassName="mb-1"
-                            className="h-7 text-xs px-2"
+                            className="h-7 text-xs flex-1"
                         />
                     </div>
                     <Select
-                        options={[{ value: '', label: 'All' }, ...VPP_CONNECTED_OPTIONS]}
+                        options={[{ value: '', label: 'Select Connected' }, ...VPP_CONNECTED_OPTIONS]}
                         value={searchFilters.vppConnected}
                         onChange={(val) => handleSearchChange('vppConnected', val as string)}
                         placeholder="Select Connected"
-                        containerClassName="mb-1"
-                        className="h-7 text-xs px-2"
+                        className="h-7 text-xs"
                     />
                 </div>
             ),
@@ -659,15 +671,16 @@ export function CustomersPage() {
             {
                 key: 'utilmateStatus',
                 header: (
-                    <div className="flex flex-col gap-2 min-w-[120px]">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">Ultimate Status</span>
+                    <div className="flex flex-col gap-1 min-w-[120px]">
+                        <div className="h-7 flex items-center">
+                            <span className="text-xs font-semibold uppercase text-muted-foreground">Ultimate Status</span>
+                        </div>
                         <Select
                             options={[{ value: '', label: 'All' }, ...ULTIMATE_STATUS_OPTIONS]}
                             value={searchFilters.utilmateStatus}
                             onChange={(val) => handleSearchChange('utilmateStatus', val as string)}
-                            placeholder="Select Status"
-                            containerClassName="mb-1"
-                            className="h-7 text-xs px-2"
+                            placeholder="All"
+                            className="h-7 text-xs"
                         />
                     </div>
                 ),
@@ -688,15 +701,16 @@ export function CustomersPage() {
             {
                 key: 'msatConnected',
                 header: (
-                    <div className="flex flex-col gap-2 min-w-[120px]">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">MSAT Connected</span>
+                    <div className="flex flex-col gap-1 min-w-[120px]">
+                        <div className="h-7 flex items-center">
+                            <span className="text-xs font-semibold uppercase text-muted-foreground">MSAT Connected</span>
+                        </div>
                         <Select
                             options={[{ value: '', label: 'All' }, ...MSAT_CONNECTED_OPTIONS]}
                             value={searchFilters.msatConnected}
                             onChange={(val) => handleSearchChange('msatConnected', val as string)}
-                            placeholder="Select MSAT"
-                            containerClassName="mb-1"
-                            className="h-7 text-xs px-2"
+                            placeholder="All"
+                            className="h-7 text-xs"
                         />
                     </div>
                 ),

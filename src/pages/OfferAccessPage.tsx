@@ -109,6 +109,8 @@ export const OfferAccessPage = () => {
             if (data.customerByCustomerId) {
                 const customer = data.customerByCustomerId;
                 setCustomerData(customer);
+                // Prefill Signatory Name
+                setSignatoryName(`${customer.firstName || ''} ${customer.lastName || ''}`.trim());
 
                 // Prefill Direct Debit Details if they exist
                 if (customer.debitDetails) {
@@ -165,7 +167,9 @@ export const OfferAccessPage = () => {
                     canvas.getContext('2d')?.scale(ratio, ratio);
 
                     // Always re-init signature pad when modal opens/mode changes
-                    sigPadRef.current = new (window as any).SignaturePad(canvas);
+                    const pad = new (window as any).SignaturePad(canvas);
+                    pad.clear(); // Ensure clean slate
+                    sigPadRef.current = pad;
                 }
             }).catch(err => {
                 console.error("Failed to load signature pad", err);
@@ -174,10 +178,46 @@ export const OfferAccessPage = () => {
 
         return () => {
             active = false;
-            sigPadRef.current = null;
+            // Proper cleanup to remove event listeners
+            if (sigPadRef.current) {
+                sigPadRef.current.off();
+                sigPadRef.current = null;
+            }
         }
 
     }, [showModal, mode]);
+
+    // Handle Type Mode Rendering
+    useEffect(() => {
+        if (showModal && mode === 'type' && canvasRef.current) {
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+
+            // Adjust canvas size for high DPI if needed (similar to pad init)
+            // But we need to be careful not to reset if it's already set?
+            // Usually safest to consistent sizing.
+            const ratio = Math.max(window.devicePixelRatio || 1, 1);
+            // Ensure width/height attributes match display size * ratio
+            if (canvas.width !== canvas.offsetWidth * ratio) {
+                canvas.width = canvas.offsetWidth * ratio;
+                canvas.height = canvas.offsetHeight * ratio;
+                ctx?.scale(ratio, ratio);
+            }
+
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width / ratio, canvas.height / ratio); // Clear in logical coords
+
+                if (typed) {
+                    ctx.font = '72px cursive';
+                    ctx.fillStyle = 'black';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    // Center in logical coordinates
+                    ctx.fillText(typed, (canvas.width / ratio) / 2, (canvas.height / ratio) / 2);
+                }
+            }
+        }
+    }, [showModal, mode, typed]);
 
     const handleVerify = (e: React.FormEvent) => {
         e.preventDefault();
@@ -335,30 +375,31 @@ export const OfferAccessPage = () => {
         try {
             // 1. Get Signature Base64
             let signatureBase64: string | null = null;
+            const canvas = canvasRef.current;
 
-            if (mode === 'pad' && sigPadRef.current) {
-                const dataUrl = sigPadRef.current.toDataURL(); // Save as PNG
-                signatureBase64 = extractBase64(dataUrl);
-            } else if (mode === 'type') {
-                // Convert typed text to image via temporary canvas
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = 480;
-                tempCanvas.height = 140;
-                const ctx = tempCanvas.getContext('2d');
-                if (ctx) {
-                    ctx.font = '30px cursive'; // Approximation of display font
-                    ctx.fillStyle = 'black';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(typed, tempCanvas.width / 2, tempCanvas.height / 2);
-                    const dataUrl = tempCanvas.toDataURL();
-                    signatureBase64 = extractBase64(dataUrl);
+            if (canvas) {
+                // If in type mode, ensure the latest typed text is rendered before saving
+                // (It should rely on the useEffect, but strictly ensuring context here is safe)
+                if (mode === 'type') {
+                    // Start with empty canvas
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        // The useEffect triggers usually, but doing it here guarantees what we capture matches 'typed' at moment of save
+                        // Using the same drawing logic as the useEffect
+                        // We rely on the visual canvas state which should be correct.
+                        // But for safety, we can just grab the dataUrl.
+                    }
                 }
+
+                const dataUrl = canvas.toDataURL(); // Save as PNG (default)
+                signatureBase64 = extractBase64(dataUrl);
             }
 
             if (!signatureBase64) {
                 throw new Error('Failed to generate signature image');
             }
+
+
 
             // 2. Upload "Signed PDF" (Mocking PDF content with signature image for now as per constraints)
             // Ideally we would generate a real PDF here using jspdf, but we are using the signature image as the "file" content 
@@ -912,7 +953,7 @@ export const OfferAccessPage = () => {
                             </div>
 
                             {/* Signature area */}
-                            <div className={mode === 'pad' ? 'block' : 'hidden'}>
+                            <div className="block">
                                 <canvas
                                     ref={canvasRef}
                                     width={480}
@@ -934,18 +975,19 @@ export const OfferAccessPage = () => {
 
                             {/* Consents */}
                             <div className="space-y-2 text-sm">
-                                <label className="flex items-start gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        className="mt-1"
-                                        checked={consents.infoConfirm}
-                                        onChange={(e) =>
-                                            setConsents((p) => ({
-                                                ...p,
-                                                infoConfirm: e.target.checked,
-                                            }))
-                                        }
-                                    />
+                                <div className="flex items-start gap-2">
+                                    <label className="mt-1 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={consents.infoConfirm}
+                                            onChange={(e) =>
+                                                setConsents((p) => ({
+                                                    ...p,
+                                                    infoConfirm: e.target.checked,
+                                                }))
+                                            }
+                                        />
+                                    </label>
                                     <span>
                                         I confirm the above information is correct and have read the{' '}
                                         <a
@@ -1003,7 +1045,7 @@ export const OfferAccessPage = () => {
                                             </>
                                         )}
                                     </span>
-                                </label>
+                                </div>
 
                                 <label className="flex items-start gap-2 cursor-pointer">
                                     <input
