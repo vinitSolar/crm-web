@@ -13,6 +13,7 @@ export * from './queries/menus';
 export * from './queries/permissions';
 export * from './queries/userPermissions';
 export * from './queries/auditLogs';
+export * from './queries/dashboard';
 
 // Mutations
 export * from './mutations/auth';

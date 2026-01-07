@@ -57,13 +57,12 @@ interface SidebarProps {
 interface SidebarNavItemProps {
     children: React.ReactNode;
     title: string;
-    to: string;
     isActive: boolean;
     isOpen: boolean;
     isChild?: boolean;
 }
 
-function SidebarNavItem({ children, title, to, isActive, isOpen, isChild }: SidebarNavItemProps) {
+function SidebarNavItem({ children, title, isActive, isOpen, isChild }: SidebarNavItemProps) {
     const baseClasses = "flex items-center rounded-md font-medium transition-colors";
     const activeClasses = "bg-[hsla(82,100%,87%,1)] text-[hsla(82,67%,33%,1)]";
     const inactiveClasses = "text-muted-foreground hover:bg-accent hover:text-accent-foreground";
@@ -72,8 +71,7 @@ function SidebarNavItem({ children, title, to, isActive, isOpen, isChild }: Side
 
     if (isOpen) {
         return (
-            <NavLink
-                to={to}
+            <div
                 className={cn(
                     baseClasses,
                     "gap-3 text-sm",
@@ -82,14 +80,13 @@ function SidebarNavItem({ children, title, to, isActive, isOpen, isChild }: Side
                 )}
             >
                 {children}
-            </NavLink>
+            </div>
         );
     }
 
     return (
         <Tooltip content={title} position="right">
-            <NavLink
-                to={to}
+            <div
                 className={cn(
                     baseClasses,
                     "justify-center p-2 w-10 h-10",
@@ -97,7 +94,7 @@ function SidebarNavItem({ children, title, to, isActive, isOpen, isChild }: Side
                 )}
             >
                 {children}
-            </NavLink>
+            </div>
         </Tooltip>
     );
 }
@@ -212,7 +209,7 @@ export function Sidebar({ className, isOpen = true, toggle }: SidebarProps) {
                     end
                 >
                     {({ isActive }) => (
-                        <SidebarNavItem title="Dashboard" to="/" isActive={isActive} isOpen={isOpen || false}>
+                        <SidebarNavItem title="Dashboard" isActive={isActive} isOpen={isOpen || false}>
                             <DashboardIcon
                                 className={cn(
                                     "transition-all shrink-0",
@@ -240,7 +237,7 @@ export function Sidebar({ className, isOpen = true, toggle }: SidebarProps) {
                                 to={path}
                             >
                                 {({ isActive }) => (
-                                    <SidebarNavItem title={menu.menuName} to={path} isActive={isActive} isOpen={isOpen || false}>
+                                    <SidebarNavItem title={menu.menuName} isActive={isActive} isOpen={isOpen || false}>
                                         {IconComponent && (
                                             <IconComponent
                                                 size={isOpen ? 18 : 20}
@@ -388,7 +385,6 @@ export function Sidebar({ className, isOpen = true, toggle }: SidebarProps) {
                                                 {({ isActive }) => (
                                                     <SidebarNavItem
                                                         title={child.menuName}
-                                                        to={childPath}
                                                         isActive={isActive}
                                                         isOpen={isOpen}
                                                         isChild
