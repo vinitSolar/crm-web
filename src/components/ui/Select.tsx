@@ -49,6 +49,9 @@ export function Select({
     const dropdownRef = React.useRef<HTMLDivElement>(null);
 
 
+    const [focusedIndex, setFocusedIndex] = React.useState(-1);
+    const listRef = React.useRef<HTMLUListElement>(null);
+
     // Normalize value to array for easier handling
     const selectedValues = React.useMemo(() => {
         if (!value) return [];
@@ -62,6 +65,31 @@ export function Select({
             option.label.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [options, searchQuery]);
+
+    // Reset focused index when options change or search query changes
+    React.useEffect(() => {
+        setFocusedIndex(filteredOptions.length > 0 ? 0 : -1);
+    }, [filteredOptions.length, searchQuery]);
+
+    // Scroll focused item into view
+    React.useEffect(() => {
+        if (isOpen && focusedIndex >= 0 && listRef.current) {
+            const list = listRef.current;
+            const element = list.children[focusedIndex] as HTMLElement;
+            if (element) {
+                const listTop = list.scrollTop;
+                const listBottom = listTop + list.clientHeight;
+                const elementTop = element.offsetTop;
+                const elementBottom = elementTop + element.clientHeight;
+
+                if (elementTop < listTop) {
+                    list.scrollTop = elementTop;
+                } else if (elementBottom > listBottom) {
+                    list.scrollTop = elementBottom - list.clientHeight;
+                }
+            }
+        }
+    }, [focusedIndex, isOpen]);
 
     // Get display label for selected values
     const displayLabel = React.useMemo(() => {
@@ -111,6 +139,36 @@ export function Select({
                 return;
             }
 
+            // Handle ArrowDown
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                setFocusedIndex(prev =>
+                    filteredOptions.length > 0 ? (prev + 1) % filteredOptions.length : -1
+                );
+                return;
+            }
+
+            // Handle ArrowUp
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                setFocusedIndex(prev =>
+                    filteredOptions.length > 0 ? (prev - 1 + filteredOptions.length) % filteredOptions.length : -1
+                );
+                return;
+            }
+
+            // Handle Enter
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                if (focusedIndex >= 0 && focusedIndex < filteredOptions.length) {
+                    const option = filteredOptions[focusedIndex];
+                    if (!option.disabled) {
+                        handleSelect(option.value);
+                    }
+                }
+                return;
+            }
+
             // Only handle printable characters
             if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
                 setSearchQuery(prev => prev + event.key);
@@ -119,8 +177,7 @@ export function Select({
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen]);
-
+    }, [isOpen, focusedIndex, filteredOptions]); // Added focusedIndex and filteredOptions dependencies logic inside
 
 
     const handleToggle = () => {
@@ -128,6 +185,7 @@ export function Select({
             setIsOpen(!isOpen);
             if (!isOpen) {
                 setSearchQuery('');
+                setFocusedIndex(-1);
             }
         }
     };
@@ -240,14 +298,15 @@ export function Select({
                             )}
 
                             {/* Options List */}
-                            <ul className="overflow-auto max-h-48 py-1">
+                            <ul ref={listRef} className="overflow-auto max-h-48 py-1">
                                 {filteredOptions.length === 0 ? (
                                     <li className="px-3 py-2 text-sm text-muted-foreground text-center">
                                         No options found
                                     </li>
                                 ) : (
-                                    filteredOptions.map((option) => {
+                                    filteredOptions.map((option, index) => {
                                         const isSelected = selectedValues.includes(option.value);
+                                        const isFocused = index === focusedIndex;
                                         return (
                                             <li
                                                 key={option.value}
@@ -255,6 +314,7 @@ export function Select({
                                                 className={cn(
                                                     "flex items-center gap-2 px-3 py-2 text-sm cursor-pointer",
                                                     "hover:bg-accent hover:text-accent-foreground",
+                                                    isFocused && "bg-accent text-accent-foreground", // Focus style
                                                     isSelected && "bg-accent/50",
                                                     option.disabled && "opacity-50 cursor-not-allowed"
                                                 )}

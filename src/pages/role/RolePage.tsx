@@ -9,7 +9,7 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import { DataTable, type Column, Modal, StatusField } from '@/components/common';
 import { PlusIcon, PencilIcon, TrashIcon, RefreshCwIcon, ShieldCheckIcon } from '@/components/icons';
 import { GET_ROLES, CREATE_ROLE, UPDATE_ROLE, SOFT_DELETE_ROLE, RESTORE_ROLE } from '@/graphql';
-import { formatDate } from '@/lib/utils';
+import { formatDateTime } from '@/lib/date';
 import { RolePermissionsModal } from '@/components/roles/RolePermissionsModal';
 import { useAuthStore } from '@/stores/useAuthStore';
 
@@ -399,7 +399,7 @@ export function RolePage() {
             key: 'createdAt',
             header: 'Created On',
             width: 'w-[150px]',
-            render: (role) => <span className="text-muted-foreground">{formatDate(role.createdAt)}</span>
+            render: (role) => <span className="text-muted-foreground">{formatDateTime(role.createdAt)}</span>
         },
         // Access Control column - only show if user has edit permissions
         ...(canEdit ? [{

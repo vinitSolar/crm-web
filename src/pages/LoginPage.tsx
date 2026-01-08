@@ -27,6 +27,7 @@ interface LoginInput {
 export function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [formErrors, setFormErrors] = useState({ email: '', password: '' });
 
     const login = useAuthStore((state) => state.login);
     const navigate = useNavigate();
@@ -49,16 +50,74 @@ export function LoginPage() {
             await login(accessToken, refreshToken);
             navigate(from, { replace: true });
         },
-        onError: (err) => {
-            toast.error(err.message || 'Invalid email or password');
+        onError: (err: any) => {
+
+            let errorMessage = '';
+
+            // 1. Check direct GraphQLErrors
+            if (err.graphQLErrors && err.graphQLErrors.length > 0) {
+                errorMessage = err.graphQLErrors[0].message;
+            }
+
+            // 2. Check Network Error details
+            if (!errorMessage && err.networkError) {
+                const netErr = err.networkError as any;
+
+                // Check for Apollo 'result' property (ServerParseError or similar)
+                if (netErr.result && netErr.result.errors && Array.isArray(netErr.result.errors) && netErr.result.errors.length > 0) {
+                    errorMessage = netErr.result.errors[0].message;
+                }
+
+                // Check for Axios 'response' data (if using axios-based link)
+                else if (netErr.response && netErr.response.data && netErr.response.data.errors && netErr.response.data.errors.length > 0) {
+                    errorMessage = netErr.response.data.errors[0].message;
+                }
+
+                // Handle 401 specifically if no message found yet
+                else if (netErr.statusCode === 401 || netErr.status === 401 || netErr.response?.status === 401) {
+                    errorMessage = 'Invalid email or password';
+                }
+            }
+
+            // 3. Fallback
+            if (!errorMessage) {
+                // If the error message is just technical "Request failed...", show generic
+                if (err.message && err.message.includes('Request failed with status code')) {
+                    errorMessage = 'Invalid email or password';
+                } else {
+                    errorMessage = err.message || 'Invalid email or password';
+                }
+            }
+
+            toast.error(errorMessage);
         },
     });
+
+    const validateForm = () => {
+        let isValid = true;
+        const errors = { email: '', password: '' };
+
+        if (!email) {
+            errors.email = 'Email is required';
+            isValid = false;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            errors.email = 'Please enter a valid email address';
+            isValid = false;
+        }
+
+        if (!password) {
+            errors.password = 'Password is required';
+            isValid = false;
+        }
+
+        setFormErrors(errors);
+        return isValid;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!email || !password) {
-            toast.error('Please enter email and password');
+        if (!validateForm()) {
             return;
         }
 
@@ -98,7 +157,11 @@ export function LoginPage() {
                             type="email"
                             placeholder="Enter your email"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            onChange={(e) => {
+                                setEmail(e.target.value);
+                                if (formErrors.email) setFormErrors(prev => ({ ...prev, email: '' }));
+                            }}
+                            error={formErrors.email}
                             required
                         />
 
@@ -108,7 +171,11 @@ export function LoginPage() {
                             type="password"
                             placeholder="Enter your password"
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            onChange={(e) => {
+                                setPassword(e.target.value);
+                                if (formErrors.password) setFormErrors(prev => ({ ...prev, password: '' }));
+                            }}
+                            error={formErrors.password}
                             required
                         />
                         <Button

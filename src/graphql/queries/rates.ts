@@ -71,11 +71,13 @@ export const GET_RATES_HISTORY = gql`
             data {
             id
             uid
+            version
             ratePlanUid
             auditAction
             createdAt
             createdBy
             createdByName
+            activeVersion
         }
             meta {
             totalRecords
@@ -95,4 +97,38 @@ export const GET_HISTORY_DETAILS = gql`
         oldRecord
     }
 }
+`;
+
+export const GET_ACTIVE_RATES_HISTORY = gql`
+    query GlobalActiveRatesHistory {
+        globalActiveRatesHistory {
+            uid
+            version
+            newRecord
+            activeVersion
+            createdAt
+            createdByName
+        }
+    }
+`;
+
+export const HAS_RATES_CHANGES = gql`
+    query HasRatesChanges {
+        hasRatesChanges {
+            hasChanges
+            changedRatePlanUids
+        }
+    }
+`;
+
+export const GET_RATES_HISTORY_BY_VERSION = gql`
+    query RatesHistoryByVersion($version: String!) {
+        ratesHistoryByVersion(version: $version) {
+            uid
+            version
+            newRecord
+            activeVersion
+            createdAt
+        }
+    }
 `;

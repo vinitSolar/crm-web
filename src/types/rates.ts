@@ -33,4 +33,5 @@ export interface RatePlan {
     discountApplies: number;
     discountPercentage: number;
     offers?: RateOffer[];
+    isDeleted?: boolean;
 }

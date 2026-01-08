@@ -10,7 +10,7 @@ import { DataTable, type Column, Modal } from '@/components/common';
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, EyeOffIcon, CopyIcon, RefreshCwIcon } from '@/components/icons';
 import { UserPermissionsModal } from '@/components/users/UserPermissionsModal';
 import { GET_USERS, UPDATE_USER, SOFT_DELETE_USER, RESTORE_USER, GET_ROLES, CREATE_USER } from '@/graphql';
-import { formatDate } from '@/lib/utils';
+import { formatDateTime } from '@/lib/date';
 import { StatusField } from '@/components/common';
 
 // Types
@@ -490,7 +490,7 @@ export function UsersPage() {
             key: 'createdAt',
             header: 'Created on',
             width: 'w-[150px]',
-            render: (user) => <span className="text-muted-foreground">{formatDate(user.createdAt)}</span>,
+            render: (user) => <span className="text-muted-foreground">{formatDateTime(user.createdAt)}</span>,
         },
     ];
 

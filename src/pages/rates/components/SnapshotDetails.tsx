@@ -36,12 +36,12 @@ export const SnapshotDetails = ({ uid }: SnapshotDetailsProps) => {
 
     return (
         <div className="rounded-lg border border-purple-200 bg-white p-4">
-            <h4 className="text-sm font-semibold text-purple-900 mb-2">
+            <h4 className="text-sm font-semibold text-purple-900 mb-3">
                 Captured {Array.isArray(snapshotData) ? snapshotData.length : 0} Rate Plans
             </h4>
 
             {Array.isArray(snapshotData) && snapshotData.length > 0 && (
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
                     {snapshotData.map((plan: any, idx: number) => (
                         <div key={idx} className="border border-gray-200 rounded-lg p-3 bg-gray-50 text-xs">
                             {/* Plan Header */}

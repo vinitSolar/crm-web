@@ -76,3 +76,21 @@ export const CREATE_RATES_SNAPSHOT = gql`
     }
 }
 `;
+
+export const SET_ACTIVE_RATES_VERSION = gql`
+    mutation SetActiveRatesVersion($uid: String!) {
+        setActiveRatesVersion(uid: $uid) {
+            uid
+            version
+            activeVersion
+            createdAt
+            createdByName
+        }
+    }
+`;
+
+export const RESTORE_RATES_SNAPSHOT = gql`
+    mutation RestoreRatesSnapshot($historyUid: String!) {
+        restoreRatesSnapshot(historyUid: $historyUid)
+    }
+`;

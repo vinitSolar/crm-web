@@ -1,20 +1,18 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-
 import { DataTable, type Column, Modal } from '@/components/common';
-import { PlusIcon, FilterIcon, RefreshCwIcon, TrashIcon, PencilIcon, ClockIcon, SaveIcon } from '@/components/icons';
-import { GET_RATE_PLANS, GET_RATES_HISTORY } from '@/graphql/queries/rates';
+import { PlusIcon, FilterIcon, RefreshCwIcon, TrashIcon, PencilIcon, SaveIcon, ClockIcon } from '@/components/icons';
+import { GET_RATE_PLANS, HAS_RATES_CHANGES } from '@/graphql/queries/rates';
 import { CREATE_RATE_PLAN, UPDATE_RATE_PLAN, SOFT_DELETE_RATE_PLAN, RESTORE_RATE_PLAN, CREATE_RATES_SNAPSHOT } from '@/graphql/mutations/rates';
-import { formatDate } from '@/lib/utils';
-
+import { formatDateTime } from '@/lib/date';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { StatusField } from '@/components/common';
 import { STATE_OPTIONS, DNSP_OPTIONS } from '@/lib/constants';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { SnapshotDetails } from './components/SnapshotDetails';
+import { RatesHistoryModal } from './components/RatesHistoryModal';
 
 // Interfaces based on the query
 interface RateOffer {
@@ -157,9 +155,8 @@ export function RatesPage() {
                 }
             });
             toast.success('System snapshot created successfully');
-            if (historyModalOpen) {
-                fetchHistory({ variables: { page: 1, limit: 20 } });
-            }
+            // Refetch to update Save button state
+            setTimeout(() => refetchChanges?.(), 500);
         } catch (error) {
             console.error('Failed to create snapshot:', error);
             toast.error('Failed to create snapshot');
@@ -168,20 +165,9 @@ export function RatesPage() {
 
     // History state
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
-    const [historyPage, setHistoryPage] = useState(1);
-    const [fetchHistory, { data: historyData, loading: historyLoading }] = useLazyQuery(GET_RATES_HISTORY, {
-        fetchPolicy: 'network-only',
-    });
 
     const handleOpenHistory = () => {
-        setHistoryPage(1);
-        fetchHistory({ variables: { page: 1, limit: 20 } });
         setHistoryModalOpen(true);
-    };
-
-    const handleHistoryPageChange = (newPage: number) => {
-        setHistoryPage(newPage);
-        fetchHistory({ variables: { page: newPage, limit: 20 } });
     };
 
     // Debounce search code
@@ -210,6 +196,14 @@ export function RatesPage() {
 
     const meta = data?.ratePlans?.meta;
     const hasMore = meta ? page < meta.totalPages : false;
+
+    // Check if current rates have changes compared to active version (backend comparison)
+    const { data: changesData, refetch: refetchChanges } = useQuery(HAS_RATES_CHANGES, {
+        fetchPolicy: 'network-only',
+    });
+
+    const hasUnsavedChanges = changesData?.hasRatesChanges?.hasChanges ?? true;
+    const changedRatePlanUids = new Set(changesData?.hasRatesChanges?.changedRatePlanUids || []);
 
     // Update allRatePlans when data changes
     useEffect(() => {
@@ -316,6 +310,8 @@ export function RatesPage() {
             // Refresh the list
             setAllRatePlans([]);
             setPage(1);
+            refetch(); // Actually reload the data
+            refetchChanges?.(); // Update Save button state
         } catch (err: any) {
             console.error('Failed to create rate plan:', err);
             toast.error(err.message || 'Failed to create rate plan');
@@ -421,6 +417,7 @@ export function RatesPage() {
             setAllRatePlans([]);
             setPage(1);
             refetch(); // Force refresh the list
+            refetchChanges?.(); // Update Save button state
         } catch (err: any) {
             console.error('Failed to update rate plan:', err);
             toast.error(err.message || 'Failed to update rate plan');
@@ -454,6 +451,7 @@ export function RatesPage() {
             );
             setDeleteModalOpen(false);
             setRatePlanToDelete(null);
+            refetchChanges?.(); // Update Save button state
         } catch (err: any) {
             console.error('Failed to delete rate plan:', err);
             toast.error(err.message || 'Failed to delete rate plan');
@@ -481,6 +479,7 @@ export function RatesPage() {
             );
             setRestoreModalOpen(false);
             setRatePlanToRestore(null);
+            refetchChanges?.(); // Update Save button state
         } catch (err: any) {
             console.error('Failed to restore rate plan:', err);
             toast.error(err.message || 'Failed to restore rate plan');
@@ -729,7 +728,7 @@ export function RatesPage() {
             key: 'updatedAt',
             header: 'Updated',
             width: 'w-[150px]',
-            render: (row: RatePlan) => <span className="text-muted-foreground">{formatDate(row.updatedAt)}</span>,
+            render: (row: RatePlan) => <span className="text-muted-foreground">{formatDateTime(row.updatedAt)}</span>,
         }
     ].filter(col => col.key !== 'actions' || (canEdit || canDelete)), [handleEditRate, handleDeleteClick, handleRestoreClick, canEdit, canDelete]);
 
@@ -758,7 +757,7 @@ export function RatesPage() {
                                 leftIcon={<ClockIcon size={16} />}
                                 onClick={handleOpenHistory}
                             >
-                                History
+                                Versions
                             </Button>
                         </>
                     )}
@@ -832,14 +831,31 @@ export function RatesPage() {
                             </button>
                         </div>
                         <div>
-                            <Tooltip content="Save version">
+                            <Tooltip content={hasUnsavedChanges ? "Unsaved changes - Click to save version" : "All changes saved"}>
                                 <Button
-                                    variant="outline"
+                                    variant={hasUnsavedChanges ? "default" : "outline"}
                                     onClick={handleCreateSnapshot}
                                     isLoading={isSnapshotting}
-                                    className="px-3 border-blue-500 text-blue-500 hover:bg-blue-50 hover:text-blue-900 hover:border-blue-500"
+                                    disabled={!hasUnsavedChanges || isSnapshotting}
+                                    className={`px-4 gap-2 transition-all duration-300 ${hasUnsavedChanges
+                                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg border-0'
+                                        : 'border-green-300 bg-green-50 text-green-600 cursor-default'}`}
                                 >
-                                    {!isSnapshotting && <SaveIcon size={16} />}
+                                    {!isSnapshotting && (
+                                        hasUnsavedChanges ? (
+                                            <>
+                                                <SaveIcon size={16} />
+                                                <span className="text-sm font-medium">Save</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="20 6 9 17 4 12" />
+                                                </svg>
+                                                <span className="text-sm font-medium">Saved</span>
+                                            </>
+                                        )
+                                    )}
                                 </Button>
                             </Tooltip>
                         </div>
@@ -862,6 +878,7 @@ export function RatesPage() {
                     hasMore={hasMore}
                     isLoadingMore={isLoadingMore}
                     onLoadMore={handleLoadMore}
+                    rowClassName={(row) => changedRatePlanUids.has(row.uid) ? '[&>td]:!bg-orange-100 font-medium' : ''}
                 />
             </div>
 
@@ -1694,132 +1711,16 @@ export function RatesPage() {
             </Modal>
 
             {/* History Modal */}
-            <Modal
+            <RatesHistoryModal
                 isOpen={historyModalOpen}
                 onClose={() => setHistoryModalOpen(false)}
-                title="System Snapshots"
-                size="full"
-            >
-                <div className="space-y-6">
-                    {/* Header Stats */}
-                    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border border-primary/20">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                <ClockIcon size={20} className="text-primary" />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-semibold text-foreground">Change History</h3>
-                                <p className="text-xs text-muted-foreground">
-                                    {historyData?.ratesHistory?.meta?.totalRecords || 0} total changes recorded
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            {historyData?.ratesHistory?.meta && historyData.ratesHistory.meta.totalPages > 1 && (
-                                <div className="flex items-center gap-2 mr-2">
-                                    <button
-                                        onClick={() => handleHistoryPageChange(historyPage - 1)}
-                                        disabled={historyPage <= 1}
-                                        className="p-2 rounded-lg border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                        </svg>
-                                    </button>
-                                    <span className="text-sm font-medium px-3 py-1 bg-muted rounded-lg">
-                                        {historyPage} / {historyData.ratesHistory.meta.totalPages}
-                                    </span>
-                                    <button
-                                        onClick={() => handleHistoryPageChange(historyPage + 1)}
-                                        disabled={historyPage >= historyData.ratesHistory.meta.totalPages}
-                                        className="p-2 rounded-lg border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {historyLoading ? (
-                        <div className="flex flex-col items-center justify-center py-16 gap-4">
-                            <div className="relative">
-                                <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin"></div>
-                            </div>
-                            <p className="text-sm text-muted-foreground">Loading history...</p>
-                        </div>
-                    ) : (
-                        <div className="relative">
-                            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-                                {historyData?.ratesHistory?.data?.map((record: any, index: number) => {
-                                    const actionStyles = {
-                                        SNAPSHOT: { bg: 'bg-purple-500', icon: '📸', label: 'Snapshot', border: 'border-purple-200', lightBg: 'bg-purple-50' }
-                                    };
-                                    const actionKey = (record.auditAction || 'SNAPSHOT') as keyof typeof actionStyles;
-                                    const actionConfig = actionStyles[actionKey] || { bg: 'bg-gray-500', icon: '?', label: record.auditAction, border: 'border-gray-200', lightBg: 'bg-gray-50' };
-
-                                    return (
-                                        <div key={record.uid} className="relative flex gap-4">
-                                            {/* Card */}
-                                            <div className={`flex-1 p-4 rounded-xl border ${actionConfig.border} ${actionConfig.lightBg} shadow-sm hover:shadow-md transition-shadow`}>
-                                                <div className="flex items-start justify-between gap-4 mb-3">
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${actionConfig.bg} text-white`}>
-                                                                {actionConfig.label}
-                                                            </span>
-                                                            <span className="text-xs text-muted-foreground">
-                                                                #{historyData?.ratesHistory?.meta?.totalRecords - ((historyPage - 1) * 20 + index)}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-sm font-medium text-foreground">
-                                                            System Snapshot
-                                                        </p>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-xs font-medium text-foreground">{formatDate(record.createdAt)}</p>
-                                                        {(record.createdByName || record.createdBy) && (
-                                                            <p className="text-xs text-muted-foreground">by {record.createdByName || record.createdBy}</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <details className="group">
-                                                    <summary className="cursor-pointer flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors">
-                                                        <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                        </svg>
-                                                        View Snapshot Data
-                                                    </summary>
-                                                    <div className="mt-3">
-                                                        <SnapshotDetails uid={record.uid} />
-                                                    </div>
-
-                                                </details>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-
-                                {(!historyData?.ratesHistory?.data || historyData?.ratesHistory?.data?.length === 0) && (
-                                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                                            <ClockIcon size={32} className="text-muted-foreground" />
-                                        </div>
-                                        <h3 className="text-lg font-semibold text-foreground mb-1">No History Yet</h3>
-                                        <p className="text-sm text-muted-foreground max-w-sm">
-                                            Changes to rate plans will appear here as a timeline of events.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )
-                    }
-                </div >
-            </Modal >
+                refetchChanges={() => refetchChanges()}
+                refetchRatePlans={() => {
+                    setAllRatePlans([]);
+                    setPage(1);
+                    refetch();
+                }}
+            />
         </div >
     );
 }

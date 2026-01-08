@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, type ReactNode } from 'react';
+import { useRef, useEffect, useCallback, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 // ============================================================
@@ -47,6 +47,8 @@ export interface DataTableProps<T> {
     maxHeightClass?: string;
     /** Custom class for wrapper */
     className?: string;
+    /** Function to get custom class names for a row */
+    rowClassName?: (row: T) => string;
 }
 
 // ============================================================
@@ -67,15 +69,23 @@ export function DataTable<T>({
     onLoadMore,
     maxHeightClass = 'max-h-[calc(100vh-270px)]',
     className,
+    rowClassName,
 }: DataTableProps<T>) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const colSpan = columns.length;
+    const [isScrolledHorizontally, setIsScrolledHorizontally] = useState(false);
 
-    // Handle scroll to load more
+    // Handle scroll to load more and track horizontal scroll
     const handleScroll = useCallback(() => {
-        if (!infiniteScroll || !onLoadMore) return;
         const container = scrollContainerRef.current;
-        if (!container || loading || isLoadingMore || !hasMore) return;
+        if (!container) return;
+
+        // Track horizontal scroll for sticky column shadow
+        setIsScrolledHorizontally(container.scrollLeft > 0);
+
+        // Infinite scroll logic
+        if (!infiniteScroll || !onLoadMore) return;
+        if (loading || isLoadingMore || !hasMore) return;
 
         const { scrollTop, scrollHeight, clientHeight } = container;
         const scrollThreshold = 100;
@@ -87,14 +97,12 @@ export function DataTable<T>({
 
     // Attach scroll listener
     useEffect(() => {
-        if (!infiniteScroll) return;
         const container = scrollContainerRef.current;
         if (container) {
             container.addEventListener('scroll', handleScroll, { passive: true });
-            // Don't call handleScroll initially - only on actual scroll
             return () => container.removeEventListener('scroll', handleScroll);
         }
-    }, [handleScroll, infiniteScroll]);
+    }, [handleScroll]);
 
     return (
         <div className={cn('overflow-hidden rounded-md', className)}>
@@ -105,8 +113,10 @@ export function DataTable<T>({
                 <table className="w-full relative border-separate border-spacing-0">
                     <thead className="sticky top-0 z-20 bg-background">
                         <tr className="border-b border-border shadow-sm">
-                            {columns.map((col) => {
+                            {columns.map((col, colIndex) => {
                                 const isSticky = col.sticky === true || col.sticky === 'left';
+                                // Find if this is the last sticky column
+                                const isLastSticky = isSticky && !columns.slice(colIndex + 1).some(c => c.sticky === true || c.sticky === 'left');
                                 const stickyStyles: React.CSSProperties = isSticky ? {
                                     position: 'sticky',
                                     left: col.stickyOffset ?? 0,
@@ -119,7 +129,7 @@ export function DataTable<T>({
                                         className={cn(
                                             'px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider bg-background border-b border-border align-top',
                                             col.width,
-                                            isSticky && "shadow-[1px_0_0_0_rgba(0,0,0,0.05)]"
+                                            isLastSticky && isScrolledHorizontally && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
                                         )}
                                         style={stickyStyles}
                                     >
@@ -154,9 +164,17 @@ export function DataTable<T>({
                         ) : (
                             <>
                                 {data.map((row, rowIndex) => (
-                                    <tr key={rowKey(row)} className="hover:bg-muted/50 group">
-                                        {columns.map((col) => {
+                                    <tr
+                                        key={rowKey(row)}
+                                        className={cn(
+                                            "bg-background hover:bg-muted/50 group",
+                                            rowClassName?.(row)
+                                        )}
+                                    >
+                                        {columns.map((col, colIndex) => {
                                             const isSticky = col.sticky === true || col.sticky === 'left';
+                                            // Find if this is the last sticky column
+                                            const isLastSticky = isSticky && !columns.slice(colIndex + 1).some(c => c.sticky === true || c.sticky === 'left');
                                             const stickyStyles: React.CSSProperties = isSticky ? {
                                                 position: 'sticky',
                                                 left: col.stickyOffset ?? 0,
@@ -167,8 +185,9 @@ export function DataTable<T>({
                                                 <td
                                                     key={col.key}
                                                     className={cn(
-                                                        "px-3 py-3 text-sm group-hover:bg-muted/50 transition-colors bg-background",
-                                                        isSticky && "shadow-[1px_0_0_0_rgba(0,0,0,0.05)]"
+                                                        "px-3 py-3 text-sm transition-colors",
+                                                        isSticky && "bg-white",
+                                                        isLastSticky && isScrolledHorizontally && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
                                                     )}
                                                     style={stickyStyles}
                                                 >
@@ -194,7 +213,7 @@ export function DataTable<T>({
                     </tbody>
                 </table>
             </div>
-        </div>
+        </div >
     );
 }
 
