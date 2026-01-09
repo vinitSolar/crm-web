@@ -10,7 +10,7 @@ export const CUSTOMER_BASIC_FIELDS = gql`
         firstName
         lastName
         email
-        phone
+        number
         status
         createdAt
         updatedAt
@@ -19,9 +19,9 @@ export const CUSTOMER_BASIC_FIELDS = gql`
 
 export const CUSTOMER_ADDRESS_FIELDS = gql`
     fragment CustomerAddressFields on CustomerAddress {
-        uid
-        street
-        city
+        id
+        streetName
+        suburb
         state
         postcode
         country

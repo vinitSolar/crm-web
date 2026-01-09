@@ -187,13 +187,20 @@ export function RolePage() {
             return;
         }
 
+        // Capitalize the role name (first letter of each word)
+        const capitalizedName = formData.name
+            .trim()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+
         setIsSubmitting(true);
         try {
             if (modalMode === 'create') {
                 const { data } = await createRole({
                     variables: {
                         input: {
-                            name: formData.name,
+                            name: capitalizedName,
                             description: formData.description,
                         }
                     }
@@ -207,7 +214,7 @@ export function RolePage() {
                     variables: {
                         uid: editingRole.uid,
                         input: {
-                            name: formData.name,
+                            name: capitalizedName,
                             description: formData.description,
                             isActive: formData.isActive
                         }

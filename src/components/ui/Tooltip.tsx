@@ -9,8 +9,8 @@ import { cn } from '@/lib/utils';
 export type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
 export interface TooltipProps {
-    /** Tooltip content */
-    content: string;
+    /** Tooltip content - when null/undefined, renders just children without tooltip */
+    content: string | null | undefined;
     /** Children to wrap */
     children: ReactNode;
     /** Tooltip position */
@@ -32,6 +32,7 @@ export function Tooltip({
     delay = 200,
     className,
 }: TooltipProps) {
+    // All hooks must be called unconditionally to comply with Rules of Hooks
     const [isVisible, setIsVisible] = useState(false);
     const [coords, setCoords] = useState({ top: 0, left: 0 });
     const triggerRef = useRef<HTMLDivElement>(null);
@@ -69,6 +70,9 @@ export function Tooltip({
     };
 
     const handleMouseEnter = () => {
+        // Don't show tooltip if no content
+        if (!content) return;
+
         updatePosition(); // Calculate initial position
         timeoutRef.current = setTimeout(() => {
             setIsVisible(true);
@@ -104,6 +108,11 @@ export function Tooltip({
         };
     }, []);
 
+    // If no content, just render children without tooltip wrapper
+    if (!content) {
+        return <>{children}</>;
+    }
+
     const transformStyle =
         position === 'top' ? 'translate(-50%, -100%)' :
             position === 'bottom' ? 'translate(-50%, 0)' :
@@ -120,7 +129,7 @@ export function Tooltip({
             >
                 {children}
             </div>
-            {isVisible && createPortal(
+            {isVisible && content && createPortal(
                 <div
                     className={cn(
                         'fixed z-[9999] px-2 py-1 text-xs font-medium text-white bg-gray-800 rounded shadow-lg whitespace-nowrap pointer-events-none',

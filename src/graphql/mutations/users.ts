@@ -40,7 +40,7 @@ export const RESTORE_USER = gql`
 `;
 
 export const CHANGE_PASSWORD = gql`
-    mutation ChangePassword($uid: ID!, $newPassword: String!) {
-        changePassword(uid: $uid, newPassword: $newPassword)
+    mutation ChangePassword($input: ChangePasswordInput!) {
+        changePassword(input: $input)
     }
 `;

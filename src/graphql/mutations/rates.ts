@@ -21,9 +21,10 @@ export const UPDATE_RATE_PLAN = gql`
     }
 `;
 
+
 export const DELETE_RATE_PLAN = gql`
     mutation DeleteRatePlan($uid: String!) {
-        deleteRatePlan(uid: $uid)
+        hardDeleteRatePlan(uid: $uid)
     }
 `;
 
@@ -41,8 +42,8 @@ export const RESTORE_RATE_PLAN = gql`
 
 export const CREATE_RATE_OFFER = gql`
     ${RATE_OFFER_FIELDS}
-    mutation CreateRateOffer($ratePlanUid: String!, $input: CreateRateOfferInput!) {
-        createRateOffer(ratePlanUid: $ratePlanUid, input: $input) {
+    mutation CreateRateOffer($input: CreateRateOfferInput!) {
+        createRateOffer(input: $input) {
             ...RateOfferFields
         }
     }
@@ -59,7 +60,7 @@ export const UPDATE_RATE_OFFER = gql`
 
 export const DELETE_RATE_OFFER = gql`
     mutation DeleteRateOffer($uid: String!) {
-        deleteRateOffer(uid: $uid)
+        hardDeleteRateOffer(uid: $uid)
     }
 `;
 

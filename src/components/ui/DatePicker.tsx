@@ -211,7 +211,8 @@ const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
         };
 
         const handleDateSelect = (day: number) => {
-            const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+            // Create date at noon (12:00) to prevent timezone shift when converting to UTC
+            const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day, 12, 0, 0);
             if (!isDateDisabled(newDate)) {
                 onChange?.(newDate);
                 setIsOpen(false);

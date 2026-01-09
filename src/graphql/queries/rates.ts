@@ -117,6 +117,11 @@ export const HAS_RATES_CHANGES = gql`
         hasRatesChanges {
             hasChanges
             changedRatePlanUids
+            changes {
+                uid
+                newRecord
+                oldRecord
+            }
         }
     }
 `;

@@ -310,6 +310,7 @@ export const GET_CUSTOMERS_CURSOR = gql`
                 tariffCode
                 status
                 utilmateStatus
+                rateVersion
                 msatDetails {
                   msatConnected
                 }
@@ -403,6 +404,13 @@ export const GET_CUSTOMER_BY_ID = gql`
                 vpp
                 vppConnected
                 vppSignupBonus
+            }
+            solarDetails {
+                id
+                customerUid
+                hassolar
+                solarcapacity
+                invertercapacity
             }
             debitDetails {
                 id
@@ -571,6 +579,7 @@ export const GET_CUSTOMER_BY_CUSTOMER_ID = gql`
                 firstDebitDate
                 optIn
             }
+            rateVersion
             ratePlan {
                 uid
                 codes

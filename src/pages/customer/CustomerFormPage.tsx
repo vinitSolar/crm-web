@@ -39,6 +39,7 @@ import {
     PhoneIcon,
 } from '@/components/icons';
 import { sendVerification, checkVerification } from '@/lib/twilio';
+import { calculateDiscountedRate } from '@/lib/rate-utils';
 import LocationAutocomplete from '../LocationAutocomplete';
 
 // ============================================================================
@@ -1026,18 +1027,64 @@ export const CustomerFormPage = () => {
                                     </div>
                                 </div>
 
-                                {selectedRatePlan && selectedRatePlan.offers && selectedRatePlan.offers.length > 0 && (
-                                    <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        {selectedRatePlan.offers.map((offer) => (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    {selectedRatePlan?.offers?.map((offer) => {
+                                        const discount = formData.discount || 0;
+
+                                        // Calculate yearly savings estimation
+                                        // Typical annual usage: 4000 kWh residential, 10000 kWh commercial
+                                        const typicalKwh = formData.propertyType === 1 ? 10000 : 4000;
+
+                                        // Get primary energy rate (anytime if flat rate, or weighted average for TOU)
+                                        const getBaseEnergyRate = () => {
+                                            if (offer.anytime > 0) return offer.anytime;
+                                            // For TOU tariffs, use weighted average (40% peak, 30% shoulder, 30% off-peak typical distribution)
+                                            const touRates = [];
+                                            if (offer.peak > 0) touRates.push({ rate: offer.peak, weight: 0.4 });
+                                            if (offer.shoulder > 0) touRates.push({ rate: offer.shoulder, weight: 0.3 });
+                                            if (offer.offPeak > 0) touRates.push({ rate: offer.offPeak, weight: 0.3 });
+                                            if (touRates.length === 0) return 0;
+                                            // Normalize weights
+                                            const totalWeight = touRates.reduce((sum, r) => sum + r.weight, 0);
+                                            return touRates.reduce((sum, r) => sum + (r.rate * r.weight / totalWeight), 0);
+                                        };
+
+                                        const baseRate = getBaseEnergyRate();
+                                        const usageCost = baseRate * typicalKwh;
+                                        const yearlySaving = (usageCost * discount) / 100;
+
+                                        // Helper to render rate with discount logic
+                                        const renderRate = (label: string, value: number) => {
+                                            const finalRate = calculateDiscountedRate(value, discount);
+                                            return (
+                                                <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-lg p-3 text-center space-y-0.5">
+                                                    <div className="text-[#1E40AF] font-bold text-base tracking-tight">${finalRate.toFixed(4)}/kWh</div>
+                                                    <div className="text-[10px] font-bold text-[#60A5FA] uppercase tracking-wider">{label}</div>
+                                                </div>
+                                            );
+                                        };
+
+                                        // Helper for Controlled Load (yellow)
+                                        const renderCL = (label: string, value: number) => {
+                                            const finalRate = calculateDiscountedRate(value, discount);
+                                            return (
+                                                <div className="bg-[#FFFBEB] border border-[#FEF3C7] rounded-lg p-3 text-center space-y-0.5">
+                                                    <div className="text-[#92400E] font-bold text-base tracking-tight">${finalRate.toFixed(4)}/kWh</div>
+                                                    <div className="text-[10px] font-bold text-[#FBBF24] uppercase tracking-wider">{label}</div>
+                                                </div>
+                                            );
+                                        };
+
+                                        return (
                                             <div key={offer.id} className="p-6 bg-white border border-border rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] relative overflow-hidden group">
                                                 <div className="flex justify-between items-start mb-8">
                                                     <div>
                                                         <h3 className="text-base font-bold text-neutral-900 tracking-tight">{offer.offerName}</h3>
                                                     </div>
                                                     <div className="flex flex-col items-end">
-                                                        <div className="flex items-center gap-1.5 text-[#0A7B57] bg-[#F0FDF4] px-2 py-1 rounded-lg border border-[#DCFCE7]">
+                                                        <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${yearlySaving > 0 ? 'text-[#0A7B57] bg-[#F0FDF4] border-[#DCFCE7]' : 'text-muted-foreground bg-gray-50 border-gray-200'}`}>
                                                             <PiggyBankIcon size={16} />
-                                                            <span className="text-sm font-bold">$0.00</span>
+                                                            <span className="text-sm font-bold">${yearlySaving.toFixed(2)}</span>
                                                         </div>
                                                         <span className="text-[10px] font-medium text-muted-foreground mt-1">estimated yearly saving*</span>
                                                     </div>
@@ -1051,30 +1098,10 @@ export const CustomerFormPage = () => {
                                                             <h4 className="text-sm font-bold uppercase tracking-wide">Energy Rates</h4>
                                                         </div>
                                                         <div className="space-y-3">
-                                                            {offer.peak > 0 && (
-                                                                <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-[#1E40AF] font-bold text-base tracking-tight">${offer.peak.toFixed(4)}/kWh</div>
-                                                                    <div className="text-[10px] font-bold text-[#60A5FA] uppercase tracking-wider">Peak</div>
-                                                                </div>
-                                                            )}
-                                                            {offer.offPeak > 0 && (
-                                                                <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-[#1E40AF] font-bold text-base tracking-tight">${offer.offPeak.toFixed(4)}/kWh</div>
-                                                                    <div className="text-[10px] font-bold text-[#60A5FA] uppercase tracking-wider">Off-Peak</div>
-                                                                </div>
-                                                            )}
-                                                            {offer.shoulder > 0 && (
-                                                                <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-[#1E40AF] font-bold text-base tracking-tight">${offer.shoulder.toFixed(4)}/kWh</div>
-                                                                    <div className="text-[10px] font-bold text-[#60A5FA] uppercase tracking-wider">Shoulder</div>
-                                                                </div>
-                                                            )}
-                                                            {offer.anytime > 0 && (
-                                                                <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-[#1E40AF] font-bold text-base tracking-tight">${offer.anytime.toFixed(4)}/kWh</div>
-                                                                    <div className="text-[10px] font-bold text-[#60A5FA] uppercase tracking-wider">Anytime</div>
-                                                                </div>
-                                                            )}
+                                                            {offer.peak > 0 && renderRate('Peak', offer.peak)}
+                                                            {offer.offPeak > 0 && renderRate('Off-Peak', offer.offPeak)}
+                                                            {offer.shoulder > 0 && renderRate('Shoulder', offer.shoulder)}
+                                                            {offer.anytime > 0 && renderRate('Anytime', offer.anytime)}
                                                         </div>
                                                     </div>
 
@@ -1099,18 +1126,8 @@ export const CustomerFormPage = () => {
                                                             <h4 className="text-sm font-bold uppercase tracking-wide">Controlled Load</h4>
                                                         </div>
                                                         <div className="space-y-3">
-                                                            {offer.cl1Usage > 0 && (
-                                                                <div className="bg-[#FFFBEB] border border-[#FEF3C7] rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-[#92400E] font-bold text-base tracking-tight">${offer.cl1Usage.toFixed(4)}/kWh</div>
-                                                                    <div className="text-[10px] font-bold text-[#FBBF24] uppercase tracking-wider">CL1 Usage</div>
-                                                                </div>
-                                                            )}
-                                                            {offer.cl2Usage > 0 && (
-                                                                <div className="bg-[#FFFBEB] border border-[#FEF3C7] rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-[#92400E] font-bold text-base tracking-tight">${offer.cl2Usage.toFixed(4)}/kWh</div>
-                                                                    <div className="text-[10px] font-bold text-[#FBBF24] uppercase tracking-wider">CL2 Usage</div>
-                                                                </div>
-                                                            )}
+                                                            {offer.cl1Usage > 0 && renderCL('CL1 Usage', offer.cl1Usage)}
+                                                            {offer.cl2Usage > 0 && renderCL('CL2 Usage', offer.cl2Usage)}
                                                             {offer.cl1Usage === 0 && offer.cl2Usage === 0 && (
                                                                 <div className="text-[10px] font-medium text-muted-foreground italic p-2 text-center">No controlled load for this offer.</div>
                                                             )}
@@ -1118,9 +1135,9 @@ export const CustomerFormPage = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
 

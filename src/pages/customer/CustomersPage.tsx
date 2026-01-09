@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useLazyQuery, useMutation } from '@apollo/client';
+import { calculateDiscountedRate } from '../../lib/rate-utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { DataTable, type Column, Modal } from '@/components/common';
-import { PlusIcon, PencilIcon, TrashIcon, CheckIcon, XIcon, MailIcon } from '@/components/icons';
-import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL } from '@/graphql';
+import { PlusIcon, PencilIcon, TrashIcon, CheckIcon, XIcon, MailIcon, SnowflakeIcon } from '@/components/icons';
+import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL, CREATE_CUSTOMER, UPDATE_CUSTOMER } from '@/graphql';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { Select } from '@/components/ui/Select';
 import { StatusField } from '@/components/common';
@@ -38,6 +39,7 @@ interface Customer {
     tariffCode?: string;
     discount?: string;
     createdAt: string;
+    rateVersion?: number;
     address?: CustomerAddress;
     ratePlan?: {
         dnsp?: string;
@@ -77,6 +79,7 @@ interface CustomerDetails {
     email?: string;
     number?: string;
     dob?: string;
+    propertyType?: number;
     status: number;
     discount?: number;
     tariffCode?: string;
@@ -88,6 +91,10 @@ interface CustomerDetails {
         connectiondate?: string;
         idtype?: number;
         idnumber?: string;
+        idstate?: string;
+        idexpiry?: string;
+        concession?: number;
+        lifesupport?: number;
         billingpreference?: number;
     };
     ratePlan?: {
@@ -135,12 +142,21 @@ interface CustomerDetails {
     vppDetails?: {
         vpp?: number;
         vppConnected?: number;
+        vppSignupBonus?: number;
     };
     msatDetails?: {
         msatConnected?: number;
         msatConnectedAt?: string;
     };
+    solarDetails?: {
+        id?: string;
+        customerUid?: string;
+        hassolar?: number;
+        solarcapacity?: number;
+        invertercapacity?: number;
+    };
     utilmateStatus?: string | number;
+    rateVersion?: number;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -338,8 +354,116 @@ export function CustomersPage() {
 
     const [softDeleteCustomer] = useMutation(SOFT_DELETE_CUSTOMER);
     const [sendReminderEmail] = useMutation(SEND_REMINDER_EMAIL);
+    const [createCustomer] = useMutation(CREATE_CUSTOMER);
     const [sendingReminder, setSendingReminder] = useState(false);
     const [reminderSent, setReminderSent] = useState(false);
+    const [freezingCustomer, setFreezingCustomer] = useState(false);
+    const [freezeModalOpen, setFreezeModalOpen] = useState(false);
+    const [customerToFreeze, setCustomerToFreeze] = useState<CustomerDetails | null>(null);
+    const [updateCustomer] = useMutation(UPDATE_CUSTOMER);
+
+    const handleFreezeClick = (customer: CustomerDetails) => {
+        setCustomerToFreeze(customer);
+        setFreezeModalOpen(true);
+    };
+
+    const handleConfirmFreeze = async () => {
+        if (!customerToFreeze) return;
+        const customer = customerToFreeze;
+        setFreezeModalOpen(false);
+        setFreezingCustomer(true);
+        try {
+            // Build input from current customer details
+            const input: any = {
+                tenant: 'vinitSolar',
+                email: customer.email,
+                firstName: customer.firstName,
+                lastName: customer.lastName,
+                number: customer.number,
+                dob: customer.dob,
+                propertyType: customer.propertyType,
+                tariffCode: customer.tariffCode,
+                discount: customer.discount,
+                rateVersion: customer.rateVersion, // Preserve rate version
+                previousCustomerUid: customer.uid, // Link to the frozen customer
+                status: 1, // Set status to 1 for the new customer
+            };
+
+            // Add address if exists
+            if (customer.address) {
+                input.address = {
+                    unitNumber: customer.address.unitNumber,
+                    streetNumber: customer.address.streetNumber,
+                    streetName: customer.address.streetName,
+                    streetType: customer.address.streetType,
+                    suburb: customer.address.suburb,
+                    state: customer.address.state,
+                    postcode: customer.address.postcode,
+                    country: customer.address.country,
+                    nmi: customer.address.nmi,
+                };
+            }
+
+            // Add enrollment details if exists
+            if (customer.enrollmentDetails) {
+                input.enrollmentDetails = {
+                    saletype: customer.enrollmentDetails.saletype,
+                    connectiondate: customer.enrollmentDetails.connectiondate,
+                    idtype: customer.enrollmentDetails.idtype,
+                    idnumber: customer.enrollmentDetails.idnumber,
+                    idstate: customer.enrollmentDetails.idstate,
+                    idexpiry: customer.enrollmentDetails.idexpiry,
+                    concession: customer.enrollmentDetails.concession,
+                    lifesupport: customer.enrollmentDetails.lifesupport,
+                    billingpreference: customer.enrollmentDetails.billingpreference,
+                };
+            }
+
+            // Add VPP details if exists
+            if (customer.vppDetails) {
+                input.vppDetails = {
+                    vpp: customer.vppDetails.vpp,
+                    vppConnected: 0, // Reset VPP connected status
+                    vppSignupBonus: customer.vppDetails.vppSignupBonus,
+                };
+            }
+
+            // Add Solar details if exists
+            if (customer.solarDetails) {
+                input.solarDetails = {
+                    hassolar: customer.solarDetails.hassolar,
+                    solarcapacity: customer.solarDetails.solarcapacity,
+                    invertercapacity: customer.solarDetails.invertercapacity,
+                };
+            }
+
+            const { data } = await createCustomer({
+                variables: { input }
+            });
+
+            if (data?.createCustomer?.uid) {
+                // Update the previous customer's status to 4 (Frozen)
+                await updateCustomer({
+                    variables: {
+                        uid: customer.uid,
+                        input: { status: 4 }
+                    }
+                });
+
+                toast.success('Customer frozen and new customer created successfully');
+                setDetailsModalOpen(false);
+                // Refresh the customer list - reset state and refetch
+                setAllCustomers([]);
+                setEndCursor(null);
+                refetch();
+            }
+        } catch (error: any) {
+            console.error('Error freezing customer:', error);
+            toast.error(error.message || 'Failed to freeze customer');
+        } finally {
+            setFreezingCustomer(false);
+        }
+    };
 
     const handleSendReminder = async (customerUid: string) => {
         setSendingReminder(true);
@@ -860,9 +984,10 @@ export function CustomersPage() {
                     </div>
                 }
             >
-                {isLoadingDetails ? (
-                    <div className="flex items-center justify-center py-12">
+                {isLoadingDetails || freezingCustomer ? (
+                    <div className="flex flex-col items-center justify-center py-12">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                        {freezingCustomer && <p className="mt-3 text-sm text-muted-foreground">Freezing customer...</p>}
                     </div>
                 ) : selectedCustomerDetails ? (
                     <div className="space-y-3">
@@ -873,8 +998,17 @@ export function CustomersPage() {
                                     <h3 className="text-sm font-medium text-gray-700">Progress timeline</h3>
                                     <p className="text-xs text-gray-500">Track each milestone and when it happened.</p>
                                 </div>
-                                {selectedCustomerDetails.status === 2 && (
-                                    <Button variant="destructive" size="sm" onClick={() => console.log('Freeze customer:', selectedCustomerDetails.uid)}>
+                                {selectedCustomerDetails.status === 3 && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-cyan-200 text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700"
+                                        onClick={() => handleFreezeClick(selectedCustomerDetails)}
+                                        disabled={freezingCustomer}
+                                        isLoading={freezingCustomer}
+                                        loadingText="Freezing..."
+                                    >
+                                        <SnowflakeIcon size={16} className="mr-1" />
                                         Freeze
                                     </Button>
                                 )}
@@ -961,10 +1095,11 @@ export function CustomersPage() {
                                         { label: 'State', value: selectedCustomerDetails.address?.state },
                                         { label: 'Postcode', value: selectedCustomerDetails.address?.postcode },
                                         { label: 'NMI', value: selectedCustomerDetails.address?.nmi },
+                                        { label: 'Tariff Code', value: selectedCustomerDetails.tariffCode },
                                     ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
-                                            <span className="text-xs text-gray-500">{item.label}</span>
-                                            <span className="text-xs font-medium text-gray-800 text-right max-w-[180px] truncate">{item.value || '—'}</span>
+                                        <div key={i} className="flex justify-between items-start py-1.5 border-b border-gray-50 last:border-0">
+                                            <span className="text-xs text-gray-500 shrink-0">{item.label}</span>
+                                            <span className="text-xs font-medium text-gray-800 text-right break-words">{item.value || '—'}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -983,11 +1118,65 @@ export function CustomersPage() {
                                         { label: 'Sale Type', value: SALE_TYPE_LABELS[selectedCustomerDetails.enrollmentDetails?.saletype ?? 0] || 'Direct' },
                                         { label: 'Billing', value: BILLING_PREF_LABELS[selectedCustomerDetails.enrollmentDetails?.billingpreference ?? 0] || 'eBill' },
                                         { label: 'Discount', value: selectedCustomerDetails.discount ? `${selectedCustomerDetails.discount}%` : '0%' },
+                                        { label: 'Rate Version', value: selectedCustomerDetails.rateVersion ?? '—' },
                                         { label: 'Connection', value: selectedCustomerDetails.enrollmentDetails?.connectiondate ? new Date(selectedCustomerDetails.enrollmentDetails.connectiondate).toLocaleDateString() : null },
                                     ].map((item, i) => (
                                         <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
                                             <span className="text-xs text-gray-500">{item.label}</span>
                                             <span className="text-xs font-medium text-gray-800">{item.value || '—'}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* VPP & Solar Details Row */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {/* VPP Details Card */}
+                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    </div>
+                                    <h3 className="text-sm font-semibold text-gray-800">VPP Details</h3>
+                                    {selectedCustomerDetails.vppDetails?.vpp === 1 && (
+                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">Enrolled</span>
+                                    )}
+                                </div>
+                                <div className="space-y-3">
+                                    {[
+                                        { label: 'VPP Enrolled', value: selectedCustomerDetails.vppDetails?.vpp === 1 ? 'Yes' : 'No' },
+                                        { label: 'VPP Connected', value: selectedCustomerDetails.vppDetails?.vppConnected === 1 ? 'Yes' : 'No' },
+                                        { label: 'Signup Bonus', value: selectedCustomerDetails.vppDetails?.vppSignupBonus ? `$${selectedCustomerDetails.vppDetails.vppSignupBonus}` : '—' },
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
+                                            <span className="text-xs text-gray-500">{item.label}</span>
+                                            <span className="text-xs font-medium text-gray-800">{item.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Solar System Card */}
+                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
+                                    </div>
+                                    <h3 className="text-sm font-semibold text-gray-800">Solar System</h3>
+                                    {selectedCustomerDetails.solarDetails?.hassolar === 1 && (
+                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-full">Has Solar</span>
+                                    )}
+                                </div>
+                                <div className="space-y-3">
+                                    {[
+                                        { label: 'Has Solar', value: selectedCustomerDetails.solarDetails?.hassolar === 1 ? 'Yes' : 'No' },
+                                        { label: 'Solar Capacity', value: selectedCustomerDetails.solarDetails?.solarcapacity ? `${selectedCustomerDetails.solarDetails.solarcapacity} kW` : '—' },
+                                        { label: 'Inverter Capacity', value: selectedCustomerDetails.solarDetails?.invertercapacity ? `${selectedCustomerDetails.solarDetails.invertercapacity} kW` : '—' },
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
+                                            <span className="text-xs text-gray-500">{item.label}</span>
+                                            <span className="text-xs font-medium text-gray-800">{item.value}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -1013,51 +1202,59 @@ export function CustomersPage() {
 
                                 {selectedCustomerDetails.ratePlan.offers && selectedCustomerDetails.ratePlan.offers.length > 0 && (
                                     <div className="p-5">
-                                        {selectedCustomerDetails.ratePlan.offers.map((offer, idx) => (
-                                            <div key={offer.uid || idx}>
-                                                <div className="flex items-center gap-2 mb-4">
-                                                    <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">{offer.offerName || 'Default Offer'}</span>
-                                                </div>
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                                    {[
-                                                        { label: 'Supply', value: `$${(offer.supplyCharge ?? 0).toFixed(4)}`, unit: '/day', color: 'bg-slate-50' },
-                                                        { label: 'Anytime', value: `$${(offer.anytime ?? 0).toFixed(4)}`, unit: '/kWh', color: 'bg-blue-50' },
-                                                        { label: 'Peak', value: `$${(offer.peak ?? 0).toFixed(4)}`, unit: '/kWh', color: 'bg-red-50' },
-                                                        { label: 'Off-Peak', value: `$${(offer.offPeak ?? 0).toFixed(4)}`, unit: '/kWh', color: 'bg-green-50' },
-                                                        { label: 'Shoulder', value: `$${(offer.shoulder ?? 0).toFixed(4)}`, unit: '/kWh', color: 'bg-yellow-50' },
-                                                        { label: 'Feed-in', value: `$${(offer.fit ?? 0).toFixed(4)}`, unit: '/kWh', color: 'bg-emerald-50' },
-                                                        { label: 'CL1 Usage', value: `$${(offer.cl1Usage ?? 0).toFixed(4)}`, unit: '/kWh', color: 'bg-gray-50' },
-                                                        { label: 'CL2 Usage', value: `$${(offer.cl2Usage ?? 0).toFixed(4)}`, unit: '/kWh', color: 'bg-gray-50' },
-                                                    ].map((rate, i) => (
-                                                        <div key={i} className={`${rate.color} rounded-lg p-3 text-center`}>
-                                                            <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">{rate.label}</p>
-                                                            <p className="text-sm font-bold text-gray-800">{rate.value}<span className="text-[10px] font-normal text-gray-400">{rate.unit}</span></p>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                        {selectedCustomerDetails.ratePlan.offers.map((offer, idx) => {
+                                            const rateFields = [
+                                                // Usage Rates (Discounted)
+                                                { label: 'Anytime', value: offer.anytime, isUsage: true, color: 'bg-blue-50' },
+                                                { label: 'Peak', value: offer.peak, isUsage: true, color: 'bg-red-50' },
+                                                { label: 'Off-Peak', value: offer.offPeak, isUsage: true, color: 'bg-green-50' },
+                                                { label: 'Shoulder', value: offer.shoulder, isUsage: true, color: 'bg-yellow-50' },
+                                                { label: 'CL1 Usage', value: offer.cl1Usage, isUsage: true, color: 'bg-gray-50' },
+                                                { label: 'CL2 Usage', value: offer.cl2Usage, isUsage: true, color: 'bg-gray-50' },
 
-                                                {/* Additional Rates - Collapsible style */}
-                                                <details className="mt-4">
-                                                    <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700 select-none">View all rates ({8} more)</summary>
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 pt-3 border-t border-gray-100">
-                                                        {[
-                                                            { label: 'CL1 Supply', value: `$${(offer.cl1Supply ?? 0).toFixed(4)}` },
-                                                            { label: 'CL2 Supply', value: `$${(offer.cl2Supply ?? 0).toFixed(4)}` },
-                                                            { label: 'Demand', value: `$${(offer.demand ?? 0).toFixed(4)}` },
-                                                            { label: 'Demand OP', value: `$${(offer.demandOp ?? 0).toFixed(4)}` },
-                                                            { label: 'Demand P', value: `$${(offer.demandP ?? 0).toFixed(4)}` },
-                                                            { label: 'Demand S', value: `$${(offer.demandS ?? 0).toFixed(4)}` },
-                                                            { label: 'VPP Charge', value: `$${(offer.vppOrcharge ?? 0).toFixed(4)}` },
-                                                        ].map((rate, i) => (
-                                                            <div key={i} className="flex justify-between items-center py-1 px-2 bg-gray-50 rounded text-xs">
-                                                                <span className="text-gray-500">{rate.label}</span>
-                                                                <span className="font-medium text-gray-700">{rate.value}</span>
+                                                // Supply & Other Rates (Not Discounted)
+                                                { label: 'Supply', value: offer.supplyCharge, unit: '/day', color: 'bg-slate-50' },
+                                                { label: 'CL1 Supply', value: offer.cl1Supply, unit: '/day', color: 'bg-slate-50' },
+                                                { label: 'CL2 Supply', value: offer.cl2Supply, unit: '/day', color: 'bg-slate-50' },
+                                                { label: 'Feed-in', value: offer.fit, unit: '/kWh', color: 'bg-emerald-50' },
+                                                { label: 'Demand', value: offer.demand, unit: '/kVA', color: 'bg-orange-50' },
+                                                { label: 'Demand (Op)', value: offer.demandOp, unit: '/kVA', color: 'bg-orange-50' },
+                                                { label: 'Demand (P)', value: offer.demandP, unit: '/kVA', color: 'bg-orange-50' },
+                                                { label: 'Demand (S)', value: offer.demandS, unit: '/kVA', color: 'bg-orange-50' },
+                                                { label: 'VPP Charge', value: offer.vppOrcharge, unit: '/day', color: 'bg-indigo-50' },
+                                            ];
+
+                                            const displayedRates = rateFields.map(field => {
+                                                const rawValue = field.value ?? 0;
+                                                // Skip if value is effectively zero (using small epsilon for float comparison safety, though distinct from 0 is usually enough)
+                                                if (Math.abs(rawValue) < 0.0001) return null;
+
+                                                const finalValue = field.isUsage
+                                                    ? calculateDiscountedRate(rawValue, selectedCustomerDetails.discount ?? 0)
+                                                    : rawValue;
+
+                                                return {
+                                                    ...field,
+                                                    displayValue: `$${finalValue.toFixed(4)}`,
+                                                    unit: field.unit || '/kWh'
+                                                };
+                                            }).filter(Boolean);
+
+                                            if (displayedRates.length === 0) return null;
+
+                                            return (
+                                                <div key={offer.uid || idx}>
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                        {displayedRates.map((rate, i) => (
+                                                            <div key={i} className={`${rate?.color} rounded-lg p-3 text-center`}>
+                                                                <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">{rate?.label}</p>
+                                                                <p className="text-sm font-bold text-gray-800">{rate?.displayValue}<span className="text-[10px] font-normal text-gray-400">{rate?.unit}</span></p>
                                                             </div>
                                                         ))}
                                                     </div>
-                                                </details>
-                                            </div>
-                                        ))}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -1066,6 +1263,45 @@ export function CustomersPage() {
                 ) : (
                     <p className="text-center text-gray-500 py-8">No customer data available</p>
                 )}
+            </Modal>
+
+            {/* Freeze Confirmation Modal */}
+            <Modal
+                isOpen={freezeModalOpen}
+                onClose={() => setFreezeModalOpen(false)}
+                title="Confirm Freeze Customer"
+                size="sm"
+                footer={
+                    <>
+                        <Button
+                            variant="outline"
+                            onClick={() => setFreezeModalOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                            onClick={handleConfirmFreeze}
+                            isLoading={freezingCustomer}
+                            loadingText="Freezing..."
+                        >
+                            Confirm Freeze
+                        </Button>
+                    </>
+                }
+            >
+                <div className="text-sm text-gray-600">
+                    <p className="mb-3">
+                        Are you sure you want to freeze customer{' '}
+                        <span className="font-semibold text-gray-900">
+                            {customerToFreeze?.firstName} {customerToFreeze?.lastName}
+                        </span>{' '}
+                        ({customerToFreeze?.customerId || customerToFreeze?.uid})?
+                    </p>
+                    <p className="text-gray-500">
+                        This will create a new customer record and mark the current one as Frozen.
+                    </p>
+                </div>
             </Modal>
         </div>
     );

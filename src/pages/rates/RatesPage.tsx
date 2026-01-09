@@ -203,9 +203,71 @@ export function RatesPage() {
     });
 
     const hasUnsavedChanges = changesData?.hasRatesChanges?.hasChanges ?? true;
-    const changedRatePlanUids = new Set(changesData?.hasRatesChanges?.changedRatePlanUids || []);
+    const changedRatePlanUids = useMemo(() => new Set(changesData?.hasRatesChanges?.changedRatePlanUids || []), [changesData]);
+    // Map of old records for comparison: uid -> oldRecord object
+    const oldRecordsMap = useMemo(() => {
+        const map = new Map<string, any>();
+        if (changesData?.hasRatesChanges?.changes) {
+            changesData.hasRatesChanges.changes.forEach((change: any) => {
+                try {
+                    if (change.oldRecord) {
+                        map.set(change.uid, JSON.parse(change.oldRecord));
+                    }
+                } catch (e) {
+                    console.error('Error parsing old record', e);
+                }
+            });
+        }
+        return map;
+    }, [changesData]);
 
-    // Update allRatePlans when data changes
+    const isFieldChanged = useCallback((row: RatePlan, fieldKey: string) => {
+        const oldRecord = oldRecordsMap.get(row.uid);
+        if (!oldRecord) return false; // New record or no change
+
+        // Helper for offers comparison
+        const getOfferValue = (offer: any, key: string) => offer?.[key];
+
+        switch (fieldKey) {
+            case 'state':
+            case 'dnsp':
+            case 'type':
+            case 'tariff':
+            case 'planId':
+            case 'discountApplies':
+            case 'discountPercentage':
+            case 'vpp':
+                // loose comparison for numbers/strings safe here
+                return row[fieldKey as keyof RatePlan] != oldRecord[fieldKey];
+
+            case 'codes':
+                // Normalize both to string for comparison (oldRecord might be string, row.codes might be array)
+                const currentCodes = Array.isArray(row.codes) ? row.codes.join(', ') : String(row.codes || '');
+                const oldCodes = Array.isArray(oldRecord.codes) ? oldRecord.codes.join(', ') : String(oldRecord.codes || '');
+                return currentCodes !== oldCodes;
+
+            default:
+                // Offer fields like 'offer_anytime'
+                if (fieldKey.startsWith('offer_')) {
+                    const offerKey = fieldKey.replace('offer_', '');
+                    const newOffer = row.offers?.[0];
+                    const oldOffer = oldRecord.offers?.[0]; // Assuming single offer structure
+                    return getOfferValue(newOffer, offerKey) != getOfferValue(oldOffer, offerKey);
+                }
+                return false;
+        }
+    }, [oldRecordsMap]);
+
+    const getOldValue = useCallback((row: RatePlan, fieldKey: string) => {
+        const oldRecord = oldRecordsMap.get(row.uid);
+        if (!oldRecord) return undefined;
+
+        if (fieldKey.startsWith('offer_')) {
+            const offerKey = fieldKey.replace('offer_', '');
+            return oldRecord.offers?.[0]?.[offerKey];
+        }
+        return oldRecord[fieldKey];
+    }, [oldRecordsMap]);
     useEffect(() => {
         if (data?.ratePlans?.data) {
             const newData = data.ratePlans.data;
@@ -545,7 +607,11 @@ export function RatesPage() {
             width: 'w-[60px]',
             sticky: 'left' as const,
             stickyOffset: showActions ? 100 : 0,
-            render: (row: RatePlan) => <span>{row.state || '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'state') ? `Old: ${getOldValue(row, 'state')}` : null}>
+                    <span className={isFieldChanged(row, 'state') ? 'bg-orange-400 text-orange-950 font-bold px-2 py-0.5 rounded' : ''}>{row.state || '-'}</span>
+                </Tooltip>
+            ),
         },
         {
             key: 'codes',
@@ -571,14 +637,18 @@ export function RatesPage() {
                     }
                 }
 
+                const codesChanged = isFieldChanged(row, 'codes');
+
                 return (
-                    <div className="flex flex-wrap gap-1">
-                        {codes.map((code, idx) => (
-                            <span key={idx} className="bg-gray-100 text-gray-800 text-xs px-2 py-0.5 rounded">
-                                {code}
-                            </span>
-                        )) || '-'}
-                    </div>
+                    <Tooltip content={codesChanged ? `Old: ${getOldValue(row, 'codes')}` : null}>
+                        <div className={`flex flex-wrap gap-1 ${codesChanged ? 'bg-orange-300 dark:bg-orange-700/50 -m-2 p-2 rounded ring-1 ring-orange-400' : ''}`}>
+                            {codes.map((code, idx) => (
+                                <span key={idx} className={`text-xs px-2 py-0.5 rounded ${codesChanged ? 'bg-orange-400 text-orange-950 font-bold' : 'bg-gray-100 text-gray-800'}`}>
+                                    {code}
+                                </span>
+                            )) || '-'}
+                        </div>
+                    </Tooltip>
                 );
             },
         },
@@ -586,7 +656,13 @@ export function RatesPage() {
             key: 'dnsp',
             header: 'DNSP',
             width: 'w-[120px]',
-            render: (row: RatePlan) => <StatusField type="dnsp" value={row.dnsp} mode="badge" />,
+            render: (row: RatePlan) => (
+                <div className={isFieldChanged(row, 'dnsp') ? "bg-orange-300 dark:bg-orange-700/50 -m-2 p-2 rounded ring-1 ring-orange-400" : ""}>
+                    <Tooltip content={isFieldChanged(row, 'dnsp') ? `Old: ${getOldValue(row, 'dnsp')}` : null}>
+                        <StatusField type="dnsp" value={row.dnsp} mode="badge" />
+                    </Tooltip>
+                </div>
+            ),
         },
         {
             key: 'type',
@@ -598,91 +674,181 @@ export function RatesPage() {
             key: 'anytime',
             header: 'Anytime',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-orange-50 text-orange-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.anytime ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_anytime') ? `Old: ${getOldValue(row, 'offer_anytime')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_anytime') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-orange-50 text-orange-600'}`}>
+                        {row.offers?.[0]?.anytime ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'peak',
             header: 'Peak',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.peak ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_peak') ? `Old: ${getOldValue(row, 'offer_peak')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_peak') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-50 text-blue-600'}`}>
+                        {row.offers?.[0]?.peak ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'shoulder',
             header: 'Shoulder',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.shoulder ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_shoulder') ? `Old: ${getOldValue(row, 'offer_shoulder')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_shoulder') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-50 text-blue-600'}`}>
+                        {row.offers?.[0]?.shoulder ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'offPeak',
             header: 'Off-Peak',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.offPeak ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_offPeak') ? `Old: ${getOldValue(row, 'offer_offPeak')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_offPeak') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-50 text-blue-600'}`}>
+                        {row.offers?.[0]?.offPeak ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'supplyCharge',
             header: 'Supply Charge',
             width: 'w-[120px]',
-            render: (row: RatePlan) => <span className="bg-purple-50 text-purple-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.supplyCharge ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_supplyCharge') ? `Old: ${getOldValue(row, 'offer_supplyCharge')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_supplyCharge') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-purple-50 text-purple-600'}`}>
+                        {row.offers?.[0]?.supplyCharge ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'cl1Supply',
             header: 'CL1 Supply',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.cl1Supply ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_cl1Supply') ? `Old: ${getOldValue(row, 'offer_cl1Supply')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl1Supply') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                        {row.offers?.[0]?.cl1Supply ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'cl1Usage',
             header: 'CL1 Usage', // Assuming 'Usage' in image maps here or CL1 Usage
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.cl1Usage ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_cl1Usage') ? `Old: ${getOldValue(row, 'offer_cl1Usage')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl1Usage') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                        {row.offers?.[0]?.cl1Usage ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'cl2Supply',
             header: 'CL2 Supply',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.cl2Supply ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_cl2Supply') ? `Old: ${getOldValue(row, 'offer_cl2Supply')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl2Supply') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                        {row.offers?.[0]?.cl2Supply ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'cl2Usage',
             header: 'CL2 Usage',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.cl2Usage ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_cl2Usage') ? `Old: ${getOldValue(row, 'offer_cl2Usage')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl2Usage') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                        {row.offers?.[0]?.cl2Usage ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'demand',
             header: 'Demand',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-red-50 text-red-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.demand ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_demand') ? `Old: ${getOldValue(row, 'offer_demand')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demand') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-red-50 text-red-600'}`}>
+                        {row.offers?.[0]?.demand ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'demandOp',
             header: 'Demand(OP)',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-red-50 text-red-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.demandOp ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_demandOp') ? `Old: ${getOldValue(row, 'offer_demandOp')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandOp') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-red-50 text-red-600'}`}>
+                        {row.offers?.[0]?.demandOp ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'demandP',
             header: 'Demand(P)',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-red-50 text-red-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.demandP ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_demandP') ? `Old: ${getOldValue(row, 'offer_demandP')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandP') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-red-50 text-red-600'}`}>
+                        {row.offers?.[0]?.demandP ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'demandS',
             header: 'Demand(S)',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-red-50 text-red-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.demandS ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_demandS') ? `Old: ${getOldValue(row, 'offer_demandS')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandS') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-red-50 text-red-600'}`}>
+                        {row.offers?.[0]?.demandS ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'fit',
             header: 'FIT',
             width: 'w-[80px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.fit ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_fit') ? `Old: ${getOldValue(row, 'offer_fit')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_fit') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                        {row.offers?.[0]?.fit ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'vppOrcharge',
             header: 'FIT-VPP',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.vppOrcharge ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_vppOrcharge') ? `Old: ${getOldValue(row, 'offer_vppOrcharge')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_vppOrcharge') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                        {row.offers?.[0]?.vppOrcharge ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'fitPeak',
@@ -730,7 +896,7 @@ export function RatesPage() {
             width: 'w-[150px]',
             render: (row: RatePlan) => <span className="text-muted-foreground">{formatDateTime(row.updatedAt)}</span>,
         }
-    ].filter(col => col.key !== 'actions' || (canEdit || canDelete)), [handleEditRate, handleDeleteClick, handleRestoreClick, canEdit, canDelete]);
+    ].filter(col => col.key !== 'actions' || (canEdit || canDelete)), [handleEditRate, handleDeleteClick, handleRestoreClick, canEdit, canDelete, isFieldChanged, getOldValue]);
 
     return (
         <div className="space-y-6">
