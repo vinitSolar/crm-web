@@ -13,6 +13,7 @@ import MainLogo from '@/assets/main-logo-dark-1.png';
 import BankAutocomplete from '@/components/BankAutocomplete';
 import LocationAutocomplete from '@/pages/LocationAutocomplete';
 import { ID_TYPE_MAP } from '@/lib/constants';
+import { calculateDiscountedRate } from '@/lib/rate-utils';
 
 // Copying StatusField and other helpers might be needed if not exported
 
@@ -294,13 +295,29 @@ export const OfferAccessPage = () => {
 
     const ratesData = [
         { label: 'Tariff', value: customerData.tariffCode || customerData.ratePlan?.tariff, unit: '' },
-        { label: 'Off-Peak', value: activeOffer.offPeak, unit: '/kWh' },
-        { label: 'Peak', value: activeOffer.peak, unit: '/kWh' },
-        { label: 'Shoulder', value: activeOffer.shoulder, unit: '/kWh' },
+
+        // Usage Rates (Discounted)
+        { label: 'Anytime', value: calculateDiscountedRate(activeOffer.anytime ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
+        { label: 'Off-Peak', value: calculateDiscountedRate(activeOffer.offPeak ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
+        { label: 'Peak', value: calculateDiscountedRate(activeOffer.peak ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
+        { label: 'Shoulder', value: calculateDiscountedRate(activeOffer.shoulder ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
+        { label: 'CL1 Usage', value: calculateDiscountedRate(activeOffer.cl1Usage ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
+        { label: 'CL2 Usage', value: calculateDiscountedRate(activeOffer.cl2Usage ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
+
+        // Supply & Other (Not Discounted)
         { label: 'Supply Charge', value: activeOffer.supplyCharge, unit: '/day' },
-        { label: 'Demand', value: activeOffer.demand, unit: '/kVA' }, // or /kW depending on retailer
+        { label: 'CL1 Supply', value: activeOffer.cl1Supply, unit: '/day' },
+        { label: 'CL2 Supply', value: activeOffer.cl2Supply, unit: '/day' },
+        { label: 'Feed-in', value: activeOffer.fit, unit: '/kWh' },
+        { label: 'Demand', value: activeOffer.demand, unit: '/kVA' },
         { label: 'Demand (Op)', value: activeOffer.demandOp, unit: '/kVA' },
-    ].filter(r => r.value !== undefined && r.value !== null && r.value !== 0); // Filter out zero/null if desired, or keep them. Design shows them.
+        { label: 'Demand (P)', value: activeOffer.demandP, unit: '/kVA' },
+        { label: 'Demand (S)', value: activeOffer.demandS, unit: '/kVA' },
+        { label: 'VPP Charge', value: activeOffer.vppOrcharge, unit: '/day' },
+    ].filter(r => {
+        const val = r.value ?? 0;
+        return val !== null && val !== undefined && Math.abs(val) > 0.0001;
+    });
 
     // Validation for Direct Debit
     const isDirectDebitValid = () => {
@@ -582,6 +599,18 @@ export const OfferAccessPage = () => {
                         </h3>
                         <div className="grid grid-cols-2 text-left sm:grid-cols-4 gap-4 bg-gray-50 rounded-lg p-4">
                             <div>
+                                <div className="text-xs text-gray-500 mb-1">Property Type</div>
+                                <div className="text-sm font-medium">{customerData.propertyType === 1 ? 'Business' : 'Residential'}</div>
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500 mb-1">Discount</div>
+                                <div className="text-sm font-medium">{customerData.discount ? `${customerData.discount}%` : '0%'}</div>
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500 mb-1">Rate Version</div>
+                                <div className="text-sm font-medium">{customerData.rateVersion || '—'}</div>
+                            </div>
+                            <div>
                                 <div className="text-xs text-gray-500 mb-1">Sale Type</div>
                                 <div className="text-sm font-medium">{SALE_TYPE_LABELS[customerData.enrollmentDetails?.saletype ?? 0] || 'Direct'}</div>
                             </div>
@@ -597,11 +626,71 @@ export const OfferAccessPage = () => {
                                 <div className="text-xs text-gray-500 mb-1">Billing Preference</div>
                                 <div className="text-sm font-medium">{customerData.enrollmentDetails?.billingpreference === 1 ? 'Email' : 'Post'}</div>
                             </div>
+                            <div>
+                                <div className="text-xs text-gray-500 mb-1">Concession</div>
+                                <div className="text-sm font-medium">{customerData.enrollmentDetails?.concession === 1 ? 'Yes' : 'No'}</div>
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500 mb-1">Life Support</div>
+                                <div className="text-sm font-medium">{customerData.enrollmentDetails?.lifesupport === 1 ? 'Yes' : 'No'}</div>
+                            </div>
 
+                            {/* VPP Details */}
                             <div className="col-span-2 sm:col-span-4 mt-2 pt-2 border-t border-gray-200">
-                                <div className="text-xs text-gray-500 mb-1">ID</div>
-                                <div className="text-sm font-medium">
-                                    {ID_TYPE_MAP[customerData.enrollmentDetails?.idtype as number] || '—'} {customerData.enrollmentDetails?.idnumber || ''}
+                                <div className="text-xs text-gray-500 mb-2 font-medium uppercase">VPP Details</div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div>
+                                        <div className="text-xs text-gray-500 mb-1">VPP Active</div>
+                                        <div className="text-sm font-medium">{customerData.vppDetails?.vpp === 1 ? 'Yes' : 'No'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-gray-500 mb-1">VPP Connected</div>
+                                        <div className="text-sm font-medium">{customerData.vppDetails?.vppConnected === 1 ? 'Yes' : 'No'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-gray-500 mb-1">Signup Bonus</div>
+                                        <div className="text-sm font-medium">{customerData.vppDetails?.vppSignupBonus ? `$${customerData.vppDetails.vppSignupBonus}` : '—'}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Solar Details */}
+                            <div className="col-span-2 sm:col-span-4 mt-2 pt-2 border-t border-gray-200">
+                                <div className="text-xs text-gray-500 mb-2 font-medium uppercase">Solar System</div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div>
+                                        <div className="text-xs text-gray-500 mb-1">Has Solar</div>
+                                        <div className="text-sm font-medium">{customerData.solarDetails?.hassolar === 1 ? 'Yes' : 'No'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-gray-500 mb-1">Solar Capacity</div>
+                                        <div className="text-sm font-medium">{customerData.solarDetails?.solarcapacity ? `${customerData.solarDetails.solarcapacity} kW` : '—'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-gray-500 mb-1">Inverter Capacity</div>
+                                        <div className="text-sm font-medium">{customerData.solarDetails?.invertercapacity ? `${customerData.solarDetails.invertercapacity} kW` : '—'}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ID Details */}
+                            <div className="col-span-2 sm:col-span-4 mt-2 pt-2 border-t border-gray-200">
+                                <div className="text-xs text-gray-500 mb-2 font-medium uppercase">Identification</div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div>
+                                        <div className="text-xs text-gray-500 mb-1">ID Number</div>
+                                        <div className="text-sm font-medium">
+                                            {ID_TYPE_MAP[customerData.enrollmentDetails?.idtype as number] || 'ID'} {customerData.enrollmentDetails?.idnumber || '—'}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-gray-500 mb-1">ID State</div>
+                                        <div className="text-sm font-medium">{customerData.enrollmentDetails?.idstate || '—'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-gray-500 mb-1">ID Expiry</div>
+                                        <div className="text-sm font-medium">{customerData.enrollmentDetails?.idexpiry ? formatDate(customerData.enrollmentDetails.idexpiry) : '—'}</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

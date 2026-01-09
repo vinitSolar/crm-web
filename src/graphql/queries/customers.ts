@@ -310,6 +310,7 @@ export const GET_CUSTOMERS_CURSOR = gql`
                 tariffCode
                 status
                 utilmateStatus
+                rateVersion
                 msatDetails {
                   msatConnected
                 }
@@ -361,6 +362,7 @@ export const GET_CUSTOMER_BY_ID = gql`
             firstName
             lastName
             number
+            phoneVerifiedAt
             dob
             propertyType
             tariffCode
@@ -369,6 +371,7 @@ export const GET_CUSTOMER_BY_ID = gql`
             signDate
             emailSent
             utilmateStatus
+            rateVersion
             isActive
             isDeleted
             createdAt
@@ -402,6 +405,13 @@ export const GET_CUSTOMER_BY_ID = gql`
                 vppConnected
                 vppSignupBonus
             }
+            solarDetails {
+                id
+                customerUid
+                hassolar
+                solarcapacity
+                invertercapacity
+            }
             debitDetails {
                 id
                 customerUid
@@ -423,7 +433,49 @@ export const GET_CUSTOMER_BY_ID = gql`
                 codes
                 planId
                 dnsp
-}
+                tariff
+                state
+                type
+                vpp
+                discountApplies
+                discountPercentage
+                offers {
+                    uid
+                    offerName
+                    anytime
+                    cl1Supply
+                    cl1Usage
+                    cl2Supply
+                    cl2Usage
+                    demand
+                    demandOp
+                    demandP
+                    demandS
+                    fit
+                    offPeak
+                    peak
+                    shoulder
+                    supplyCharge
+                    vppOrcharge
+                }
+            }
+            enrollmentDetails {
+                id
+                customerUid
+                saletype
+                connectiondate
+                idtype
+                idnumber
+                idstate
+                idexpiry
+                concession
+                lifesupport
+                billingpreference
+                isActive
+                isDeleted
+                createdAt
+                updatedAt
+            }
         }
     }
 `;
@@ -527,6 +579,7 @@ export const GET_CUSTOMER_BY_CUSTOMER_ID = gql`
                 firstDebitDate
                 optIn
             }
+            rateVersion
             ratePlan {
                 uid
                 codes

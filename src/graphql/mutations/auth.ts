@@ -12,11 +12,7 @@ export const LOGIN = gql`
     }
 `;
 
-export const LOGOUT = gql`
-    mutation Logout {
-        logout
-    }
-`;
+
 
 export const REFRESH_TOKEN = gql`
     mutation RefreshToken($refreshToken: String!) {

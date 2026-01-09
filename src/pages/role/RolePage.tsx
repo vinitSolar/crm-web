@@ -9,7 +9,7 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import { DataTable, type Column, Modal, StatusField } from '@/components/common';
 import { PlusIcon, PencilIcon, TrashIcon, RefreshCwIcon, ShieldCheckIcon } from '@/components/icons';
 import { GET_ROLES, CREATE_ROLE, UPDATE_ROLE, SOFT_DELETE_ROLE, RESTORE_ROLE } from '@/graphql';
-import { formatDate } from '@/lib/utils';
+import { formatDateTime } from '@/lib/date';
 import { RolePermissionsModal } from '@/components/roles/RolePermissionsModal';
 import { useAuthStore } from '@/stores/useAuthStore';
 
@@ -187,13 +187,20 @@ export function RolePage() {
             return;
         }
 
+        // Capitalize the role name (first letter of each word)
+        const capitalizedName = formData.name
+            .trim()
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+
         setIsSubmitting(true);
         try {
             if (modalMode === 'create') {
                 const { data } = await createRole({
                     variables: {
                         input: {
-                            name: formData.name,
+                            name: capitalizedName,
                             description: formData.description,
                         }
                     }
@@ -207,7 +214,7 @@ export function RolePage() {
                     variables: {
                         uid: editingRole.uid,
                         input: {
-                            name: formData.name,
+                            name: capitalizedName,
                             description: formData.description,
                             isActive: formData.isActive
                         }
@@ -399,7 +406,7 @@ export function RolePage() {
             key: 'createdAt',
             header: 'Created On',
             width: 'w-[150px]',
-            render: (role) => <span className="text-muted-foreground">{formatDate(role.createdAt)}</span>
+            render: (role) => <span className="text-muted-foreground">{formatDateTime(role.createdAt)}</span>
         },
         // Access Control column - only show if user has edit permissions
         ...(canEdit ? [{

@@ -1,20 +1,18 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-
 import { DataTable, type Column, Modal } from '@/components/common';
-import { PlusIcon, FilterIcon, RefreshCwIcon, TrashIcon, PencilIcon, ClockIcon, SaveIcon } from '@/components/icons';
-import { GET_RATE_PLANS, GET_RATES_HISTORY } from '@/graphql/queries/rates';
+import { PlusIcon, FilterIcon, RefreshCwIcon, TrashIcon, PencilIcon, SaveIcon, ClockIcon } from '@/components/icons';
+import { GET_RATE_PLANS, HAS_RATES_CHANGES } from '@/graphql/queries/rates';
 import { CREATE_RATE_PLAN, UPDATE_RATE_PLAN, SOFT_DELETE_RATE_PLAN, RESTORE_RATE_PLAN, CREATE_RATES_SNAPSHOT } from '@/graphql/mutations/rates';
-import { formatDate } from '@/lib/utils';
-
+import { formatDateTime } from '@/lib/date';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { StatusField } from '@/components/common';
 import { STATE_OPTIONS, DNSP_OPTIONS } from '@/lib/constants';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { SnapshotDetails } from './components/SnapshotDetails';
+import { RatesHistoryModal } from './components/RatesHistoryModal';
 
 // Interfaces based on the query
 interface RateOffer {
@@ -157,9 +155,8 @@ export function RatesPage() {
                 }
             });
             toast.success('System snapshot created successfully');
-            if (historyModalOpen) {
-                fetchHistory({ variables: { page: 1, limit: 20 } });
-            }
+            // Refetch to update Save button state
+            setTimeout(() => refetchChanges?.(), 500);
         } catch (error) {
             console.error('Failed to create snapshot:', error);
             toast.error('Failed to create snapshot');
@@ -168,20 +165,9 @@ export function RatesPage() {
 
     // History state
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
-    const [historyPage, setHistoryPage] = useState(1);
-    const [fetchHistory, { data: historyData, loading: historyLoading }] = useLazyQuery(GET_RATES_HISTORY, {
-        fetchPolicy: 'network-only',
-    });
 
     const handleOpenHistory = () => {
-        setHistoryPage(1);
-        fetchHistory({ variables: { page: 1, limit: 20 } });
         setHistoryModalOpen(true);
-    };
-
-    const handleHistoryPageChange = (newPage: number) => {
-        setHistoryPage(newPage);
-        fetchHistory({ variables: { page: newPage, limit: 20 } });
     };
 
     // Debounce search code
@@ -211,7 +197,77 @@ export function RatesPage() {
     const meta = data?.ratePlans?.meta;
     const hasMore = meta ? page < meta.totalPages : false;
 
-    // Update allRatePlans when data changes
+    // Check if current rates have changes compared to active version (backend comparison)
+    const { data: changesData, refetch: refetchChanges } = useQuery(HAS_RATES_CHANGES, {
+        fetchPolicy: 'network-only',
+    });
+
+    const hasUnsavedChanges = changesData?.hasRatesChanges?.hasChanges ?? true;
+    const changedRatePlanUids = useMemo(() => new Set(changesData?.hasRatesChanges?.changedRatePlanUids || []), [changesData]);
+    // Map of old records for comparison: uid -> oldRecord object
+    const oldRecordsMap = useMemo(() => {
+        const map = new Map<string, any>();
+        if (changesData?.hasRatesChanges?.changes) {
+            changesData.hasRatesChanges.changes.forEach((change: any) => {
+                try {
+                    if (change.oldRecord) {
+                        map.set(change.uid, JSON.parse(change.oldRecord));
+                    }
+                } catch (e) {
+                    console.error('Error parsing old record', e);
+                }
+            });
+        }
+        return map;
+    }, [changesData]);
+
+    const isFieldChanged = useCallback((row: RatePlan, fieldKey: string) => {
+        const oldRecord = oldRecordsMap.get(row.uid);
+        if (!oldRecord) return false; // New record or no change
+
+        // Helper for offers comparison
+        const getOfferValue = (offer: any, key: string) => offer?.[key];
+
+        switch (fieldKey) {
+            case 'state':
+            case 'dnsp':
+            case 'type':
+            case 'tariff':
+            case 'planId':
+            case 'discountApplies':
+            case 'discountPercentage':
+            case 'vpp':
+                // loose comparison for numbers/strings safe here
+                return row[fieldKey as keyof RatePlan] != oldRecord[fieldKey];
+
+            case 'codes':
+                // Normalize both to string for comparison (oldRecord might be string, row.codes might be array)
+                const currentCodes = Array.isArray(row.codes) ? row.codes.join(', ') : String(row.codes || '');
+                const oldCodes = Array.isArray(oldRecord.codes) ? oldRecord.codes.join(', ') : String(oldRecord.codes || '');
+                return currentCodes !== oldCodes;
+
+            default:
+                // Offer fields like 'offer_anytime'
+                if (fieldKey.startsWith('offer_')) {
+                    const offerKey = fieldKey.replace('offer_', '');
+                    const newOffer = row.offers?.[0];
+                    const oldOffer = oldRecord.offers?.[0]; // Assuming single offer structure
+                    return getOfferValue(newOffer, offerKey) != getOfferValue(oldOffer, offerKey);
+                }
+                return false;
+        }
+    }, [oldRecordsMap]);
+
+    const getOldValue = useCallback((row: RatePlan, fieldKey: string) => {
+        const oldRecord = oldRecordsMap.get(row.uid);
+        if (!oldRecord) return undefined;
+
+        if (fieldKey.startsWith('offer_')) {
+            const offerKey = fieldKey.replace('offer_', '');
+            return oldRecord.offers?.[0]?.[offerKey];
+        }
+        return oldRecord[fieldKey];
+    }, [oldRecordsMap]);
     useEffect(() => {
         if (data?.ratePlans?.data) {
             const newData = data.ratePlans.data;
@@ -316,6 +372,8 @@ export function RatesPage() {
             // Refresh the list
             setAllRatePlans([]);
             setPage(1);
+            refetch(); // Actually reload the data
+            refetchChanges?.(); // Update Save button state
         } catch (err: any) {
             console.error('Failed to create rate plan:', err);
             toast.error(err.message || 'Failed to create rate plan');
@@ -421,6 +479,7 @@ export function RatesPage() {
             setAllRatePlans([]);
             setPage(1);
             refetch(); // Force refresh the list
+            refetchChanges?.(); // Update Save button state
         } catch (err: any) {
             console.error('Failed to update rate plan:', err);
             toast.error(err.message || 'Failed to update rate plan');
@@ -454,6 +513,7 @@ export function RatesPage() {
             );
             setDeleteModalOpen(false);
             setRatePlanToDelete(null);
+            refetchChanges?.(); // Update Save button state
         } catch (err: any) {
             console.error('Failed to delete rate plan:', err);
             toast.error(err.message || 'Failed to delete rate plan');
@@ -481,6 +541,7 @@ export function RatesPage() {
             );
             setRestoreModalOpen(false);
             setRatePlanToRestore(null);
+            refetchChanges?.(); // Update Save button state
         } catch (err: any) {
             console.error('Failed to restore rate plan:', err);
             toast.error(err.message || 'Failed to restore rate plan');
@@ -546,7 +607,11 @@ export function RatesPage() {
             width: 'w-[60px]',
             sticky: 'left' as const,
             stickyOffset: showActions ? 100 : 0,
-            render: (row: RatePlan) => <span>{row.state || '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'state') ? `Old: ${getOldValue(row, 'state')}` : null}>
+                    <span className={isFieldChanged(row, 'state') ? 'bg-orange-400 text-orange-950 font-bold px-2 py-0.5 rounded' : ''}>{row.state || '-'}</span>
+                </Tooltip>
+            ),
         },
         {
             key: 'codes',
@@ -572,14 +637,18 @@ export function RatesPage() {
                     }
                 }
 
+                const codesChanged = isFieldChanged(row, 'codes');
+
                 return (
-                    <div className="flex flex-wrap gap-1">
-                        {codes.map((code, idx) => (
-                            <span key={idx} className="bg-gray-100 text-gray-800 text-xs px-2 py-0.5 rounded">
-                                {code}
-                            </span>
-                        )) || '-'}
-                    </div>
+                    <Tooltip content={codesChanged ? `Old: ${getOldValue(row, 'codes')}` : null}>
+                        <div className={`flex flex-wrap gap-1 ${codesChanged ? 'bg-orange-300 dark:bg-orange-700/50 -m-2 p-2 rounded ring-1 ring-orange-400' : ''}`}>
+                            {codes.map((code, idx) => (
+                                <span key={idx} className={`text-xs px-2 py-0.5 rounded ${codesChanged ? 'bg-orange-400 text-orange-950 font-bold' : 'bg-gray-100 text-gray-800'}`}>
+                                    {code}
+                                </span>
+                            )) || '-'}
+                        </div>
+                    </Tooltip>
                 );
             },
         },
@@ -587,7 +656,13 @@ export function RatesPage() {
             key: 'dnsp',
             header: 'DNSP',
             width: 'w-[120px]',
-            render: (row: RatePlan) => <StatusField type="dnsp" value={row.dnsp} mode="badge" />,
+            render: (row: RatePlan) => (
+                <div className={isFieldChanged(row, 'dnsp') ? "bg-orange-300 dark:bg-orange-700/50 -m-2 p-2 rounded ring-1 ring-orange-400" : ""}>
+                    <Tooltip content={isFieldChanged(row, 'dnsp') ? `Old: ${getOldValue(row, 'dnsp')}` : null}>
+                        <StatusField type="dnsp" value={row.dnsp} mode="badge" />
+                    </Tooltip>
+                </div>
+            ),
         },
         {
             key: 'type',
@@ -599,91 +674,181 @@ export function RatesPage() {
             key: 'anytime',
             header: 'Anytime',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-orange-50 text-orange-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.anytime ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_anytime') ? `Old: ${getOldValue(row, 'offer_anytime')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_anytime') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-orange-50 text-orange-600'}`}>
+                        {row.offers?.[0]?.anytime ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'peak',
             header: 'Peak',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.peak ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_peak') ? `Old: ${getOldValue(row, 'offer_peak')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_peak') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-50 text-blue-600'}`}>
+                        {row.offers?.[0]?.peak ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'shoulder',
             header: 'Shoulder',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.shoulder ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_shoulder') ? `Old: ${getOldValue(row, 'offer_shoulder')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_shoulder') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-50 text-blue-600'}`}>
+                        {row.offers?.[0]?.shoulder ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'offPeak',
             header: 'Off-Peak',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.offPeak ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_offPeak') ? `Old: ${getOldValue(row, 'offer_offPeak')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_offPeak') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-50 text-blue-600'}`}>
+                        {row.offers?.[0]?.offPeak ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'supplyCharge',
             header: 'Supply Charge',
             width: 'w-[120px]',
-            render: (row: RatePlan) => <span className="bg-purple-50 text-purple-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.supplyCharge ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_supplyCharge') ? `Old: ${getOldValue(row, 'offer_supplyCharge')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_supplyCharge') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-purple-50 text-purple-600'}`}>
+                        {row.offers?.[0]?.supplyCharge ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'cl1Supply',
             header: 'CL1 Supply',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.cl1Supply ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_cl1Supply') ? `Old: ${getOldValue(row, 'offer_cl1Supply')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl1Supply') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                        {row.offers?.[0]?.cl1Supply ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'cl1Usage',
             header: 'CL1 Usage', // Assuming 'Usage' in image maps here or CL1 Usage
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.cl1Usage ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_cl1Usage') ? `Old: ${getOldValue(row, 'offer_cl1Usage')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl1Usage') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                        {row.offers?.[0]?.cl1Usage ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'cl2Supply',
             header: 'CL2 Supply',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.cl2Supply ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_cl2Supply') ? `Old: ${getOldValue(row, 'offer_cl2Supply')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl2Supply') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                        {row.offers?.[0]?.cl2Supply ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'cl2Usage',
             header: 'CL2 Usage',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.cl2Usage ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_cl2Usage') ? `Old: ${getOldValue(row, 'offer_cl2Usage')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl2Usage') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                        {row.offers?.[0]?.cl2Usage ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'demand',
             header: 'Demand',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-red-50 text-red-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.demand ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_demand') ? `Old: ${getOldValue(row, 'offer_demand')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demand') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-red-50 text-red-600'}`}>
+                        {row.offers?.[0]?.demand ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'demandOp',
             header: 'Demand(OP)',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-red-50 text-red-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.demandOp ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_demandOp') ? `Old: ${getOldValue(row, 'offer_demandOp')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandOp') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-red-50 text-red-600'}`}>
+                        {row.offers?.[0]?.demandOp ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'demandP',
             header: 'Demand(P)',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-red-50 text-red-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.demandP ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_demandP') ? `Old: ${getOldValue(row, 'offer_demandP')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandP') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-red-50 text-red-600'}`}>
+                        {row.offers?.[0]?.demandP ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'demandS',
             header: 'Demand(S)',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-red-50 text-red-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.demandS ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_demandS') ? `Old: ${getOldValue(row, 'offer_demandS')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandS') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-red-50 text-red-600'}`}>
+                        {row.offers?.[0]?.demandS ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'fit',
             header: 'FIT',
             width: 'w-[80px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.fit ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_fit') ? `Old: ${getOldValue(row, 'offer_fit')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_fit') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                        {row.offers?.[0]?.fit ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'vppOrcharge',
             header: 'FIT-VPP',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.vppOrcharge ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_vppOrcharge') ? `Old: ${getOldValue(row, 'offer_vppOrcharge')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_vppOrcharge') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                        {row.offers?.[0]?.vppOrcharge ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'fitPeak',
@@ -729,9 +894,9 @@ export function RatesPage() {
             key: 'updatedAt',
             header: 'Updated',
             width: 'w-[150px]',
-            render: (row: RatePlan) => <span className="text-muted-foreground">{formatDate(row.updatedAt)}</span>,
+            render: (row: RatePlan) => <span className="text-muted-foreground">{formatDateTime(row.updatedAt)}</span>,
         }
-    ].filter(col => col.key !== 'actions' || (canEdit || canDelete)), [handleEditRate, handleDeleteClick, handleRestoreClick, canEdit, canDelete]);
+    ].filter(col => col.key !== 'actions' || (canEdit || canDelete)), [handleEditRate, handleDeleteClick, handleRestoreClick, canEdit, canDelete, isFieldChanged, getOldValue]);
 
     return (
         <div className="space-y-6">
@@ -758,7 +923,7 @@ export function RatesPage() {
                                 leftIcon={<ClockIcon size={16} />}
                                 onClick={handleOpenHistory}
                             >
-                                History
+                                Versions
                             </Button>
                         </>
                     )}
@@ -832,14 +997,31 @@ export function RatesPage() {
                             </button>
                         </div>
                         <div>
-                            <Tooltip content="Save version">
+                            <Tooltip content={hasUnsavedChanges ? "Unsaved changes - Click to save version" : "All changes saved"}>
                                 <Button
-                                    variant="outline"
+                                    variant={hasUnsavedChanges ? "default" : "outline"}
                                     onClick={handleCreateSnapshot}
                                     isLoading={isSnapshotting}
-                                    className="px-3 border-blue-500 text-blue-500 hover:bg-blue-50 hover:text-blue-900 hover:border-blue-500"
+                                    disabled={!hasUnsavedChanges || isSnapshotting}
+                                    className={`px-4 gap-2 transition-all duration-300 ${hasUnsavedChanges
+                                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg border-0'
+                                        : 'border-green-300 bg-green-50 text-green-600 cursor-default'}`}
                                 >
-                                    {!isSnapshotting && <SaveIcon size={16} />}
+                                    {!isSnapshotting && (
+                                        hasUnsavedChanges ? (
+                                            <>
+                                                <SaveIcon size={16} />
+                                                <span className="text-sm font-medium">Save</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="20 6 9 17 4 12" />
+                                                </svg>
+                                                <span className="text-sm font-medium">Saved</span>
+                                            </>
+                                        )
+                                    )}
                                 </Button>
                             </Tooltip>
                         </div>
@@ -862,6 +1044,7 @@ export function RatesPage() {
                     hasMore={hasMore}
                     isLoadingMore={isLoadingMore}
                     onLoadMore={handleLoadMore}
+                    rowClassName={(row) => changedRatePlanUids.has(row.uid) ? '[&>td]:!bg-orange-100 font-medium' : ''}
                 />
             </div>
 
@@ -1694,132 +1877,16 @@ export function RatesPage() {
             </Modal>
 
             {/* History Modal */}
-            <Modal
+            <RatesHistoryModal
                 isOpen={historyModalOpen}
                 onClose={() => setHistoryModalOpen(false)}
-                title="System Snapshots"
-                size="full"
-            >
-                <div className="space-y-6">
-                    {/* Header Stats */}
-                    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border border-primary/20">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                <ClockIcon size={20} className="text-primary" />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-semibold text-foreground">Change History</h3>
-                                <p className="text-xs text-muted-foreground">
-                                    {historyData?.ratesHistory?.meta?.totalRecords || 0} total changes recorded
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            {historyData?.ratesHistory?.meta && historyData.ratesHistory.meta.totalPages > 1 && (
-                                <div className="flex items-center gap-2 mr-2">
-                                    <button
-                                        onClick={() => handleHistoryPageChange(historyPage - 1)}
-                                        disabled={historyPage <= 1}
-                                        className="p-2 rounded-lg border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                        </svg>
-                                    </button>
-                                    <span className="text-sm font-medium px-3 py-1 bg-muted rounded-lg">
-                                        {historyPage} / {historyData.ratesHistory.meta.totalPages}
-                                    </span>
-                                    <button
-                                        onClick={() => handleHistoryPageChange(historyPage + 1)}
-                                        disabled={historyPage >= historyData.ratesHistory.meta.totalPages}
-                                        className="p-2 rounded-lg border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {historyLoading ? (
-                        <div className="flex flex-col items-center justify-center py-16 gap-4">
-                            <div className="relative">
-                                <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin"></div>
-                            </div>
-                            <p className="text-sm text-muted-foreground">Loading history...</p>
-                        </div>
-                    ) : (
-                        <div className="relative">
-                            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-                                {historyData?.ratesHistory?.data?.map((record: any, index: number) => {
-                                    const actionStyles = {
-                                        SNAPSHOT: { bg: 'bg-purple-500', icon: '📸', label: 'Snapshot', border: 'border-purple-200', lightBg: 'bg-purple-50' }
-                                    };
-                                    const actionKey = (record.auditAction || 'SNAPSHOT') as keyof typeof actionStyles;
-                                    const actionConfig = actionStyles[actionKey] || { bg: 'bg-gray-500', icon: '?', label: record.auditAction, border: 'border-gray-200', lightBg: 'bg-gray-50' };
-
-                                    return (
-                                        <div key={record.uid} className="relative flex gap-4">
-                                            {/* Card */}
-                                            <div className={`flex-1 p-4 rounded-xl border ${actionConfig.border} ${actionConfig.lightBg} shadow-sm hover:shadow-md transition-shadow`}>
-                                                <div className="flex items-start justify-between gap-4 mb-3">
-                                                    <div>
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${actionConfig.bg} text-white`}>
-                                                                {actionConfig.label}
-                                                            </span>
-                                                            <span className="text-xs text-muted-foreground">
-                                                                #{historyData?.ratesHistory?.meta?.totalRecords - ((historyPage - 1) * 20 + index)}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-sm font-medium text-foreground">
-                                                            System Snapshot
-                                                        </p>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-xs font-medium text-foreground">{formatDate(record.createdAt)}</p>
-                                                        {(record.createdByName || record.createdBy) && (
-                                                            <p className="text-xs text-muted-foreground">by {record.createdByName || record.createdBy}</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <details className="group">
-                                                    <summary className="cursor-pointer flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors">
-                                                        <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                        </svg>
-                                                        View Snapshot Data
-                                                    </summary>
-                                                    <div className="mt-3">
-                                                        <SnapshotDetails uid={record.uid} />
-                                                    </div>
-
-                                                </details>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-
-                                {(!historyData?.ratesHistory?.data || historyData?.ratesHistory?.data?.length === 0) && (
-                                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                                            <ClockIcon size={32} className="text-muted-foreground" />
-                                        </div>
-                                        <h3 className="text-lg font-semibold text-foreground mb-1">No History Yet</h3>
-                                        <p className="text-sm text-muted-foreground max-w-sm">
-                                            Changes to rate plans will appear here as a timeline of events.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )
-                    }
-                </div >
-            </Modal >
+                refetchChanges={() => refetchChanges()}
+                refetchRatePlans={() => {
+                    setAllRatePlans([]);
+                    setPage(1);
+                    refetch();
+                }}
+            />
         </div >
     );
 }

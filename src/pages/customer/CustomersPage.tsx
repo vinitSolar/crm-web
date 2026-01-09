@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useLazyQuery, useMutation } from '@apollo/client';
+import { calculateDiscountedRate } from '../../lib/rate-utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { DataTable, type Column, Modal } from '@/components/common';
-import { PlusIcon, PencilIcon, TrashIcon, CheckIcon, MailIcon, XIcon } from '@/components/icons';
-import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL } from '@/graphql';
+import { PlusIcon, PencilIcon, TrashIcon, CheckIcon, XIcon, MailIcon, SnowflakeIcon } from '@/components/icons';
+import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL, CREATE_CUSTOMER, UPDATE_CUSTOMER } from '@/graphql';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { Select } from '@/components/ui/Select';
 import { StatusField } from '@/components/common';
-import { formatDate } from '@/lib/utils';
+import { formatDateTime } from '@/lib/date';
 import { SALE_TYPE_LABELS, BILLING_PREF_LABELS, DNSP_LABELS, DNSP_OPTIONS, DISCOUNT_OPTIONS, CUSTOMER_STATUS_OPTIONS, VPP_OPTIONS, VPP_CONNECTED_OPTIONS, ULTIMATE_STATUS_OPTIONS, MSAT_CONNECTED_OPTIONS } from '@/lib/constants';
 import { toast } from 'react-toastify';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -38,6 +39,7 @@ interface Customer {
     tariffCode?: string;
     discount?: string;
     createdAt: string;
+    rateVersion?: number;
     address?: CustomerAddress;
     ratePlan?: {
         dnsp?: string;
@@ -77,6 +79,7 @@ interface CustomerDetails {
     email?: string;
     number?: string;
     dob?: string;
+    propertyType?: number;
     status: number;
     discount?: number;
     tariffCode?: string;
@@ -88,6 +91,10 @@ interface CustomerDetails {
         connectiondate?: string;
         idtype?: number;
         idnumber?: string;
+        idstate?: string;
+        idexpiry?: string;
+        concession?: number;
+        lifesupport?: number;
         billingpreference?: number;
     };
     ratePlan?: {
@@ -110,6 +117,15 @@ interface CustomerDetails {
             offPeak?: number;
             shoulder?: number;
             fit?: number;
+            cl1Supply?: number;
+            cl1Usage?: number;
+            cl2Supply?: number;
+            cl2Usage?: number;
+            demand?: number;
+            demandOp?: number;
+            demandP?: number;
+            demandS?: number;
+            vppOrcharge?: number;
             isActive?: boolean;
         }>;
     };
@@ -126,12 +142,21 @@ interface CustomerDetails {
     vppDetails?: {
         vpp?: number;
         vppConnected?: number;
+        vppSignupBonus?: number;
     };
     msatDetails?: {
         msatConnected?: number;
         msatConnectedAt?: string;
     };
+    solarDetails?: {
+        id?: string;
+        customerUid?: string;
+        hassolar?: number;
+        solarcapacity?: number;
+        invertercapacity?: number;
+    };
     utilmateStatus?: string | number;
+    rateVersion?: number;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -329,7 +354,116 @@ export function CustomersPage() {
 
     const [softDeleteCustomer] = useMutation(SOFT_DELETE_CUSTOMER);
     const [sendReminderEmail] = useMutation(SEND_REMINDER_EMAIL);
+    const [createCustomer] = useMutation(CREATE_CUSTOMER);
     const [sendingReminder, setSendingReminder] = useState(false);
+    const [reminderSent, setReminderSent] = useState(false);
+    const [freezingCustomer, setFreezingCustomer] = useState(false);
+    const [freezeModalOpen, setFreezeModalOpen] = useState(false);
+    const [customerToFreeze, setCustomerToFreeze] = useState<CustomerDetails | null>(null);
+    const [updateCustomer] = useMutation(UPDATE_CUSTOMER);
+
+    const handleFreezeClick = (customer: CustomerDetails) => {
+        setCustomerToFreeze(customer);
+        setFreezeModalOpen(true);
+    };
+
+    const handleConfirmFreeze = async () => {
+        if (!customerToFreeze) return;
+        const customer = customerToFreeze;
+        setFreezeModalOpen(false);
+        setFreezingCustomer(true);
+        try {
+            // Build input from current customer details
+            const input: any = {
+                tenant: 'vinitSolar',
+                email: customer.email,
+                firstName: customer.firstName,
+                lastName: customer.lastName,
+                number: customer.number,
+                dob: customer.dob,
+                propertyType: customer.propertyType,
+                tariffCode: customer.tariffCode,
+                discount: customer.discount,
+                rateVersion: customer.rateVersion, // Preserve rate version
+                previousCustomerUid: customer.uid, // Link to the frozen customer
+                status: 1, // Set status to 1 for the new customer
+            };
+
+            // Add address if exists
+            if (customer.address) {
+                input.address = {
+                    unitNumber: customer.address.unitNumber,
+                    streetNumber: customer.address.streetNumber,
+                    streetName: customer.address.streetName,
+                    streetType: customer.address.streetType,
+                    suburb: customer.address.suburb,
+                    state: customer.address.state,
+                    postcode: customer.address.postcode,
+                    country: customer.address.country,
+                    nmi: customer.address.nmi,
+                };
+            }
+
+            // Add enrollment details if exists
+            if (customer.enrollmentDetails) {
+                input.enrollmentDetails = {
+                    saletype: customer.enrollmentDetails.saletype,
+                    connectiondate: customer.enrollmentDetails.connectiondate,
+                    idtype: customer.enrollmentDetails.idtype,
+                    idnumber: customer.enrollmentDetails.idnumber,
+                    idstate: customer.enrollmentDetails.idstate,
+                    idexpiry: customer.enrollmentDetails.idexpiry,
+                    concession: customer.enrollmentDetails.concession,
+                    lifesupport: customer.enrollmentDetails.lifesupport,
+                    billingpreference: customer.enrollmentDetails.billingpreference,
+                };
+            }
+
+            // Add VPP details if exists
+            if (customer.vppDetails) {
+                input.vppDetails = {
+                    vpp: customer.vppDetails.vpp,
+                    vppConnected: 0, // Reset VPP connected status
+                    vppSignupBonus: customer.vppDetails.vppSignupBonus,
+                };
+            }
+
+            // Add Solar details if exists
+            if (customer.solarDetails) {
+                input.solarDetails = {
+                    hassolar: customer.solarDetails.hassolar,
+                    solarcapacity: customer.solarDetails.solarcapacity,
+                    invertercapacity: customer.solarDetails.invertercapacity,
+                };
+            }
+
+            const { data } = await createCustomer({
+                variables: { input }
+            });
+
+            if (data?.createCustomer?.uid) {
+                // Update the previous customer's status to 4 (Frozen)
+                await updateCustomer({
+                    variables: {
+                        uid: customer.uid,
+                        input: { status: 4 }
+                    }
+                });
+
+                toast.success('Customer frozen and new customer created successfully');
+                setDetailsModalOpen(false);
+                // Refresh the customer list - reset state and refetch
+                setAllCustomers([]);
+                setEndCursor(null);
+                refetch();
+            }
+        } catch (error: any) {
+            console.error('Error freezing customer:', error);
+            toast.error(error.message || 'Failed to freeze customer');
+        } finally {
+            setFreezingCustomer(false);
+        }
+    };
 
     const handleSendReminder = async (customerUid: string) => {
         setSendingReminder(true);
@@ -340,6 +474,7 @@ export function CustomersPage() {
 
             if (data?.sendReminderEmail?.success) {
                 toast.success(data.sendReminderEmail.message || 'Reminder sent successfully');
+                setReminderSent(true);
             } else {
                 toast.error(data?.sendReminderEmail?.message || 'Failed to send reminder');
             }
@@ -437,7 +572,7 @@ export function CustomersPage() {
                             </button>
                         </Tooltip>
                     )}
-                    {canEdit && (
+                    {canEdit && row.status !== 3 && (
                         <Tooltip content="Edit Customer">
                             <button
                                 className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
@@ -825,14 +960,14 @@ export function CustomersPage() {
             {/* Customer Details Modal */}
             <Modal
                 isOpen={detailsModalOpen}
-                onClose={() => setDetailsModalOpen(false)}
+                onClose={() => { setDetailsModalOpen(false); setReminderSent(false); }}
                 title={selectedCustomerDetails ? `Customer details · ${selectedCustomerDetails.firstName} ${selectedCustomerDetails.lastName}` : 'Customer details'}
                 size="full"
                 footer={
                     <div className="flex justify-end gap-2">
                         <Button
                             variant="outline"
-                            onClick={() => setDetailsModalOpen(false)}
+                            onClick={() => { setDetailsModalOpen(false); setReminderSent(false); }}
                         >
                             Close
                         </Button>
@@ -849,238 +984,324 @@ export function CustomersPage() {
                     </div>
                 }
             >
-                {isLoadingDetails ? (
-                    <div className="flex items-center justify-center py-12">
+                {isLoadingDetails || freezingCustomer ? (
+                    <div className="flex flex-col items-center justify-center py-12">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+                        {freezingCustomer && <p className="mt-3 text-sm text-muted-foreground">Freezing customer...</p>}
                     </div>
                 ) : selectedCustomerDetails ? (
-                    <div className="space-y-6">
-                        {/* Status Badge */}
-                        <div className="flex items-center gap-3">
-                            <StatusField
-                                type="customer_status"
-                                value={selectedCustomerDetails.status}
-                                mode="badge"
-                            />
-                        </div>
-
-                        {/* Progress Timeline */}
-                        <div className="bg-gray-50 rounded-xl p-5">
-                            <h3 className="text-sm font-medium text-gray-700 mb-1">Progress timeline</h3>
-                            <p className="text-xs text-gray-500 mb-5">Track each milestone and when it happened.</p>
+                    <div className="space-y-3">
+                        {/* Progress Timeline with Freeze Button */}
+                        <div className="bg-gray-50 rounded-xl p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <div>
+                                    <h3 className="text-sm font-medium text-gray-700">Progress timeline</h3>
+                                    <p className="text-xs text-gray-500">Track each milestone and when it happened.</p>
+                                </div>
+                                {selectedCustomerDetails.status === 3 && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-cyan-200 text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700"
+                                        onClick={() => handleFreezeClick(selectedCustomerDetails)}
+                                        disabled={freezingCustomer}
+                                        isLoading={freezingCustomer}
+                                        loadingText="Freezing..."
+                                    >
+                                        <SnowflakeIcon size={16} className="mr-1" />
+                                        Freeze
+                                    </Button>
+                                )}
+                            </div>
                             <div className="relative flex justify-between items-start">
-                                {/* Connecting line background */}
                                 <div className="absolute top-[18px] left-[10%] right-[10%] h-0.5 bg-gray-300" />
-
                                 {[
                                     { step: 1, label: 'Offer sent', date: selectedCustomerDetails.createdAt, completed: true },
-                                    {
-                                        step: 2,
-                                        label: 'Signed by customer',
-                                        date: selectedCustomerDetails.signDate,
-                                        completed: selectedCustomerDetails.status >= 2,
-                                        action: selectedCustomerDetails.status < 2 ? (
+                                    { step: 2, label: 'Signed by customer', date: selectedCustomerDetails.signDate, completed: selectedCustomerDetails.status >= 2, showReminder: selectedCustomerDetails.status < 2 },
+                                    { step: 3, label: 'VPP connect', date: null, completed: selectedCustomerDetails.vppDetails?.vppConnected === 1, showToggle: true },
+                                    { step: 4, label: 'Connected to MSAT', date: null, completed: selectedCustomerDetails.msatDetails?.msatConnected === 1, showToggle: true },
+                                    { step: 5, label: 'Utilmate Connect', date: null, completed: !!selectedCustomerDetails.utilmateStatus, showToggle: true },
+                                ].map((item, index, arr) => (
+                                    <div key={item.step} className="relative flex flex-col items-center" style={{ width: '20%' }}>
+                                        {index > 0 && arr[index - 1].completed && (
+                                            <div className={`absolute top-[18px] h-0.5 ${item.completed ? 'bg-green-500' : 'bg-gray-300'}`} style={{ right: '50%', left: '-50%' }} />
+                                        )}
+                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold bg-white border-2 z-10 ${item.completed ? 'border-green-500 text-green-500' : 'border-gray-200 text-gray-400'}`}>
+                                            {item.completed ? <CheckIcon size={16} strokeWidth={3} /> : item.step}
+                                        </div>
+                                        <span className={`text-xs mt-2 text-center font-medium ${item.completed ? 'text-gray-900' : 'text-gray-500'}`}>{item.label}</span>
+                                        {item.date && <span className="text-[10px] text-gray-400">{formatDateTime(item.date)}</span>}
+                                        {item.showReminder && (
                                             <button
                                                 onClick={() => handleSendReminder(selectedCustomerDetails.uid)}
-                                                disabled={sendingReminder}
-                                                className={`flex items-center gap-2 bg-primary text-primary-foreground text-[10px] font-medium px-3 py-1.5 rounded-lg mt-2 transition-colors ${sendingReminder ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary/90'}`}
+                                                disabled={sendingReminder || reminderSent}
+                                                className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg mt-1 ${reminderSent ? 'bg-green-500 text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'} ${sendingReminder ? 'opacity-70' : ''}`}
                                             >
-                                                <MailIcon size={12} />
-                                                {sendingReminder ? 'Sending...' : 'Send reminder'}
+                                                {sendingReminder ? (
+                                                    <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Sending...</>
+                                                ) : reminderSent ? (
+                                                    <><CheckIcon size={10} />Sent</>
+                                                ) : (
+                                                    <><MailIcon size={10} />Send reminder</>
+                                                )}
                                             </button>
-                                        ) : null
-                                    },
-                                    {
-                                        step: 3,
-                                        label: 'VPP connect',
-                                        date: null,
-                                        completed: selectedCustomerDetails.vppDetails?.vppConnected === 1,
-                                        action: selectedCustomerDetails.vppDetails?.vpp === 1 ? (
-                                            <div className="flex flex-col items-center mt-2 gap-1">
-                                                <ToggleSwitch
-                                                    checked={selectedCustomerDetails.vppDetails?.vpp === 1}
-                                                    onChange={(val) => console.log('Toggle VPP', val)}
-                                                />
-                                                {selectedCustomerDetails.vppDetails?.vppConnected !== 1 && (
-                                                    <span className="text-[10px] text-gray-400 text-center w-32 leading-tight">
-                                                        Sign the quote to enable VPP connection
-                                                    </span>
-                                                )}
+                                        )}
+                                        {item.showToggle && (
+                                            <div className="mt-1">
+                                                <ToggleSwitch checked={item.completed} onChange={(val) => console.log('Toggle', item.label, val)} />
                                             </div>
-                                        ) : null
-                                    },
-                                    {
-                                        step: 4,
-                                        label: 'Connected to MSAT',
-                                        date: null,
-                                        completed: selectedCustomerDetails.msatDetails?.msatConnected === 1,
-                                        action: (
-                                            <div className="flex flex-col items-center mt-2">
-                                                <ToggleSwitch
-                                                    checked={selectedCustomerDetails.msatDetails?.msatConnected === 1}
-                                                    onChange={(val) => console.log('Toggle MSAT', val)}
-                                                />
-                                                {selectedCustomerDetails.msatDetails?.msatConnected === 1 && selectedCustomerDetails.msatDetails?.msatConnectedAt && (
-                                                    <span className="text-[10px] text-gray-400 mt-1">
-                                                        {formatDate(selectedCustomerDetails.msatDetails.msatConnectedAt)}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )
-                                    },
-                                    {
-                                        step: 5,
-                                        label: 'Utilmate Connect',
-                                        date: null,
-                                        completed: !!selectedCustomerDetails.utilmateStatus,
-                                        action: (
-                                            <div className="flex flex-col items-center mt-2">
-                                                <ToggleSwitch
-                                                    checked={!!selectedCustomerDetails.utilmateStatus}
-                                                    onChange={(val) => console.log('Toggle Utilmate', val)}
-                                                />
-                                            </div>
-                                        )
-                                    },
-                                ].map((item, index, arr) => {
-                                    // Calculate if the line segment before this step is completed
-                                    const prevCompleted = index > 0 && arr[index - 1].completed && item.completed;
-                                    return (
-                                        <div key={item.step} className="relative flex flex-col items-center z-10" style={{ width: '20%' }}>
-                                            {/* Green line overlay for completed segments */}
-                                            {index > 0 && prevCompleted && (
-                                                <div
-                                                    className="absolute top-[18px] h-0.5 bg-green-500 transition-all duration-500 -z-10"
-                                                    style={{ right: '50%', width: '100%' }}
-                                                />
-                                            )}
-                                            {/* Step circle */}
-                                            <div
-                                                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold bg-white border-2 transition-all duration-300 z-10 ${item.completed
-                                                    ? 'border-green-500 text-green-500'
-                                                    : 'border-gray-200 text-gray-400'
-                                                    }`}
-                                            >
-                                                {item.completed ? <CheckIcon size={16} strokeWidth={3} /> : item.step}
-                                            </div>
-                                            {/* Label */}
-                                            <span className={`text-xs mt-3 text-center font-medium transition-colors duration-300 ${item.completed ? 'text-gray-900' : 'text-gray-500'}`}>
-                                                {item.label}
-                                            </span>
-                                            {/* Action or Date */}
-                                            {item.action ? (
-                                                item.action
-                                            ) : item.date ? (
-                                                <span className="text-[10px] text-gray-400 mt-1">
-                                                    {formatDate(item.date)}
-                                                </span>
-                                            ) : null}
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Three Column Layout */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            {/* Customer Info Card */}
+                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                    </div>
+                                    <h3 className="text-sm font-semibold text-gray-800">Customer Info</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    {[
+                                        { label: 'Email', value: selectedCustomerDetails.email },
+                                        { label: 'Mobile', value: selectedCustomerDetails.number },
+                                        { label: 'DOB', value: selectedCustomerDetails.dob ? new Date(selectedCustomerDetails.dob).toLocaleDateString() : null },
+                                        { label: 'ID Number', value: selectedCustomerDetails.enrollmentDetails?.idnumber },
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
+                                            <span className="text-xs text-gray-500">{item.label}</span>
+                                            <span className="text-xs font-medium text-gray-800 text-right max-w-[180px] truncate">{item.value || '—'}</span>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Two Column Layout - Side by Side */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border border-gray-200 rounded-lg overflow-hidden">
-                            {/* Customer Summary - Left Column */}
-                            <div className="p-5 border-r border-gray-200">
-                                <h3 className="text-sm font-semibold text-gray-800 mb-4">Customer summary</h3>
-                                <div className="space-y-3 text-sm">
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-36 shrink-0">Customer ID</span>
-                                        <span className="font-medium text-gray-900">{selectedCustomerDetails.customerId || selectedCustomerDetails.uid.slice(0, 8)}</span>
-                                    </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-36 shrink-0">NMI</span>
-                                        <span className="font-medium text-gray-900">{selectedCustomerDetails.address?.nmi || '—'}</span>
-                                    </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-36 shrink-0">Tariff</span>
-                                        <span className="font-medium text-gray-900">{selectedCustomerDetails.tariffCode || selectedCustomerDetails.ratePlan?.tariff || '—'}</span>
-                                    </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-36 shrink-0">DNSP</span>
-                                        <span className="font-medium text-gray-900">{DNSP_LABELS[selectedCustomerDetails.ratePlan?.dnsp ?? -1] || '—'}</span>
-                                    </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-36 shrink-0">Discount</span>
-                                        <span className="font-medium text-gray-900">{selectedCustomerDetails.discount ? `${selectedCustomerDetails.discount}%` : '0%'}</span>
-                                    </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-36 shrink-0">Sale type</span>
-                                        <span className="font-medium text-gray-900">{SALE_TYPE_LABELS[selectedCustomerDetails.enrollmentDetails?.saletype ?? 0] || 'Direct'}</span>
-                                    </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-36 shrink-0">Connection date</span>
-                                        <span className="font-medium text-gray-900">
-                                            {selectedCustomerDetails.enrollmentDetails?.connectiondate
-                                                ? new Date(selectedCustomerDetails.enrollmentDetails.connectiondate).toLocaleDateString()
-                                                : '—'}
-                                        </span>
-                                    </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-36 shrink-0">DOB</span>
-                                        <span className="font-medium text-gray-900">
-                                            {selectedCustomerDetails.dob ? new Date(selectedCustomerDetails.dob).toLocaleDateString() : '—'}
-                                        </span>
-                                    </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-36 shrink-0">Identification</span>
-                                        <span className="font-medium text-gray-900">{selectedCustomerDetails.enrollmentDetails?.idnumber || '—'}</span>
-                                    </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-36 shrink-0">Billing preference</span>
-                                        <span className="font-medium text-gray-900">{BILLING_PREF_LABELS[selectedCustomerDetails.enrollmentDetails?.billingpreference ?? 0] || 'eBill (Email)'}</span>
-                                    </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-36 shrink-0">VPP</span>
-                                        <span className="font-medium text-gray-900">{selectedCustomerDetails.vppDetails?.vpp === 1 ? 'Yes' : 'No'}</span>
-                                    </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-36 shrink-0">VPP connection</span>
-                                        <span className="font-medium text-gray-900">{selectedCustomerDetails.vppDetails?.vppConnected === 1 ? 'Connected' : 'Not connected'}</span>
-                                    </div>
+                                    ))}
                                 </div>
                             </div>
 
-                            {/* Customer Contact - Right Column */}
-                            <div className="p-5">
-                                <h3 className="text-sm font-semibold text-gray-800 mb-4">Customer contact</h3>
-                                <div className="space-y-3 text-sm">
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-24 shrink-0">Name</span>
-                                        <span className="font-medium text-gray-900">{selectedCustomerDetails.firstName} {selectedCustomerDetails.lastName}</span>
+                            {/* Location Card */}
+                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                     </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-24 shrink-0">Email</span>
-                                        <span className="font-medium text-gray-900">{selectedCustomerDetails.email || '—'}</span>
+                                    <h3 className="text-sm font-semibold text-gray-800">Location & Meter</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    {[
+                                        { label: 'Address', value: selectedCustomerDetails.address?.fullAddress || [selectedCustomerDetails.address?.streetNumber, selectedCustomerDetails.address?.streetName, selectedCustomerDetails.address?.suburb].filter(Boolean).join(' ') },
+                                        { label: 'State', value: selectedCustomerDetails.address?.state },
+                                        { label: 'Postcode', value: selectedCustomerDetails.address?.postcode },
+                                        { label: 'NMI', value: selectedCustomerDetails.address?.nmi },
+                                        { label: 'Tariff Code', value: selectedCustomerDetails.tariffCode },
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex justify-between items-start py-1.5 border-b border-gray-50 last:border-0">
+                                            <span className="text-xs text-gray-500 shrink-0">{item.label}</span>
+                                            <span className="text-xs font-medium text-gray-800 text-right break-words">{item.value || '—'}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Account Settings Card */}
+                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                     </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-24 shrink-0">Mobile</span>
-                                        <span className="font-medium text-gray-900">{selectedCustomerDetails.number || '—'}</span>
-                                    </div>
-                                    <div className="flex">
-                                        <span className="text-gray-500 w-24 shrink-0">Address</span>
-                                        <span className="font-medium text-gray-900">
-                                            {selectedCustomerDetails.address?.fullAddress ||
-                                                [
-                                                    selectedCustomerDetails.address?.unitNumber ? `${selectedCustomerDetails.address.unitNumber}/` : '',
-                                                    selectedCustomerDetails.address?.streetNumber,
-                                                    selectedCustomerDetails.address?.streetName,
-                                                    selectedCustomerDetails.address?.suburb,
-                                                    selectedCustomerDetails.address?.state,
-                                                    selectedCustomerDetails.address?.postcode
-                                                ].filter(Boolean).join(' ') || '—'}
-                                        </span>
-                                    </div>
+                                    <h3 className="text-sm font-semibold text-gray-800">Account Settings</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    {[
+                                        { label: 'Sale Type', value: SALE_TYPE_LABELS[selectedCustomerDetails.enrollmentDetails?.saletype ?? 0] || 'Direct' },
+                                        { label: 'Billing', value: BILLING_PREF_LABELS[selectedCustomerDetails.enrollmentDetails?.billingpreference ?? 0] || 'eBill' },
+                                        { label: 'Discount', value: selectedCustomerDetails.discount ? `${selectedCustomerDetails.discount}%` : '0%' },
+                                        { label: 'Rate Version', value: selectedCustomerDetails.rateVersion ?? '—' },
+                                        { label: 'Connection', value: selectedCustomerDetails.enrollmentDetails?.connectiondate ? new Date(selectedCustomerDetails.enrollmentDetails.connectiondate).toLocaleDateString() : null },
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
+                                            <span className="text-xs text-gray-500">{item.label}</span>
+                                            <span className="text-xs font-medium text-gray-800">{item.value || '—'}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
+
+                        {/* VPP & Solar Details Row */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {/* VPP Details Card */}
+                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    </div>
+                                    <h3 className="text-sm font-semibold text-gray-800">VPP Details</h3>
+                                    {selectedCustomerDetails.vppDetails?.vpp === 1 && (
+                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">Enrolled</span>
+                                    )}
+                                </div>
+                                <div className="space-y-3">
+                                    {[
+                                        { label: 'VPP Enrolled', value: selectedCustomerDetails.vppDetails?.vpp === 1 ? 'Yes' : 'No' },
+                                        { label: 'VPP Connected', value: selectedCustomerDetails.vppDetails?.vppConnected === 1 ? 'Yes' : 'No' },
+                                        { label: 'Signup Bonus', value: selectedCustomerDetails.vppDetails?.vppSignupBonus ? `$${selectedCustomerDetails.vppDetails.vppSignupBonus}` : '—' },
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
+                                            <span className="text-xs text-gray-500">{item.label}</span>
+                                            <span className="text-xs font-medium text-gray-800">{item.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Solar System Card */}
+                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
+                                    </div>
+                                    <h3 className="text-sm font-semibold text-gray-800">Solar System</h3>
+                                    {selectedCustomerDetails.solarDetails?.hassolar === 1 && (
+                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-full">Has Solar</span>
+                                    )}
+                                </div>
+                                <div className="space-y-3">
+                                    {[
+                                        { label: 'Has Solar', value: selectedCustomerDetails.solarDetails?.hassolar === 1 ? 'Yes' : 'No' },
+                                        { label: 'Solar Capacity', value: selectedCustomerDetails.solarDetails?.solarcapacity ? `${selectedCustomerDetails.solarDetails.solarcapacity} kW` : '—' },
+                                        { label: 'Inverter Capacity', value: selectedCustomerDetails.solarDetails?.invertercapacity ? `${selectedCustomerDetails.solarDetails.invertercapacity} kW` : '—' },
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
+                                            <span className="text-xs text-gray-500">{item.label}</span>
+                                            <span className="text-xs font-medium text-gray-800">{item.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Rate Plan Section */}
+                        {selectedCustomerDetails.ratePlan && (
+                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 border-b border-slate-100">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
+                                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-semibold text-gray-800">Rate Plan: {selectedCustomerDetails.tariffCode || selectedCustomerDetails.ratePlan?.tariff}</h3>
+                                                <p className="text-xs text-gray-500">DNSP: {DNSP_LABELS[selectedCustomerDetails.ratePlan?.dnsp ?? -1]} • VPP: {selectedCustomerDetails.vppDetails?.vpp === 1 ? 'Yes' : 'No'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {selectedCustomerDetails.ratePlan.offers && selectedCustomerDetails.ratePlan.offers.length > 0 && (
+                                    <div className="p-5">
+                                        {selectedCustomerDetails.ratePlan.offers.map((offer, idx) => {
+                                            const rateFields = [
+                                                // Usage Rates (Discounted)
+                                                { label: 'Anytime', value: offer.anytime, isUsage: true, color: 'bg-blue-50' },
+                                                { label: 'Peak', value: offer.peak, isUsage: true, color: 'bg-red-50' },
+                                                { label: 'Off-Peak', value: offer.offPeak, isUsage: true, color: 'bg-green-50' },
+                                                { label: 'Shoulder', value: offer.shoulder, isUsage: true, color: 'bg-yellow-50' },
+                                                { label: 'CL1 Usage', value: offer.cl1Usage, isUsage: true, color: 'bg-gray-50' },
+                                                { label: 'CL2 Usage', value: offer.cl2Usage, isUsage: true, color: 'bg-gray-50' },
+
+                                                // Supply & Other Rates (Not Discounted)
+                                                { label: 'Supply', value: offer.supplyCharge, unit: '/day', color: 'bg-slate-50' },
+                                                { label: 'CL1 Supply', value: offer.cl1Supply, unit: '/day', color: 'bg-slate-50' },
+                                                { label: 'CL2 Supply', value: offer.cl2Supply, unit: '/day', color: 'bg-slate-50' },
+                                                { label: 'Feed-in', value: offer.fit, unit: '/kWh', color: 'bg-emerald-50' },
+                                                { label: 'Demand', value: offer.demand, unit: '/kVA', color: 'bg-orange-50' },
+                                                { label: 'Demand (Op)', value: offer.demandOp, unit: '/kVA', color: 'bg-orange-50' },
+                                                { label: 'Demand (P)', value: offer.demandP, unit: '/kVA', color: 'bg-orange-50' },
+                                                { label: 'Demand (S)', value: offer.demandS, unit: '/kVA', color: 'bg-orange-50' },
+                                                { label: 'VPP Charge', value: offer.vppOrcharge, unit: '/day', color: 'bg-indigo-50' },
+                                            ];
+
+                                            const displayedRates = rateFields.map(field => {
+                                                const rawValue = field.value ?? 0;
+                                                // Skip if value is effectively zero (using small epsilon for float comparison safety, though distinct from 0 is usually enough)
+                                                if (Math.abs(rawValue) < 0.0001) return null;
+
+                                                const finalValue = field.isUsage
+                                                    ? calculateDiscountedRate(rawValue, selectedCustomerDetails.discount ?? 0)
+                                                    : rawValue;
+
+                                                return {
+                                                    ...field,
+                                                    displayValue: `$${finalValue.toFixed(4)}`,
+                                                    unit: field.unit || '/kWh'
+                                                };
+                                            }).filter(Boolean);
+
+                                            if (displayedRates.length === 0) return null;
+
+                                            return (
+                                                <div key={offer.uid || idx}>
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                        {displayedRates.map((rate, i) => (
+                                                            <div key={i} className={`${rate?.color} rounded-lg p-3 text-center`}>
+                                                                <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">{rate?.label}</p>
+                                                                <p className="text-sm font-bold text-gray-800">{rate?.displayValue}<span className="text-[10px] font-normal text-gray-400">{rate?.unit}</span></p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <p className="text-center text-gray-500 py-8">No customer data available</p>
                 )}
+            </Modal>
+
+            {/* Freeze Confirmation Modal */}
+            <Modal
+                isOpen={freezeModalOpen}
+                onClose={() => setFreezeModalOpen(false)}
+                title="Confirm Freeze Customer"
+                size="sm"
+                footer={
+                    <>
+                        <Button
+                            variant="outline"
+                            onClick={() => setFreezeModalOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                            onClick={handleConfirmFreeze}
+                            isLoading={freezingCustomer}
+                            loadingText="Freezing..."
+                        >
+                            Confirm Freeze
+                        </Button>
+                    </>
+                }
+            >
+                <div className="text-sm text-gray-600">
+                    <p className="mb-3">
+                        Are you sure you want to freeze customer{' '}
+                        <span className="font-semibold text-gray-900">
+                            {customerToFreeze?.firstName} {customerToFreeze?.lastName}
+                        </span>{' '}
+                        ({customerToFreeze?.customerId || customerToFreeze?.uid})?
+                    </p>
+                    <p className="text-gray-500">
+                        This will create a new customer record and mark the current one as Frozen.
+                    </p>
+                </div>
             </Modal>
         </div>
     );

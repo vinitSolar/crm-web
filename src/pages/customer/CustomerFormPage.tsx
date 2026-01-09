@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
+import { useQuery, useMutation, useLazyQuery, useApolloClient } from '@apollo/client';
 import { toast } from 'react-toastify';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { DatePicker } from '@/components/ui/DatePicker';
 import {
     GET_CUSTOMER_BY_ID,
-    GET_RATE_PLANS,
+    GET_ACTIVE_RATES_HISTORY,
+    GET_RATES_HISTORY_BY_VERSION,
     CHECK_ADDRESS_EXISTS,
     CHECK_NMI_EXISTS,
     CREATE_CUSTOMER,
@@ -37,6 +39,7 @@ import {
     PhoneIcon,
 } from '@/components/icons';
 import { sendVerification, checkVerification } from '@/lib/twilio';
+import { calculateDiscountedRate } from '@/lib/rate-utils';
 import LocationAutocomplete from '../LocationAutocomplete';
 
 // ============================================================================
@@ -231,6 +234,7 @@ export const CustomerFormPage = () => {
 
     // Step state
     const [currentStep, setCurrentStep] = useState<0 | 1 | 2 | 3>(0);
+    const apolloClient = useApolloClient();
 
     // Phone verification state
     const [phoneVerified, setPhoneVerified] = useState(false);
@@ -254,8 +258,7 @@ export const CustomerFormPage = () => {
         fetchPolicy: 'network-only',
     });
 
-    const { data: ratePlansData } = useQuery(GET_RATE_PLANS, {
-        variables: { limit: 500 },
+    const { data: activeRatesData } = useQuery(GET_ACTIVE_RATES_HISTORY, {
         fetchPolicy: 'cache-first',
     });
 
@@ -264,14 +267,51 @@ export const CustomerFormPage = () => {
     const [createCustomer] = useMutation(CREATE_CUSTOMER);
     const [updateCustomer] = useMutation(UPDATE_CUSTOMER);
 
-    // Derived Data
-    const ratePlans: RatePlan[] = useMemo(() => ratePlansData?.ratePlans?.data || [], [ratePlansData]);
-    console.log(ratePlansData, 'ratePlansData');
+    // Get customer's rate version for historic rates lookup
+    const customerRateVersion = customerData?.customer?.rateVersion;
+
+    // Fetch historic rates by version (for edit mode when customer has rateVersion)
+    const { data: historicRatesData } = useQuery(GET_RATES_HISTORY_BY_VERSION, {
+        variables: { version: customerRateVersion },
+        skip: !isEditMode || !customerRateVersion,
+        fetchPolicy: 'cache-first',
+    });
+
+    // Derived Data - Parse rate plans from active or historic rates
+    const ratePlans: RatePlan[] = useMemo(() => {
+        // In edit mode with historic rates available, use historic rates
+        if (isEditMode && customerRateVersion && historicRatesData?.ratesHistoryByVersion?.newRecord) {
+            try {
+                const parsed = typeof historicRatesData.ratesHistoryByVersion.newRecord === 'string'
+                    ? JSON.parse(historicRatesData.ratesHistoryByVersion.newRecord)
+                    : historicRatesData.ratesHistoryByVersion.newRecord;
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                console.error('Failed to parse historic newRecord:', e);
+            }
+        }
+
+        // Otherwise use active rates (for new customers or fallback)
+        const record = activeRatesData?.globalActiveRatesHistory;
+        if (!record?.newRecord) return [];
+        try {
+            const parsed = typeof record.newRecord === 'string' ? JSON.parse(record.newRecord) : record.newRecord;
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            console.error('Failed to parse newRecord:', e);
+            return [];
+        }
+    }, [isEditMode, customerRateVersion, historicRatesData, activeRatesData]);
+
+    // Get active rate version for saving to customer
+    const activeRateVersion = useMemo(() => {
+        return activeRatesData?.globalActiveRatesHistory?.version || null;
+    }, [activeRatesData]);
 
     const tariffOptions = useMemo(() => {
         if (!formData.state) return [];
         return ratePlans
-            .filter(rp => rp.state?.toLowerCase() === formData.state?.toLowerCase())
+            .filter(rp => rp.state?.toLowerCase() === formData.state?.toLowerCase() && !rp.isDeleted)
             .map(rp => ({
                 value: rp.codes,
                 label: `${rp.codes} - ${rp.tariff} (${rp.state})`,
@@ -280,7 +320,6 @@ export const CustomerFormPage = () => {
 
     const discountOptions = useMemo(() => {
         // discountApplies is 0 or 1 (integer), so check explicitly
-        console.log(selectedRatePlan, 'selectedRatePlan?.discountApplies');
         if (selectedRatePlan?.discountApplies !== 1) return [{ value: '0', label: '0%' }];
         return [
             { value: '0', label: '0%' },
@@ -691,6 +730,7 @@ export const CustomerFormPage = () => {
                     vppSignupBonus: formData.vppSignupBonus ? parseFloat(formData.vppSignupBonus) : undefined,
                 },
                 debitDetails: undefined,
+                rateVersion: activeRateVersion,
             };
 
             if (isEditMode) {
@@ -700,6 +740,10 @@ export const CustomerFormPage = () => {
                 await createCustomer({ variables: { input } });
                 toast.success('Customer created successfully');
             }
+            // Clear customer cache to ensure fresh data on customers page
+            apolloClient.cache.evict({ fieldName: 'customers' });
+            apolloClient.cache.evict({ fieldName: 'customersCursor' });
+            apolloClient.cache.gc();
             navigate('/customers');
         } catch (err: any) {
             console.error('Failed to save customer:', err);
@@ -983,18 +1027,64 @@ export const CustomerFormPage = () => {
                                     </div>
                                 </div>
 
-                                {selectedRatePlan && selectedRatePlan.offers && selectedRatePlan.offers.length > 0 && (
-                                    <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                                        {selectedRatePlan.offers.map((offer) => (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    {selectedRatePlan?.offers?.map((offer) => {
+                                        const discount = formData.discount || 0;
+
+                                        // Calculate yearly savings estimation
+                                        // Typical annual usage: 4000 kWh residential, 10000 kWh commercial
+                                        const typicalKwh = formData.propertyType === 1 ? 10000 : 4000;
+
+                                        // Get primary energy rate (anytime if flat rate, or weighted average for TOU)
+                                        const getBaseEnergyRate = () => {
+                                            if (offer.anytime > 0) return offer.anytime;
+                                            // For TOU tariffs, use weighted average (40% peak, 30% shoulder, 30% off-peak typical distribution)
+                                            const touRates = [];
+                                            if (offer.peak > 0) touRates.push({ rate: offer.peak, weight: 0.4 });
+                                            if (offer.shoulder > 0) touRates.push({ rate: offer.shoulder, weight: 0.3 });
+                                            if (offer.offPeak > 0) touRates.push({ rate: offer.offPeak, weight: 0.3 });
+                                            if (touRates.length === 0) return 0;
+                                            // Normalize weights
+                                            const totalWeight = touRates.reduce((sum, r) => sum + r.weight, 0);
+                                            return touRates.reduce((sum, r) => sum + (r.rate * r.weight / totalWeight), 0);
+                                        };
+
+                                        const baseRate = getBaseEnergyRate();
+                                        const usageCost = baseRate * typicalKwh;
+                                        const yearlySaving = (usageCost * discount) / 100;
+
+                                        // Helper to render rate with discount logic
+                                        const renderRate = (label: string, value: number) => {
+                                            const finalRate = calculateDiscountedRate(value, discount);
+                                            return (
+                                                <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-lg p-3 text-center space-y-0.5">
+                                                    <div className="text-[#1E40AF] font-bold text-base tracking-tight">${finalRate.toFixed(4)}/kWh</div>
+                                                    <div className="text-[10px] font-bold text-[#60A5FA] uppercase tracking-wider">{label}</div>
+                                                </div>
+                                            );
+                                        };
+
+                                        // Helper for Controlled Load (yellow)
+                                        const renderCL = (label: string, value: number) => {
+                                            const finalRate = calculateDiscountedRate(value, discount);
+                                            return (
+                                                <div className="bg-[#FFFBEB] border border-[#FEF3C7] rounded-lg p-3 text-center space-y-0.5">
+                                                    <div className="text-[#92400E] font-bold text-base tracking-tight">${finalRate.toFixed(4)}/kWh</div>
+                                                    <div className="text-[10px] font-bold text-[#FBBF24] uppercase tracking-wider">{label}</div>
+                                                </div>
+                                            );
+                                        };
+
+                                        return (
                                             <div key={offer.id} className="p-6 bg-white border border-border rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] relative overflow-hidden group">
                                                 <div className="flex justify-between items-start mb-8">
                                                     <div>
                                                         <h3 className="text-base font-bold text-neutral-900 tracking-tight">{offer.offerName}</h3>
                                                     </div>
                                                     <div className="flex flex-col items-end">
-                                                        <div className="flex items-center gap-1.5 text-[#0A7B57] bg-[#F0FDF4] px-2 py-1 rounded-lg border border-[#DCFCE7]">
+                                                        <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border ${yearlySaving > 0 ? 'text-[#0A7B57] bg-[#F0FDF4] border-[#DCFCE7]' : 'text-muted-foreground bg-gray-50 border-gray-200'}`}>
                                                             <PiggyBankIcon size={16} />
-                                                            <span className="text-sm font-bold">$0.00</span>
+                                                            <span className="text-sm font-bold">${yearlySaving.toFixed(2)}</span>
                                                         </div>
                                                         <span className="text-[10px] font-medium text-muted-foreground mt-1">estimated yearly saving*</span>
                                                     </div>
@@ -1008,30 +1098,10 @@ export const CustomerFormPage = () => {
                                                             <h4 className="text-sm font-bold uppercase tracking-wide">Energy Rates</h4>
                                                         </div>
                                                         <div className="space-y-3">
-                                                            {offer.peak > 0 && (
-                                                                <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-[#1E40AF] font-bold text-base tracking-tight">${offer.peak.toFixed(4)}/kWh</div>
-                                                                    <div className="text-[10px] font-bold text-[#60A5FA] uppercase tracking-wider">Peak</div>
-                                                                </div>
-                                                            )}
-                                                            {offer.offPeak > 0 && (
-                                                                <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-[#1E40AF] font-bold text-base tracking-tight">${offer.offPeak.toFixed(4)}/kWh</div>
-                                                                    <div className="text-[10px] font-bold text-[#60A5FA] uppercase tracking-wider">Off-Peak</div>
-                                                                </div>
-                                                            )}
-                                                            {offer.shoulder > 0 && (
-                                                                <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-[#1E40AF] font-bold text-base tracking-tight">${offer.shoulder.toFixed(4)}/kWh</div>
-                                                                    <div className="text-[10px] font-bold text-[#60A5FA] uppercase tracking-wider">Shoulder</div>
-                                                                </div>
-                                                            )}
-                                                            {offer.anytime > 0 && (
-                                                                <div className="bg-[#EFF6FF] border border-[#DBEAFE] rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-[#1E40AF] font-bold text-base tracking-tight">${offer.anytime.toFixed(4)}/kWh</div>
-                                                                    <div className="text-[10px] font-bold text-[#60A5FA] uppercase tracking-wider">Anytime</div>
-                                                                </div>
-                                                            )}
+                                                            {offer.peak > 0 && renderRate('Peak', offer.peak)}
+                                                            {offer.offPeak > 0 && renderRate('Off-Peak', offer.offPeak)}
+                                                            {offer.shoulder > 0 && renderRate('Shoulder', offer.shoulder)}
+                                                            {offer.anytime > 0 && renderRate('Anytime', offer.anytime)}
                                                         </div>
                                                     </div>
 
@@ -1056,18 +1126,8 @@ export const CustomerFormPage = () => {
                                                             <h4 className="text-sm font-bold uppercase tracking-wide">Controlled Load</h4>
                                                         </div>
                                                         <div className="space-y-3">
-                                                            {offer.cl1Usage > 0 && (
-                                                                <div className="bg-[#FFFBEB] border border-[#FEF3C7] rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-[#92400E] font-bold text-base tracking-tight">${offer.cl1Usage.toFixed(4)}/kWh</div>
-                                                                    <div className="text-[10px] font-bold text-[#FBBF24] uppercase tracking-wider">CL1 Usage</div>
-                                                                </div>
-                                                            )}
-                                                            {offer.cl2Usage > 0 && (
-                                                                <div className="bg-[#FFFBEB] border border-[#FEF3C7] rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-[#92400E] font-bold text-base tracking-tight">${offer.cl2Usage.toFixed(4)}/kWh</div>
-                                                                    <div className="text-[10px] font-bold text-[#FBBF24] uppercase tracking-wider">CL2 Usage</div>
-                                                                </div>
-                                                            )}
+                                                            {offer.cl1Usage > 0 && renderCL('CL1 Usage', offer.cl1Usage)}
+                                                            {offer.cl2Usage > 0 && renderCL('CL2 Usage', offer.cl2Usage)}
                                                             {offer.cl1Usage === 0 && offer.cl2Usage === 0 && (
                                                                 <div className="text-[10px] font-medium text-muted-foreground italic p-2 text-center">No controlled load for this offer.</div>
                                                             )}
@@ -1075,9 +1135,9 @@ export const CustomerFormPage = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
 
@@ -1090,20 +1150,20 @@ export const CustomerFormPage = () => {
                                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                                             <Input label="First Name" required error={errors.firstName} placeholder="e.g. Alex" value={formData.firstName} onChange={(e) => updateField('firstName', e.target.value)} onBlur={() => handleBlur('firstName')} />
                                             <Input label="Last Name" required error={errors.lastName} placeholder="e.g. Taylor" value={formData.lastName} onChange={(e) => updateField('lastName', e.target.value)} onBlur={() => handleBlur('lastName')} />
-                                            <Input label="Date of Birth" type="date" value={formData.dob} onChange={(e) => updateField('dob', e.target.value)} />
+                                            <DatePicker label="Date of Birth" value={formData.dob} onChange={(date) => updateField('dob', date ? date.toISOString().split('T')[0] : '')} />
                                         </div>
                                         <Input label="Email" required helperText="We'll send confirmations here" error={errors.email} type="email" placeholder="name@example.com" value={formData.email} onChange={(e) => updateField('email', e.target.value)} onBlur={() => handleBlur('email')} />
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                         <Select label="Sale Type" options={SALE_TYPE_OPTIONS} value={formData.saleType.toString()} onChange={(val) => updateField('saleType', parseInt(val as string))} />
-                                        <Input label="Connection Date" required type="date" value={formData.connectionDate} onChange={(e) => updateField('connectionDate', e.target.value)} />
+                                        <DatePicker label="Connection Date" required value={formData.connectionDate} onChange={(date) => updateField('connectionDate', date ? date.toISOString().split('T')[0] : '')} />
                                         <Select label="ID Type" options={ID_TYPE_OPTIONS} value={formData.idType.toString()} onChange={(val) => updateField('idType', parseInt(val as string))} />
                                         <Input label="ID Number" placeholder="D123456" value={formData.idNumber} onChange={(e) => updateField('idNumber', e.target.value)} />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                         <Select label="ID State" options={STATE_OPTIONS} value={formData.idState} onChange={(val) => updateField('idState', val as string)} />
-                                        <Input label="ID Expiry" type="date" value={formData.idExpiry} onChange={(e) => updateField('idExpiry', e.target.value)} />
+                                        <DatePicker label="ID Expiry" value={formData.idExpiry} onChange={(date) => updateField('idExpiry', date ? date.toISOString().split('T')[0] : '')} />
                                         <Select label="Billing Preference" options={BILLING_PREF_OPTIONS} value={formData.billingPreference.toString()} onChange={(val) => updateField('billingPreference', parseInt(val as string))} />
                                     </div>
                                     <div className="flex gap-6 pt-2">

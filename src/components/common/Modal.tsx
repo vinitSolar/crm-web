@@ -134,7 +134,7 @@ export function Modal({
                 {fullContent ? (
                     children
                 ) : (
-                    <div className="px-6 py-4 max-h-[calc(100vh-200px)] overflow-y-auto bg-muted/30">
+                    <div className="px-6 py-4 max-h-[calc(100vh-200px)] overflow-y-auto bg-muted/30 custom-scrollbar">
                         {children}
                     </div>
                 )}
