@@ -92,6 +92,7 @@ const initialFormData: CustomerFormData = {
     propertyType: 0,
     businessName: '',
     abn: '',
+    showAsBusinessName: false,
     unitNumber: '',
     streetNumber: '',
     streetName: '',
@@ -243,6 +244,7 @@ export const CustomerFormPage = () => {
     const [otpCode, setOtpCode] = useState('');
     const [otpSending, setOtpSending] = useState(false);
     const [otpVerifying, setOtpVerifying] = useState(false);
+    const [verificationError, setVerificationError] = useState<string>('');
 
     // Duplicate check state
     const [duplicateErrors, setDuplicateErrors] = useState<{ address?: string; nmi?: string }>({});
@@ -344,6 +346,7 @@ export const CustomerFormPage = () => {
                 propertyType: c.propertyType || 0,
                 businessName: c.businessName || '',
                 abn: c.abn || '',
+                showAsBusinessName: c.showAsBusinessName || false,
                 unitNumber: c.address?.unitNumber || '',
                 streetNumber: c.address?.streetNumber || '',
                 streetName: c.address?.streetName || '',
@@ -551,16 +554,18 @@ export const CustomerFormPage = () => {
     };
 
     const handleVerifyOTP = async () => {
-        if (!otpCode.trim()) return toast.error('Enter the verification code');
+        if (!otpCode.trim()) return setVerificationError('Enter code');
         setOtpVerifying(true);
+        setVerificationError('');
         try {
             const ok = await checkVerification(formData.phone, otpCode);
             if (ok) {
                 setPhoneVerified(true);
                 setPhoneVerifiedAt(new Date().toISOString());
                 toast.success('Phone verified successfully');
-            } else { toast.error('Invalid verification code'); }
-        } catch (err: any) { toast.error('Failed to verify code'); }
+                setVerificationError('');
+            } else { setVerificationError('Invalid code'); }
+        } catch (err: any) { setVerificationError('Verification failed'); }
         finally { setOtpVerifying(false); }
     };
 
@@ -684,6 +689,7 @@ export const CustomerFormPage = () => {
                 lastName: formData.lastName,
                 businessName: formData.businessName,
                 abn: formData.abn,
+                showAsBusinessName: formData.showAsBusinessName,
                 number: formData.phone,
                 dob: formData.dob || null,
                 phoneVerifiedAt: phoneVerifiedAt,
@@ -734,11 +740,11 @@ export const CustomerFormPage = () => {
             };
 
             if (isEditMode) {
-                await updateCustomer({ variables: { uid, input } });
-                toast.success('Customer updated successfully');
+                const { data } = await updateCustomer({ variables: { uid, input } });
+                toast.success(data?.updateCustomer?.message || 'Customer updated successfully');
             } else {
-                await createCustomer({ variables: { input } });
-                toast.success('Customer created successfully');
+                const { data } = await createCustomer({ variables: { input } });
+                toast.success(data?.createCustomer?.message || 'Customer created successfully');
             }
             // Clear customer cache to ensure fresh data on customers page
             apolloClient.cache.evict({ fieldName: 'customers' });
@@ -794,8 +800,8 @@ export const CustomerFormPage = () => {
 
 
                                     <Field label="Mobile" required error={errors.phone}>
-                                        <div className="flex flex-wrap gap-2 items-center">
-                                            <Input className="w-64" placeholder="+61 400 000 000" value={formData.phone} onChange={(e) => updateField('phone', e.target.value)} onBlur={() => handleBlur('phone')} />
+                                        <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+                                            <Input containerClassName="w-full sm:w-64" placeholder="+61 400 000 000" value={formData.phone} onChange={(e) => updateField('phone', e.target.value)} onBlur={() => handleBlur('phone')} />
                                             <button
                                                 onClick={handleSendOTP}
                                                 type="button"
@@ -815,17 +821,29 @@ export const CustomerFormPage = () => {
                                                     {otpSending ? 'Sending…' : otpSent ? 'Resend' : 'Send code'}
                                                 </span>
                                             </button>
-                                            <input
-                                                className={`w-28 px-3 py-2 rounded-xl border ${phoneVerified
-                                                    ? 'bg-neutral-100 text-neutral-500 cursor-not-allowed'
-                                                    : ''
-                                                    }`}
-                                                placeholder="Code"
-                                                value={otpCode}
-                                                onChange={(e) => setOtpCode(e.target.value)}
-                                                disabled={phoneVerified}
-                                                maxLength={6}
-                                            />
+                                            <div className="relative">
+                                                <input
+                                                    className={`w-28 px-3 py-2 rounded-xl border ${phoneVerified
+                                                        ? 'bg-neutral-100 text-neutral-500 cursor-not-allowed'
+                                                        : verificationError
+                                                            ? 'border-red-500 focus:ring-red-200'
+                                                            : ''
+                                                        }`}
+                                                    placeholder="Code"
+                                                    value={otpCode}
+                                                    onChange={(e) => {
+                                                        setOtpCode(e.target.value);
+                                                        if (verificationError) setVerificationError('');
+                                                    }}
+                                                    disabled={phoneVerified}
+                                                    maxLength={6}
+                                                />
+                                                {verificationError && (
+                                                    <span className="absolute -bottom-5 left-0 text-[10px] text-red-500 font-medium whitespace-nowrap">
+                                                        {verificationError}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <button
                                                 onClick={handleVerifyOTP}
                                                 type="button"
@@ -877,6 +895,10 @@ export const CustomerFormPage = () => {
 
                                     {formData.propertyType === 1 && (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                                            <div className="col-span-1 md:col-span-2 flex items-center gap-2">
+                                                <ToggleSwitch checked={formData.showAsBusinessName} onChange={(c) => updateField('showAsBusinessName', c)} />
+                                                <span className="text-sm cursor-pointer" onClick={() => updateField('showAsBusinessName', !formData.showAsBusinessName)}>Show as Business Name</span>
+                                            </div>
                                             <Input label="Business Name" required error={errors.businessName} placeholder="Registered business name" value={formData.businessName} onChange={(e) => updateField('businessName', e.target.value)} />
                                             <Input label="ABN" required error={errors.abn} placeholder="e.g. 12 345 678 901" value={formData.abn} onChange={(e) => updateField('abn', e.target.value)} />
                                         </div>

@@ -206,7 +206,7 @@ export function RolePage() {
                     }
                 });
                 if (data?.createRole) {
-                    toast.success('Role created successfully');
+                    toast.success(data.createRole.message || 'Role created successfully');
                 }
             } else {
                 if (!editingRole) return;
@@ -221,7 +221,7 @@ export function RolePage() {
                     }
                 });
                 if (data?.updateRole) {
-                    toast.success('Role updated successfully');
+                    toast.success(data.updateRole.message || 'Role updated successfully');
                 }
             }
             setRoleModalOpen(false);
@@ -307,7 +307,7 @@ export function RolePage() {
             });
 
             if (data?.updateRole) {
-                toast.success(`Role ${isActive ? 'activated' : 'deactivated'} successfully`);
+                toast.success(data.updateRole.message || 'Role status updated successfully');
                 // Optimistic update
                 setAllRoles(prev => prev.map(r => r.uid === role.uid ? { ...r, isActive } : r));
             }

@@ -148,13 +148,13 @@ export function RatesPage() {
 
     const handleCreateSnapshot = async () => {
         try {
-            await createRatesSnapshot({
+            const { data } = await createRatesSnapshot({
                 variables: {
                     ratePlanUid: 'MANUAL_SNAPSHOT',
                     action: 'SNAPSHOT'
                 }
             });
-            toast.success('System snapshot created successfully');
+            toast.success(data?.createRatesSnapshot?.message || 'System snapshot created successfully');
             // Refetch to update Save button state
             setTimeout(() => refetchChanges?.(), 500);
         } catch (error) {
@@ -365,8 +365,8 @@ export function RatesPage() {
                 }]
             };
 
-            await createRatePlan({ variables: { input } });
-            toast.success('Rate plan created successfully');
+            const { data } = await createRatePlan({ variables: { input } });
+            toast.success(data?.createRatePlan?.message || 'Rate plan created successfully');
             setAddModalOpen(false);
             setFormData(initialFormState);
             // Refresh the list
@@ -469,9 +469,9 @@ export function RatesPage() {
                 offers: offersInput, // Include offers in the same mutation
             };
 
-            await updateRatePlan({ variables: { uid: editingRatePlan.uid, input: planInput } });
+            const { data } = await updateRatePlan({ variables: { uid: editingRatePlan.uid, input: planInput } });
 
-            toast.success('Rate plan updated successfully');
+            toast.success(data?.updateRatePlan?.message || 'Rate plan updated successfully');
             setEditModalOpen(false);
             setEditingRatePlan(null);
             setFormData(initialFormState);
