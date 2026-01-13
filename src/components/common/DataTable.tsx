@@ -53,6 +53,8 @@ export interface DataTableProps<T> {
     selectedRowKeys?: string[];
     /** Callback when selection changes */
     onSelectionChange?: (keys: string[]) => void;
+    /** Optional function to apply a class name to a row */
+    rowClassName?: (row: T) => string;
 }
 
 // ============================================================

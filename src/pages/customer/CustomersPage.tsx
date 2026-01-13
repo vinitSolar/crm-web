@@ -236,8 +236,8 @@ export function CustomersPage() {
         fetchPolicy: 'network-only',
     });
 
-    // State for selection
-    const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
+    // State for selection (commented out since checkbox UI is disabled)
+    // const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
 
     const limit = 20;
 
@@ -551,33 +551,33 @@ export function CustomersPage() {
 
     const showActionsColumn = canView || canEdit || canDelete;
 
-    // Selection Logic
-    const allSelected = filteredCustomers.length > 0 && filteredCustomers.every(c => selectedCustomerIds.includes(c.uid));
-    const someSelected = filteredCustomers.length > 0 && selectedCustomerIds.length > 0 && !allSelected;
+    // Selection Logic (commented out since checkbox UI is disabled)
+    // const allSelected = filteredCustomers.length > 0 && filteredCustomers.every(c => selectedCustomerIds.includes(c.uid));
+    // const someSelected = filteredCustomers.length > 0 && selectedCustomerIds.length > 0 && !allSelected;
 
-    const handleSelectAll = (checked: boolean) => {
-        if (checked) {
-            const allIds = filteredCustomers.map(c => c.uid);
-            // Combine with existing non-visible ids if any?
-            // For now, simple behavior: check selects visible, uncheck deselects all visible
-            setSelectedCustomerIds(prev => {
-                const combined = new Set([...prev, ...allIds]);
-                return Array.from(combined);
-            });
-        } else {
-            // Uncheck: remove visible IDs from selection
-            const visibleIds = new Set(filteredCustomers.map(c => c.uid));
-            setSelectedCustomerIds(prev => prev.filter(id => !visibleIds.has(id)));
-        }
-    };
+    // const handleSelectAll = (checked: boolean) => {
+    //     if (checked) {
+    //         const allIds = filteredCustomers.map(c => c.uid);
+    //         // Combine with existing non-visible ids if any?
+    //         // For now, simple behavior: check selects visible, uncheck deselects all visible
+    //         setSelectedCustomerIds(prev => {
+    //             const combined = new Set([...prev, ...allIds]);
+    //             return Array.from(combined);
+    //         });
+    //     } else {
+    //         // Uncheck: remove visible IDs from selection
+    //         const visibleIds = new Set(filteredCustomers.map(c => c.uid));
+    //         setSelectedCustomerIds(prev => prev.filter(id => !visibleIds.has(id)));
+    //     }
+    // };
 
-    const handleSelectRow = (uid: string, checked: boolean) => {
-        if (checked) {
-            setSelectedCustomerIds(prev => [...prev, uid]);
-        } else {
-            setSelectedCustomerIds(prev => prev.filter(id => id !== uid));
-        }
-    };
+    // const handleSelectRow = (uid: string, checked: boolean) => {
+    //     if (checked) {
+    //         setSelectedCustomerIds(prev => [...prev, uid]);
+    //     } else {
+    //         setSelectedCustomerIds(prev => prev.filter(id => id !== uid));
+    //     }
+    // };
 
     const columns: Column<Customer>[] = [
         // Only show actions column if user has at least one action permission or we need selection
