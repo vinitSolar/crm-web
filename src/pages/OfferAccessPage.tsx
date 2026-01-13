@@ -765,7 +765,7 @@ export const OfferAccessPage = () => {
                                     <div className="text-xs text-gray-500 mb-1">Signup Bonus</div>
                                     <div className="text-sm font-medium">
                                         {customerData.vppDetails?.vppSignupBonus
-                                            ? `$${customerData.vppDetails.vppSignupBonus} monthly bill credit for 12 months (total $${customerData.vppDetails.vppSignupBonus * 12})`
+                                            ? '$50 monthly bill credit for 12 months (total $600)'
                                             : '—'}
                                     </div>
                                 </div>
