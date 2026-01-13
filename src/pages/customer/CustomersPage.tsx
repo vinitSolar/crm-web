@@ -1203,7 +1203,7 @@ export function CustomersPage() {
                                     {[
                                         { label: 'VPP Enrolled', value: selectedCustomerDetails.vppDetails?.vpp === 1 ? 'Yes' : 'No' },
                                         { label: 'VPP Connected', value: selectedCustomerDetails.vppDetails?.vppConnected === 1 ? 'Yes' : 'No' },
-                                        { label: 'Signup Bonus', value: selectedCustomerDetails.vppDetails?.vppSignupBonus ? 'Eligible customers receive a $50 monthly bill credit for 12 months ($600 total).' : '—' },
+                                        { label: 'Signup Bonus', value: selectedCustomerDetails.vppDetails?.vppSignupBonus ? '$50 monthly bill credit for 12 months (total $600)' : '—' },
                                     ].map((item, i) => (
                                         <div key={i} className="flex justify-between items-start py-1.5 border-b border-gray-50 last:border-0">
                                             <span className="text-xs text-gray-500 shrink-0 w-24 pt-0.5">{item.label}</span>
