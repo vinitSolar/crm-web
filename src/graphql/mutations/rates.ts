@@ -74,6 +74,7 @@ export const CREATE_RATES_SNAPSHOT = gql`
         createdAt
         createdBy
         createdByName
+        message
     }
 }
 `;
@@ -86,6 +87,7 @@ export const SET_ACTIVE_RATES_VERSION = gql`
             activeVersion
             createdAt
             createdByName
+            message
         }
     }
 `;

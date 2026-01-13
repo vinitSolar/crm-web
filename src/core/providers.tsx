@@ -1,6 +1,5 @@
 // App-level providers wrapper
 import { ApolloProvider } from '@apollo/client';
-import { BrowserRouter } from 'react-router-dom';
 import { apolloClient } from '@/lib/apollo';
 
 interface ProvidersProps {
@@ -10,9 +9,7 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
     return (
         <ApolloProvider client={apolloClient}>
-            <BrowserRouter>
-                {children}
-            </BrowserRouter>
+            {children}
         </ApolloProvider>
     );
 }

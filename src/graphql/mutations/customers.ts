@@ -93,6 +93,7 @@ const CUSTOMER_FULL_RESPONSE = `
         firstDebitDate
         optIn
     }
+    message
 `;
 
 export const CREATE_CUSTOMER = gql`

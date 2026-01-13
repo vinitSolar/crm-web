@@ -8,6 +8,8 @@ export interface CustomerFormData {
     propertyType: number; // 0 = residential, 1 = commercial
     businessName: string;
     abn: string;
+    showAsBusinessName: boolean;
+    showName?: boolean;
 
     // Address
     unitNumber: string;

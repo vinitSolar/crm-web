@@ -61,15 +61,34 @@ export function Select({
     // Filter options based on search query
     const filteredOptions = React.useMemo(() => {
         if (!searchQuery) return options;
+
+        // If the search query explicitly matches the selected value's label (for single select),
+        // we assume the user hasn't typed a new search yet, so show all options.
+        // Note: Use explicit null/undefined check because value can be empty string ''
+        if (!multiple && value !== undefined && value !== null) {
+            const selectedLabel = options.find(o => o.value === value)?.label || '';
+            if (searchQuery === selectedLabel) {
+                return options;
+            }
+        }
+
         return options.filter(option =>
             option.label.toLowerCase().includes(searchQuery.toLowerCase())
         );
-    }, [options, searchQuery]);
+    }, [options, searchQuery, value, multiple]);
 
     // Reset focused index when options change or search query changes
     React.useEffect(() => {
         setFocusedIndex(filteredOptions.length > 0 ? 0 : -1);
     }, [filteredOptions.length, searchQuery]);
+
+    // Sync search query with selected value for single select
+    React.useEffect(() => {
+        if (!multiple && !isOpen) {
+            const label = options.find(o => o.value === value)?.label || '';
+            setSearchQuery(label);
+        }
+    }, [value, isOpen, multiple, options]);
 
     // Scroll focused item into view
     React.useEffect(() => {
@@ -169,10 +188,10 @@ export function Select({
                 return;
             }
 
-            // Only handle printable characters
-            if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
-                setSearchQuery(prev => prev + event.key);
-            }
+            // Remove global character handling as input handles it now
+            // if (event.key.length === 1 && !event.ctrlKey && !event.metaKey) {
+            //    setSearchQuery(prev => prev + event.key);
+            // }
         };
 
         document.addEventListener('keydown', handleKeyDown);
@@ -213,39 +232,48 @@ export function Select({
     const handleClear = (e: React.MouseEvent) => {
         e.stopPropagation();
         onChange?.(multiple ? [] : '');
+        setSearchQuery('');
     };
 
     return (
         <div className={cn("w-full space-y-1", containerClassName)} ref={containerRef}>
             {label && (
-                <label className="text-sm font-medium text-title block">
+                <label className="text-sm font-medium text-title leading-none block">
                     {label}
                     {required && <span className="text-destructive ml-1">*</span>}
                 </label>
             )}
             <div className="relative">
                 {/* Trigger Button */}
-                <button
-                    type="button"
-                    onClick={handleToggle}
-                    disabled={disabled}
+                {/* Trigger Input */}
+                <div
                     className={cn(
                         "flex items-center justify-between w-full h-10 px-3 py-2",
                         "border border-input rounded-md bg-background text-sm",
-                        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                        "disabled:cursor-not-allowed disabled:opacity-50",
-                        error && "border-destructive focus:ring-destructive",
+                        "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
+                        disabled && "opacity-50 cursor-not-allowed",
+                        error && "border-destructive focus-within:ring-destructive",
                         className
                     )}
+                    onClick={() => !disabled && !isOpen && setIsOpen(true)}
                 >
-                    <span className={cn(
-                        "truncate text-left flex-1",
-                        !displayLabel && "text-muted-foreground"
-                    )}>
-                        {displayLabel || placeholder}
-                    </span>
-                    <div className="flex items-center gap-1 ml-2">
-                        {multiple && selectedValues.length > 0 && (
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            if (!isOpen) setIsOpen(true);
+                        }}
+                        onFocus={() => !disabled && setIsOpen(true)}
+                        placeholder={multiple && selectedValues.length > 0 ? displayLabel : placeholder}
+                        disabled={disabled}
+                        className={cn(
+                            "flex-1 bg-transparent border-none outline-none placeholder:text-muted-foreground",
+                            "disabled:cursor-not-allowed"
+                        )}
+                    />
+                    <div className="flex items-center gap-1 ml-2 shrink-0">
+                        {((!multiple && searchQuery && searchQuery !== (options.find(o => o.value === value)?.label || '')) || (multiple && selectedValues.length > 0)) && (
                             <button
                                 type="button"
                                 onClick={handleClear}
@@ -260,9 +288,13 @@ export function Select({
                                 "transition-transform text-muted-foreground",
                                 isOpen && "rotate-180"
                             )}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggle();
+                            }}
                         />
                     </div>
-                </button>
+                </div>
 
                 {/* Dropdown with Portal */}
                 {isOpen && (
@@ -279,23 +311,7 @@ export function Select({
                             className="bg-background border border-border rounded-md shadow-lg max-h-60 overflow-hidden"
                         >
 
-                            {/* Search Query Display */}
-                            {searchQuery && (
-                                <div className="px-3 py-2 border-b border-border bg-muted/50">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-muted-foreground">
-                                            <span className="font-medium text-foreground">{searchQuery}</span>
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={() => setSearchQuery('')}
-                                            className="text-xs text-muted-foreground hover:text-foreground"
-                                        >
-                                            <CloseIcon size={14} />
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
+
 
                             {/* Options List */}
                             <ul ref={listRef} className="overflow-auto max-h-48 py-1">

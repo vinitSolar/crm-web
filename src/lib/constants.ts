@@ -139,9 +139,9 @@ export const ID_TYPE_OPTIONS = [
 
 // Sale Types
 export const SALE_TYPE_LABELS: Record<number, string> = {
-    0: 'Direct',
-    1: 'Transfer',
-    2: 'Referral',
+    0: 'Transfer',
+    1: 'Move-in',
+    2: 'Recontract',
 };
 
 // Billing Preferences

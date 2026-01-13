@@ -1,6 +1,6 @@
 // Route definitions with lazy loading for code splitting
 import { lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Outlet, useSearchParams } from 'react-router-dom';
 import { ProtectedRoute, RequirePermission } from '@/components/auth';
 import { MainLayout } from '@/components/layout';
 
@@ -23,8 +23,6 @@ const PageLoader = () => (
     </div>
 );
 
-import { useSearchParams } from 'react-router-dom';
-
 const RootRouteHandler = () => {
     const [searchParams] = useSearchParams();
     if (searchParams.get('offer')) {
@@ -39,33 +37,41 @@ const RootRouteHandler = () => {
     );
 };
 
+const LayoutWithSuspense = () => (
+    <Suspense fallback={<PageLoader />}>
+        <Outlet />
+    </Suspense>
+);
+
+const router = createBrowserRouter(
+    createRoutesFromElements(
+        <Route element={<LayoutWithSuspense />}>
+            {/* Public routes */}
+            <Route path="/login" element={<LoginPage />} />
+
+            {/* Root handler for Offer Page (public) vs Dashboard (protected) */}
+            <Route path="/" element={<RootRouteHandler />} />
+
+            {/* Other protected routes - single ProtectedRoute wrapper with MainLayout */}
+            <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+                {/* Dashboard route is now handled by RootRouteHandler at '/' */}
+
+                {/* Routes with specific menu permissions */}
+                <Route path="/customers" element={<RequirePermission menuCode="customers"><CustomersPage /></RequirePermission>} />
+                <Route path="/customers/new" element={<RequirePermission menuCode="customers"><CustomerFormPage /></RequirePermission>} />
+                <Route path="/customers/:uid" element={<RequirePermission menuCode="customers"><CustomerFormPage /></RequirePermission>} />
+                <Route path="/users" element={<RequirePermission menuCode="users"><UsersPage /></RequirePermission>} />
+                <Route path="/roles" element={<RequirePermission menuCode="roles"><RolePage /></RequirePermission>} />
+                <Route path="/rates" element={<RequirePermission menuCode="rates"><RatesPage /></RequirePermission>} />
+                <Route path="/audit-logs" element={<RequirePermission menuCode="audit_logs"><AuditLogsPage /></RequirePermission>} />
+            </Route>
+
+            <Route path="*" element={<NotFoundPage />} />
+        </Route>
+    )
+);
+
 export function AppRoutes() {
-    return (
-        <Suspense fallback={<PageLoader />}>
-            <Routes>
-                {/* Public routes */}
-                <Route path="/login" element={<LoginPage />} />
-
-                {/* Root handler for Offer Page (public) vs Dashboard (protected) */}
-                <Route path="/" element={<RootRouteHandler />} />
-
-                {/* Other protected routes - single ProtectedRoute wrapper with MainLayout */}
-                <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-                    {/* Dashboard route is now handled by RootRouteHandler at '/' */}
-
-                    {/* Routes with specific menu permissions */}
-                    <Route path="/customers" element={<RequirePermission menuCode="customers"><CustomersPage /></RequirePermission>} />
-                    <Route path="/customers/new" element={<RequirePermission menuCode="customers"><CustomerFormPage /></RequirePermission>} />
-                    <Route path="/customers/:uid" element={<RequirePermission menuCode="customers"><CustomerFormPage /></RequirePermission>} />
-                    <Route path="/users" element={<RequirePermission menuCode="users"><UsersPage /></RequirePermission>} />
-                    <Route path="/roles" element={<RequirePermission menuCode="roles"><RolePage /></RequirePermission>} />
-                    <Route path="/rates" element={<RequirePermission menuCode="rates"><RatesPage /></RequirePermission>} />
-                    <Route path="/audit-logs" element={<RequirePermission menuCode="audit_logs"><AuditLogsPage /></RequirePermission>} />
-                </Route>
-
-                <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-        </Suspense>
-    );
+    return <RouterProvider router={router} />;
 }
 

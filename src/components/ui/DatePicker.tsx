@@ -276,12 +276,12 @@ const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
         };
 
         return (
-            <div ref={containerRef} className={cn("relative w-full", className)}>
+            <div ref={containerRef} className={cn("relative w-full space-y-1", className)}>
                 {/* Label */}
                 {label && (
                     <label
                         htmlFor={inputId}
-                        className="text-sm font-medium text-title leading-none block mb-1"
+                        className="text-sm font-medium text-title leading-none block"
                     >
                         {label}
                         {required && <span className="text-destructive ml-1">*</span>}

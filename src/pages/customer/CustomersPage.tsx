@@ -5,7 +5,7 @@ import { calculateDiscountedRate } from '../../lib/rate-utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { DataTable, type Column, Modal } from '@/components/common';
-import { PlusIcon, PencilIcon, TrashIcon, CheckIcon, XIcon, MailIcon, SnowflakeIcon } from '@/components/icons';
+import { PlusIcon, PencilIcon, TrashIcon, CheckIcon, XIcon, MailIcon, SnowflakeIcon, Settings2Icon, PlugIcon, ZapIcon } from '@/components/icons';
 import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL, CREATE_CUSTOMER, UPDATE_CUSTOMER } from '@/graphql';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { Select } from '@/components/ui/Select';
@@ -76,6 +76,8 @@ interface CustomerDetails {
     customerId?: string;
     firstName: string;
     lastName: string;
+    businessName?: string;
+    abn?: string;
     email?: string;
     number?: string;
     dob?: string;
@@ -233,6 +235,9 @@ export function CustomersPage() {
     const [fetchCustomerDetails] = useLazyQuery(GET_CUSTOMER_BY_ID, {
         fetchPolicy: 'network-only',
     });
+
+    // State for selection (commented out since checkbox UI is disabled)
+    // const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
 
     const limit = 20;
 
@@ -546,8 +551,36 @@ export function CustomersPage() {
 
     const showActionsColumn = canView || canEdit || canDelete;
 
+    // Selection Logic (commented out since checkbox UI is disabled)
+    // const allSelected = filteredCustomers.length > 0 && filteredCustomers.every(c => selectedCustomerIds.includes(c.uid));
+    // const someSelected = filteredCustomers.length > 0 && selectedCustomerIds.length > 0 && !allSelected;
+
+    // const handleSelectAll = (checked: boolean) => {
+    //     if (checked) {
+    //         const allIds = filteredCustomers.map(c => c.uid);
+    //         // Combine with existing non-visible ids if any?
+    //         // For now, simple behavior: check selects visible, uncheck deselects all visible
+    //         setSelectedCustomerIds(prev => {
+    //             const combined = new Set([...prev, ...allIds]);
+    //             return Array.from(combined);
+    //         });
+    //     } else {
+    //         // Uncheck: remove visible IDs from selection
+    //         const visibleIds = new Set(filteredCustomers.map(c => c.uid));
+    //         setSelectedCustomerIds(prev => prev.filter(id => !visibleIds.has(id)));
+    //     }
+    // };
+
+    // const handleSelectRow = (uid: string, checked: boolean) => {
+    //     if (checked) {
+    //         setSelectedCustomerIds(prev => [...prev, uid]);
+    //     } else {
+    //         setSelectedCustomerIds(prev => prev.filter(id => id !== uid));
+    //     }
+    // };
+
     const columns: Column<Customer>[] = [
-        // Only show actions column if user has at least one action permission
+        // Only show actions column if user has at least one action permission or we need selection
         ...(showActionsColumn ? [{
             key: 'actions' as const,
             header: (
@@ -555,43 +588,64 @@ export function CustomersPage() {
                     <div className="h-7 flex items-center">
                         <span className="text-xs font-semibold uppercase text-muted-foreground">Actions</span>
                     </div>
-                    <div className="h-7"></div>
+                    {/* <div className="h-7 flex items-center">
+                        <input
+                            type="checkbox"
+                            checked={allSelected}
+                            ref={input => {
+                                if (input) input.indeterminate = someSelected;
+                            }}
+                            onChange={(e) => handleSelectAll(e.target.checked)}
+                            className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                        />
+                    </div> */}
                 </div>
             ),
-            width: 'w-[120px]',
+            width: 'w-[140px]',
             render: (row: Customer) => (
-                <div className="flex items-center gap-2">
-                    {canView && (
-                        <Tooltip content={row.status === 4 ? "Cannot view frozen customer" : "View Details"}>
-                            <button
-                                className={`p-2 border border-blue-200 rounded-lg bg-white text-blue-600 transition-colors ${row.status === 4 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-50 hover:text-blue-700'}`}
-                                onClick={() => row.status !== 4 && handleViewDetails(row)}
-                                disabled={row.status === 4}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
-                            </button>
-                        </Tooltip>
-                    )}
-                    {canEdit && row.status !== 3 && (
-                        <Tooltip content="Edit Customer">
-                            <button
-                                className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
-                                onClick={() => handleEdit(row)}
-                            >
-                                <PencilIcon size={16} />
-                            </button>
-                        </Tooltip>
-                    )}
-                    {canDelete && (
-                        <Tooltip content="Delete Customer">
-                            <button
-                                className="p-2 border border-red-200 rounded-lg bg-white hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
-                                onClick={() => handleDeleteClick(row)}
-                            >
-                                <TrashIcon size={16} />
-                            </button>
-                        </Tooltip>
-                    )}
+                <div className="flex items-center gap-3">
+                    {/* <div className="flex items-center">
+                        <input
+                            type="checkbox"
+                            checked={selectedCustomerIds.includes(row.uid)}
+                            onChange={(e) => handleSelectRow(row.uid, e.target.checked)}
+                            className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                        />
+                    </div> */}
+                    <div className="flex items-center gap-2">
+                        {canView && (
+                            <Tooltip content={row.status === 4 ? "Cannot view frozen customer" : "View Details"}>
+                                <button
+                                    className={`p-2 border border-blue-200 rounded-lg bg-white text-blue-600 transition-colors ${row.status === 4 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-50 hover:text-blue-700'}`}
+                                    onClick={() => row.status !== 4 && handleViewDetails(row)}
+                                    disabled={row.status === 4}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+                                </button>
+                            </Tooltip>
+                        )}
+                        {canEdit && row.status !== 3 && (
+                            <Tooltip content="Edit Customer">
+                                <button
+                                    className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
+                                    onClick={() => handleEdit(row)}
+                                >
+                                    <PencilIcon size={16} />
+                                </button>
+                            </Tooltip>
+                        )}
+                        {canDelete && (
+                            <Tooltip content="Delete Customer">
+                                <button
+                                    className="p-2 border border-red-200 rounded-lg bg-white hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                                    onClick={() => handleDeleteClick(row)}
+                                >
+                                    <TrashIcon size={16} />
+                                </button>
+                            </Tooltip>
+                        )}
+
+                    </div>
                 </div>
             ),
         }] : []),
@@ -1068,6 +1122,8 @@ export function CustomersPage() {
                                 </div>
                                 <div className="space-y-3">
                                     {[
+                                        { label: 'Business', value: selectedCustomerDetails.businessName },
+                                        { label: 'ABN', value: selectedCustomerDetails.abn },
                                         { label: 'Email', value: selectedCustomerDetails.email },
                                         { label: 'Mobile', value: selectedCustomerDetails.number },
                                         { label: 'DOB', value: selectedCustomerDetails.dob ? new Date(selectedCustomerDetails.dob).toLocaleDateString() : null },
@@ -1098,8 +1154,8 @@ export function CustomersPage() {
                                         { label: 'Tariff Code', value: selectedCustomerDetails.tariffCode },
                                     ].map((item, i) => (
                                         <div key={i} className="flex justify-between items-start py-1.5 border-b border-gray-50 last:border-0">
-                                            <span className="text-xs text-gray-500 shrink-0">{item.label}</span>
-                                            <span className="text-xs font-medium text-gray-800 text-right break-words">{item.value || '—'}</span>
+                                            <span className="text-xs text-gray-500 shrink-0 w-24">{item.label}</span>
+                                            <span className="text-xs font-medium text-gray-800 text-right flex-1 break-words">{item.value || '—'}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -1147,11 +1203,11 @@ export function CustomersPage() {
                                     {[
                                         { label: 'VPP Enrolled', value: selectedCustomerDetails.vppDetails?.vpp === 1 ? 'Yes' : 'No' },
                                         { label: 'VPP Connected', value: selectedCustomerDetails.vppDetails?.vppConnected === 1 ? 'Yes' : 'No' },
-                                        { label: 'Signup Bonus', value: selectedCustomerDetails.vppDetails?.vppSignupBonus ? `$${selectedCustomerDetails.vppDetails.vppSignupBonus}` : '—' },
+                                        { label: 'Signup Bonus', value: selectedCustomerDetails.vppDetails?.vppSignupBonus ? 'Eligible customers receive a $50 monthly bill credit for 12 months ($600 total).' : '—' },
                                     ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
-                                            <span className="text-xs text-gray-500">{item.label}</span>
-                                            <span className="text-xs font-medium text-gray-800">{item.value}</span>
+                                        <div key={i} className="flex justify-between items-start py-1.5 border-b border-gray-50 last:border-0">
+                                            <span className="text-xs text-gray-500 shrink-0 w-24 pt-0.5">{item.label}</span>
+                                            <span className={`text-xs font-medium text-gray-800 text-right flex-1 ${item.value && item.value.length > 30 ? 'leading-relaxed' : ''}`}>{item.value}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -1203,54 +1259,102 @@ export function CustomersPage() {
                                 {selectedCustomerDetails.ratePlan.offers && selectedCustomerDetails.ratePlan.offers.length > 0 && (
                                     <div className="p-5">
                                         {selectedCustomerDetails.ratePlan.offers.map((offer, idx) => {
-                                            const rateFields = [
-                                                // Usage Rates (Discounted)
-                                                { label: 'Anytime', value: offer.anytime, isUsage: true, color: 'bg-blue-50' },
-                                                { label: 'Peak', value: offer.peak, isUsage: true, color: 'bg-red-50' },
-                                                { label: 'Off-Peak', value: offer.offPeak, isUsage: true, color: 'bg-green-50' },
-                                                { label: 'Shoulder', value: offer.shoulder, isUsage: true, color: 'bg-yellow-50' },
-                                                { label: 'CL1 Usage', value: offer.cl1Usage, isUsage: true, color: 'bg-gray-50' },
-                                                { label: 'CL2 Usage', value: offer.cl2Usage, isUsage: true, color: 'bg-gray-50' },
+                                            const discount = selectedCustomerDetails.discount ?? 0;
+                                            const hasCL = (offer.cl1Usage || 0) > 0 || (offer.cl2Usage || 0) > 0;
+                                            const hasFiT = (offer.fit || 0) > 0;
 
-                                                // Supply & Other Rates (Not Discounted)
-                                                { label: 'Supply', value: offer.supplyCharge, unit: '/day', color: 'bg-slate-50' },
-                                                { label: 'CL1 Supply', value: offer.cl1Supply, unit: '/day', color: 'bg-slate-50' },
-                                                { label: 'CL2 Supply', value: offer.cl2Supply, unit: '/day', color: 'bg-slate-50' },
-                                                { label: 'Feed-in', value: offer.fit, unit: '/kWh', color: 'bg-emerald-50' },
-                                                { label: 'Demand', value: offer.demand, unit: '/kVA', color: 'bg-orange-50' },
-                                                { label: 'Demand (Op)', value: offer.demandOp, unit: '/kVA', color: 'bg-orange-50' },
-                                                { label: 'Demand (P)', value: offer.demandP, unit: '/kVA', color: 'bg-orange-50' },
-                                                { label: 'Demand (S)', value: offer.demandS, unit: '/kVA', color: 'bg-orange-50' },
-                                                { label: 'VPP Charge', value: offer.vppOrcharge, unit: '/day', color: 'bg-indigo-50' },
-                                            ];
-
-                                            const displayedRates = rateFields.map(field => {
-                                                const rawValue = field.value ?? 0;
-                                                // Skip if value is effectively zero (using small epsilon for float comparison safety, though distinct from 0 is usually enough)
-                                                if (Math.abs(rawValue) < 0.0001) return null;
-
-                                                const finalValue = field.isUsage
-                                                    ? calculateDiscountedRate(rawValue, selectedCustomerDetails.discount ?? 0)
-                                                    : rawValue;
-
-                                                return {
-                                                    ...field,
-                                                    displayValue: `$${finalValue.toFixed(4)}`,
-                                                    unit: field.unit || '/kWh'
+                                            const renderRate = (label: string, value: number, colorClass: string = 'blue') => {
+                                                const finalRate = calculateDiscountedRate(value, discount);
+                                                const colors = {
+                                                    blue: 'bg-blue-50 border-blue-200 text-blue-600',
+                                                    orange: 'bg-orange-50 border-orange-200 text-orange-600',
                                                 };
-                                            }).filter(Boolean);
+                                                const theme = colors[colorClass as keyof typeof colors] || colors.blue;
 
-                                            if (displayedRates.length === 0) return null;
+                                                return (
+                                                    <div className={`${theme.split(' ')[0]} border ${theme.split(' ')[1]} rounded-lg p-3 text-center space-y-0.5`}>
+                                                        <div className={`${theme.split(' ')[2]} font-bold text-base tracking-tight`}>${finalRate.toFixed(4)}/kWh</div>
+                                                        <div className={`text-[10px] font-bold ${theme.split(' ')[2]} uppercase tracking-wider opacity-80`}>{label}</div>
+                                                    </div>
+                                                );
+                                            };
+
+                                            const renderCL = (label: string, value: number) => {
+                                                const finalRate = calculateDiscountedRate(value, discount);
+                                                return (
+                                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center space-y-0.5">
+                                                        <div className="text-green-600 font-bold text-base tracking-tight">${finalRate.toFixed(4)}/kWh</div>
+                                                        <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider opacity-80">{label}</div>
+                                                    </div>
+                                                );
+                                            };
 
                                             return (
                                                 <div key={offer.uid || idx}>
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                                        {displayedRates.map((rate, i) => (
-                                                            <div key={i} className={`${rate?.color} rounded-lg p-3 text-center`}>
-                                                                <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1">{rate?.label}</p>
-                                                                <p className="text-sm font-bold text-gray-800">{rate?.displayValue}<span className="text-[10px] font-normal text-gray-400">{rate?.unit}</span></p>
+                                                    <div className={`grid grid-cols-1 ${hasFiT && hasCL ? 'md:grid-cols-4' : (hasFiT || hasCL ? 'md:grid-cols-3' : 'md:grid-cols-2')} gap-8`}>
+                                                        {/* Column 1: Energy Rates */}
+                                                        <div className="space-y-4">
+                                                            <div className="flex items-center gap-2 text-[#2563EB]">
+                                                                <Settings2Icon size={16} />
+                                                                <h4 className="text-sm font-bold uppercase tracking-wide">Energy Rates</h4>
                                                             </div>
-                                                        ))}
+                                                            <div className="space-y-3">
+                                                                {(offer.peak ?? 0) > 0 && renderRate('Peak', offer.peak ?? 0, 'blue')}
+                                                                {(offer.offPeak ?? 0) > 0 && renderRate('Off-Peak', offer.offPeak ?? 0, 'blue')}
+                                                                {(offer.shoulder ?? 0) > 0 && renderRate('Shoulder', offer.shoulder ?? 0, 'blue')}
+                                                                {(offer.anytime ?? 0) > 0 && renderRate('Anytime', offer.anytime ?? 0, 'orange')}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Column 2: Supply Charges */}
+                                                        <div className="space-y-4">
+                                                            <div className="flex items-center gap-2 text-purple-600">
+                                                                <PlugIcon size={16} />
+                                                                <h4 className="text-sm font-bold uppercase tracking-wide">Supply Charges</h4>
+                                                            </div>
+                                                            <div className="space-y-3">
+                                                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center space-y-0.5">
+                                                                    <div className="text-purple-600 font-bold text-base tracking-tight">${(offer.supplyCharge ?? 0).toFixed(4)}/day</div>
+                                                                    <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wider opacity-80">Supply</div>
+                                                                </div>
+                                                                {(offer.vppOrcharge ?? 0) > 0 && (
+                                                                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="text-indigo-600 font-bold text-base tracking-tight">${(offer.vppOrcharge ?? 0).toFixed(4)}/day</div>
+                                                                        <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider opacity-80">VPP Charge</div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Column 3: Solar FiT */}
+                                                        {hasFiT && (
+                                                            <div className="space-y-4">
+                                                                <div className="flex items-center gap-2 text-[rgb(22,163,74)]">
+                                                                    <ZapIcon size={16} />
+                                                                    <h4 className="text-sm font-bold uppercase tracking-wide">Solar FiT</h4>
+                                                                </div>
+                                                                <div className="space-y-3">
+                                                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="text-green-600 font-bold text-base tracking-tight">${(offer.fit ?? 0).toFixed(4)}/kWh</div>
+                                                                        <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider opacity-80">Feed-in</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Column 4: Controlled Load */}
+                                                        {hasCL && (
+                                                            <div className="space-y-4">
+                                                                <div className="flex items-center gap-2 text-green-600">
+                                                                    <PlugIcon size={16} />
+                                                                    <h4 className="text-sm font-bold uppercase tracking-wide">Controlled Load</h4>
+                                                                </div>
+                                                                <div className="space-y-3">
+                                                                    {(offer.cl1Usage ?? 0) > 0 && renderCL('CL1 Usage', offer.cl1Usage ?? 0)}
+                                                                    {(offer.cl2Usage ?? 0) > 0 && renderCL('CL2 Usage', offer.cl2Usage ?? 0)}
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             );

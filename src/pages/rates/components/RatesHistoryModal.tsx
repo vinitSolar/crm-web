@@ -168,8 +168,8 @@ export function RatesHistoryModal({ isOpen, onClose, refetchChanges, refetchRate
                                                                         setActiveVersionUid(record.uid);
 
                                                                         try {
-                                                                            await setActiveRatesVersion({ variables: { uid: record.uid } });
-                                                                            toast.success('Version activated successfully');
+                                                                            const { data } = await setActiveRatesVersion({ variables: { uid: record.uid } });
+                                                                            toast.success(data?.setActiveRatesVersion?.message || 'Version activated successfully');
                                                                             // No need to revert if successful, fetchHistory will eventually update data
                                                                             fetchHistory({ variables: { page: historyPage, limit: 20 } });
                                                                             refetchChanges?.();

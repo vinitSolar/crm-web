@@ -47,7 +47,13 @@ export interface DataTableProps<T> {
     maxHeightClass?: string;
     /** Custom class for wrapper */
     className?: string;
-    /** Function to get custom class names for a row */
+    /** Enable row selection */
+    enableSelection?: boolean;
+    /** Selected row keys */
+    selectedRowKeys?: string[];
+    /** Callback when selection changes */
+    onSelectionChange?: (keys: string[]) => void;
+    /** Optional function to apply a class name to a row */
     rowClassName?: (row: T) => string;
 }
 
@@ -70,9 +76,12 @@ export function DataTable<T>({
     maxHeightClass = 'max-h-[calc(100vh-270px)]',
     className,
     rowClassName,
+    enableSelection = false,
+    selectedRowKeys = [],
+    onSelectionChange,
 }: DataTableProps<T>) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const colSpan = columns.length;
+    const colSpan = columns.length + (enableSelection ? 1 : 0);
     const [isScrolledHorizontally, setIsScrolledHorizontally] = useState(false);
 
     // Handle scroll to load more and track horizontal scroll
@@ -104,6 +113,29 @@ export function DataTable<T>({
         }
     }, [handleScroll]);
 
+    // Selection Logic
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!onSelectionChange) return;
+        if (e.target.checked) {
+            const allKeys = data.map(rowKey);
+            onSelectionChange(allKeys);
+        } else {
+            onSelectionChange([]);
+        }
+    };
+
+    const handleSelectRow = (key: string, checked: boolean) => {
+        if (!onSelectionChange) return;
+        if (checked) {
+            onSelectionChange([...selectedRowKeys, key]);
+        } else {
+            onSelectionChange(selectedRowKeys.filter(k => k !== key));
+        }
+    };
+
+    const allSelected = data.length > 0 && data.every(row => selectedRowKeys.includes(rowKey(row)));
+    const someSelected = data.length > 0 && selectedRowKeys.length > 0 && !allSelected;
+
     return (
         <div className={cn('overflow-hidden rounded-md', className)}>
             <div
@@ -113,13 +145,30 @@ export function DataTable<T>({
                 <table className="w-full relative border-separate border-spacing-0">
                     <thead className="sticky top-0 z-20 bg-background">
                         <tr className="border-b border-border shadow-sm">
+                            {enableSelection && (
+                                <th className="sticky left-0 z-30 w-[40px] px-3 py-3 text-left bg-background border-b border-border">
+                                    <input
+                                        type="checkbox"
+                                        checked={allSelected}
+                                        ref={input => {
+                                            if (input) input.indeterminate = someSelected;
+                                        }}
+                                        onChange={handleSelectAll}
+                                        className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                                    />
+                                </th>
+                            )}
                             {columns.map((col, colIndex) => {
                                 const isSticky = col.sticky === true || col.sticky === 'left';
                                 // Find if this is the last sticky column
                                 const isLastSticky = isSticky && !columns.slice(colIndex + 1).some(c => c.sticky === true || c.sticky === 'left');
+                                // sticky offset needs to account for selection column if present
+                                const baseOffset = col.stickyOffset ?? 0;
+                                const stickyLeft = enableSelection && isSticky ? baseOffset + 40 : baseOffset; // 40px for selection checkbox
+
                                 const stickyStyles: React.CSSProperties = isSticky ? {
                                     position: 'sticky',
-                                    left: col.stickyOffset ?? 0,
+                                    left: stickyLeft,
                                     zIndex: 30,
                                 } : {};
 
@@ -163,40 +212,67 @@ export function DataTable<T>({
                             </tr>
                         ) : (
                             <>
-                                {data.map((row, rowIndex) => (
-                                    <tr
-                                        key={rowKey(row)}
-                                        className={cn(
-                                            "bg-background hover:bg-muted/50 group",
-                                            rowClassName?.(row)
-                                        )}
-                                    >
-                                        {columns.map((col, colIndex) => {
-                                            const isSticky = col.sticky === true || col.sticky === 'left';
-                                            // Find if this is the last sticky column
-                                            const isLastSticky = isSticky && !columns.slice(colIndex + 1).some(c => c.sticky === true || c.sticky === 'left');
-                                            const stickyStyles: React.CSSProperties = isSticky ? {
-                                                position: 'sticky',
-                                                left: col.stickyOffset ?? 0,
-                                                zIndex: 10,
-                                            } : {};
+                                {data.map((row, rowIndex) => {
+                                    const key = rowKey(row);
+                                    const isSelected = selectedRowKeys.includes(key);
 
-                                            return (
-                                                <td
-                                                    key={col.key}
-                                                    className={cn(
-                                                        "px-3 py-3 text-sm transition-colors",
-                                                        isSticky && "bg-white",
-                                                        isLastSticky && isScrolledHorizontally && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
-                                                    )}
-                                                    style={stickyStyles}
-                                                >
-                                                    {col.render(row, rowIndex)}
+                                    return (
+                                        <tr
+                                            key={key}
+                                            className={cn(
+                                                "bg-background hover:bg-muted/50 group",
+                                                isSelected && "bg-muted/30",
+                                                rowClassName?.(row)
+                                            )}
+                                        >
+                                            {enableSelection && (
+                                                <td className="sticky left-0 z-10 w-[40px] px-3 py-3 bg-local align-top">
+                                                    {/* bg-local might not be enough to hide content under sticky, needs background color matching row */}
+                                                    <div className={cn(
+                                                        "absolute inset-0",
+                                                        isSelected ? "bg-muted/30" : "bg-background group-hover:bg-muted/50"
+                                                    )} aria-hidden="true" />
+                                                    <div className="relative">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={(e) => handleSelectRow(key, e.target.checked)}
+                                                            className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                                                        />
+                                                    </div>
                                                 </td>
-                                            );
-                                        })}
-                                    </tr>
-                                ))}
+                                            )}
+                                            {columns.map((col, colIndex) => {
+                                                const isSticky = col.sticky === true || col.sticky === 'left';
+                                                // Find if this is the last sticky column
+                                                const isLastSticky = isSticky && !columns.slice(colIndex + 1).some(c => c.sticky === true || c.sticky === 'left');
+                                                // sticky offset needs to account for selection column if present
+                                                const baseOffset = col.stickyOffset ?? 0;
+                                                const stickyLeft = enableSelection && isSticky ? baseOffset + 40 : baseOffset;
+
+                                                const stickyStyles: React.CSSProperties = isSticky ? {
+                                                    position: 'sticky',
+                                                    left: stickyLeft,
+                                                    zIndex: 10,
+                                                } : {};
+
+                                                return (
+                                                    <td
+                                                        key={col.key}
+                                                        className={cn(
+                                                            "px-3 py-3 text-sm transition-colors",
+                                                            isSticky && "bg-background", // Force bg for sticky
+                                                            isLastSticky && isScrolledHorizontally && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
+                                                        )}
+                                                        style={stickyStyles}
+                                                    >
+                                                        {col.render(row, rowIndex)}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    );
+                                })}
                                 {/* Loading more indicator */}
                                 {isLoadingMore && (
                                     <tr>

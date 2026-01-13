@@ -67,6 +67,7 @@ export const RATE_PLAN_FIELDS = gql`
         updatedAt
         createdBy
         updatedBy
+        message
     }
 `;
 
