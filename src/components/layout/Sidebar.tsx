@@ -4,7 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/main-logo-dark-1.png';
 import { useAccessibleMenus } from '@/stores/useAuthStore';
-import { CustomerIcon, RatesIcon, UserSettingIcon, FileTextIcon, ShieldCheckIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, UserIcon } from '@/components/icons';
+import { CustomerIcon, RatesIcon, UserSettingIcon, FileTextIcon, ShieldCheckIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, UserIcon, MailIcon } from '@/components/icons';
 import { Tooltip } from '@/components/ui/Tooltip';
 
 // Dashboard icon component (locally defined in Header originally)
@@ -35,6 +35,7 @@ const iconMap: Record<string, React.FC<{ size?: number; className?: string }>> =
     roles: ShieldCheckIcon,
     audit_logs: FileTextIcon,
     user_management: UserSettingIcon, // Parent gets the management icon
+    email_templates: MailIcon,
 };
 
 // Path mapping

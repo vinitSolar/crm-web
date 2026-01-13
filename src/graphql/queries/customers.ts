@@ -361,6 +361,8 @@ export const GET_CUSTOMER_BY_ID = gql`
             email
             firstName
             lastName
+            businessName
+            abn
             number
             phoneVerifiedAt
             dob
@@ -520,6 +522,8 @@ export const GET_CUSTOMER_BY_CUSTOMER_ID = gql`
             email
             firstName
             lastName
+            businessName
+            abn
             number
             dob
             propertyType

@@ -7,22 +7,14 @@ import { Button } from '@/components/ui/Button';
 import { toast } from 'react-toastify';
 import {
     CheckIcon, UserIcon, MapPinIcon, MailIcon, PhoneIcon, HashIcon,
-    RatesIcon, CreditCardIcon
+    RatesIcon, CreditCardIcon, ZapIcon, PlugIcon, PencilIcon, TypeIcon
 } from '@/components/icons';
 import MainLogo from '@/assets/main-logo-dark-1.png';
 import BankAutocomplete from '@/components/BankAutocomplete';
 import LocationAutocomplete from '@/pages/LocationAutocomplete';
-import { ID_TYPE_MAP } from '@/lib/constants';
+import { ID_TYPE_MAP, SALE_TYPE_LABELS } from '@/lib/constants';
 import { calculateDiscountedRate } from '@/lib/rate-utils';
 
-// Copying StatusField and other helpers might be needed if not exported
-
-const SALE_TYPE_LABELS: Record<number, string> = {
-    0: 'Direct',
-    1: 'Broker',
-    2: 'Comparison',
-    3: 'Referral'
-};
 
 const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -240,7 +232,22 @@ export const OfferAccessPage = () => {
     }
 
     if (fetchError) {
-        return <div className="min-h-screen flex items-center justify-center text-red-500">Failed to load offer details</div>;
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+                <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-100 max-w-md w-full text-center">
+                    <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-red-500 text-xl">!</span>
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 mb-2">Unable to Load Offer</h2>
+                    <p className="text-slate-600 mb-6">
+                        We couldn't find the offer details. Please check the link or contact support.
+                    </p>
+                    <div className="text-sm text-slate-500">
+                        Support: 1300 707 042
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     if (fetchingCustomer || !customerData) {
@@ -251,73 +258,177 @@ export const OfferAccessPage = () => {
         );
     }
 
-    if (!isAuthorized) {
+    // Success Page for Signed Customers
+    if (customerData?.signDate) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-                {/* Replicating the screenshot look roughly */}
-                <div className="w-full max-w-md bg-white rounded-lg shadow-none p-8 text-center space-y-6">
-                    <div className=" flex justify-center mb-4">
-                        {/* Placeholder for Logo if needed, user didn't specify but screenshot might have one, defaulting to text */}
-                        <h2 className="text-xl font-semibold text-gray-900">Enter your access code to view your offer.</h2>
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+                <div className="w-full max-w-md">
+                    {/* Logo Section */}
+                    <div className="text-center mb-8">
+                        <img src={MainLogo} alt="GEE Energy" className="h-12 mx-auto" />
                     </div>
 
+                    <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+                        {/* Success Header */}
+                        <div className="bg-primary/5 p-8 text-center border-b border-primary/10">
+                            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                                <CheckIcon className="w-10 h-10 text-primary" />
+                            </div>
+                            <h1 className="text-2xl font-bold text-slate-900 mb-2">
+                                Welcome Aboard!
+                            </h1>
+                            <p className="text-primary font-medium">
+                                Agreement Signed Successfully
+                            </p>
+                        </div>
+
+                        {/* Content Body */}
+                        <div className="p-8">
+                            <div className="text-center space-y-4 mb-8">
+                                <p className="text-slate-600 leading-relaxed">
+                                    Thank you, <span className="font-semibold text-slate-900">{customerData.firstName}</span>.
+                                    We have received your signed agreement.
+                                </p>
+                                <p className="text-slate-600 leading-relaxed">
+                                    A copy of your agreement and welcome pack has been sent to <span className="font-medium text-slate-900">{customerData.email}</span>.
+                                </p>
+                            </div>
+
+                            {/* Details Card */}
+                            <div className="bg-slate-50 rounded-xl p-5 mb-8 border border-slate-200/60">
+                                <div className="space-y-3 text-sm">
+                                    <div className="flex justify-between items-center py-1 border-b border-slate-200/50">
+                                        <span className="text-slate-500">Customer ID</span>
+                                        <span className="font-medium text-slate-700">{customerData.customerId}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center py-1 border-b border-slate-200/50">
+                                        <span className="text-slate-500">Signed Date</span>
+                                        <span className="font-medium text-slate-700">
+                                            {formatDate(customerData.signDate)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center py-1">
+                                        <span className="text-slate-500">Status</span>
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                                            active
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Contact/Support */}
+                            <div className="text-center pt-2">
+                                <p className="text-slate-500 text-sm mb-4">
+                                    Have questions about your onboarding?
+                                </p>
+                                <a
+                                    href="tel:1300707042"
+                                    className="inline-flex items-center justify-center w-full px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
+                                >
+                                    <PhoneIcon className="w-4 h-4 mr-2" />
+                                    Call Support 1300 707 042
+                                </a>
+                            </div>
+                        </div>
+
+                        {/* Footer decorative line */}
+                        <div className="h-1.5 bg-gradient-to-r from-primary/40 via-primary to-primary/60"></div>
+                    </div>
+
+                    <div className="text-center mt-6 text-slate-400 text-xs">
+                        &copy; {new Date().getFullYear()} GEE Power & Gas. All rights reserved.
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isAuthorized) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+                <div className="w-full max-w-md bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                    {/* Logo */}
+                    <div className="flex justify-center mb-6">
+                        <img src={MainLogo} alt="GEE Energy" className="h-10 w-auto" />
+                    </div>
+
+                    {/* Title */}
+                    <div className="text-center mb-6">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                            Enter your access code
+                        </h2>
+                        <p className="text-sm text-gray-500">
+                            Please enter the code from your email to view your offer
+                        </p>
+                    </div>
+
+                    {/* Form */}
                     <form onSubmit={handleVerify} className="space-y-4">
-                        <input
-                            type="text"
-                            value={accessCode}
-                            onChange={(e) => setAccessCode(e.target.value)}
-                            placeholder="Access code"
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-neutral-900 focus:border-transparent outline-none transition-all text-center text-lg tracking-widest"
-                            maxLength={8}
-                        />
+                        <div>
+                            <input
+                                type="text"
+                                value={accessCode}
+                                onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                                placeholder="Access code"
+                                className="w-full h-12 px-4 text-center text-lg font-medium tracking-widest uppercase border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors"
+                                maxLength={8}
+                                autoComplete="off"
+                            />
+                        </div>
+
                         <Button
                             type="submit"
-                            className="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg font-medium transition-colors"
+                            className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
                         >
-                            View offer
+                            View Offer
                         </Button>
                     </form>
+
+                    {/* Help text */}
+                    <p className="text-center text-xs text-gray-400 mt-6">
+                        Can't find your code? Check your email or contact support.
+                    </p>
                 </div>
             </div>
         );
     }
 
     // Helper to format currency
-    const formatCurrency = (amount: number | undefined | null) => {
-        if (amount === undefined || amount === null) return '—';
-        return `$${Number(amount).toFixed(4)}`; // Using 4 decimals as shown in rates usually, or 2 based on design preference. Design shows 4 usually for energy rates.
-    };
+    // const formatCurrency = (amount: number | undefined | null) => {
+    //     if (amount === undefined || amount === null) return '—';
+    //     return `$${Number(amount).toFixed(4)}`; // Using 4 decimals as shown in rates usually, or 2 based on design preference. Design shows 4 usually for energy rates.
+    // };
 
     // Calculate rates to display
     // Assuming the first offer in the list is the active one for this display or logic to find it.
     // The query fetches `offers` as an array.
     const activeOffer = customerData.ratePlan?.offers?.[0] || {};
 
-    const ratesData = [
-        { label: 'Tariff', value: customerData.tariffCode || customerData.ratePlan?.tariff, unit: '' },
+    // const ratesData = [
+    //     { label: 'Tariff', value: customerData.tariffCode || customerData.ratePlan?.tariff, unit: '' },
 
-        // Usage Rates (Discounted)
-        { label: 'Anytime', value: calculateDiscountedRate(activeOffer.anytime ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
-        { label: 'Off-Peak', value: calculateDiscountedRate(activeOffer.offPeak ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
-        { label: 'Peak', value: calculateDiscountedRate(activeOffer.peak ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
-        { label: 'Shoulder', value: calculateDiscountedRate(activeOffer.shoulder ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
-        { label: 'CL1 Usage', value: calculateDiscountedRate(activeOffer.cl1Usage ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
-        { label: 'CL2 Usage', value: calculateDiscountedRate(activeOffer.cl2Usage ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
+    //     // Usage Rates (Discounted)
+    //     { label: 'Anytime', value: calculateDiscountedRate(activeOffer.anytime ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
+    //     { label: 'Off-Peak', value: calculateDiscountedRate(activeOffer.offPeak ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
+    //     { label: 'Peak', value: calculateDiscountedRate(activeOffer.peak ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
+    //     { label: 'Shoulder', value: calculateDiscountedRate(activeOffer.shoulder ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
+    //     { label: 'CL1 Usage', value: calculateDiscountedRate(activeOffer.cl1Usage ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
+    //     { label: 'CL2 Usage', value: calculateDiscountedRate(activeOffer.cl2Usage ?? 0, customerData.discount ?? 0), unit: '/kWh', isUsage: true },
 
-        // Supply & Other (Not Discounted)
-        { label: 'Supply Charge', value: activeOffer.supplyCharge, unit: '/day' },
-        { label: 'CL1 Supply', value: activeOffer.cl1Supply, unit: '/day' },
-        { label: 'CL2 Supply', value: activeOffer.cl2Supply, unit: '/day' },
-        { label: 'Feed-in', value: activeOffer.fit, unit: '/kWh' },
-        { label: 'Demand', value: activeOffer.demand, unit: '/kVA' },
-        { label: 'Demand (Op)', value: activeOffer.demandOp, unit: '/kVA' },
-        { label: 'Demand (P)', value: activeOffer.demandP, unit: '/kVA' },
-        { label: 'Demand (S)', value: activeOffer.demandS, unit: '/kVA' },
-        { label: 'VPP Charge', value: activeOffer.vppOrcharge, unit: '/day' },
-    ].filter(r => {
-        const val = r.value ?? 0;
-        return val !== null && val !== undefined && Math.abs(val) > 0.0001;
-    });
+    //     // Supply & Other (Not Discounted)
+    //     { label: 'Supply Charge', value: activeOffer.supplyCharge, unit: '/day' },
+    //     { label: 'CL1 Supply', value: activeOffer.cl1Supply, unit: '/day' },
+    //     { label: 'CL2 Supply', value: activeOffer.cl2Supply, unit: '/day' },
+    //     { label: 'Feed-in', value: activeOffer.fit, unit: '/kWh' },
+    //     { label: 'Demand', value: activeOffer.demand, unit: '/kVA' },
+    //     { label: 'Demand (Op)', value: activeOffer.demandOp, unit: '/kVA' },
+    //     { label: 'Demand (P)', value: activeOffer.demandP, unit: '/kVA' },
+    //     { label: 'Demand (S)', value: activeOffer.demandS, unit: '/kVA' },
+    //     { label: 'VPP Charge', value: activeOffer.vppOrcharge, unit: '/day' },
+    // ].filter(r => {
+    //     const val = r.value ?? 0;
+    //     return val !== null && val !== undefined && Math.abs(val) > 0.0001;
+    // });
 
     // Validation for Direct Debit
     const isDirectDebitValid = () => {
@@ -516,16 +627,14 @@ export const OfferAccessPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 font-sans text-gray-900">
-            {/* ... previous content ... */}
-
-            <div className="max-w-4xl mx-auto space-y-4">
-                {/* Header Card */}
+        <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-4xl mx-auto space-y-6">
+                {/* Header */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div className="flex justify-between items-start border-b border-gray-100 pb-6 mb-6">
+                    <div className="flex justify-between items-start border-b border-gray-100 pb-4 mb-4">
                         <div className="flex items-center gap-3">
                             <img src={MainLogo} alt="GEE Energy" className="h-10 w-auto" />
-                            <h1 className="text-xl font-bold text-gray-900 ml-2">Offer Summary</h1>
+                            <h1 className="text-xl font-bold text-gray-900">Offer Summary</h1>
                         </div>
                         <div className="text-right">
                             <div className="text-sm text-gray-500">Offer <span className="font-medium text-gray-900">#{customerData.customerId}</span></div>
@@ -534,73 +643,81 @@ export const OfferAccessPage = () => {
                     </div>
 
                     {/* Customer Info Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-                        {/* Row 1 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                         <div className="flex items-start gap-3">
-                            <div className="mt-1 text-gray-400"><UserIcon size={16} /></div>
+                            <UserIcon size={16} className="mt-1 text-gray-400" />
                             <div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-0.5">Name</div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Name</div>
                                 <div className="text-sm font-medium text-gray-900">{customerData.firstName} {customerData.lastName}</div>
                             </div>
                         </div>
-
                         <div className="flex items-start gap-3">
-                            <div className="mt-1 text-gray-400"><MailIcon size={16} /></div>
+                            <MailIcon size={16} className="mt-1 text-gray-400" />
                             <div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-0.5">Email</div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Email</div>
                                 <div className="text-sm font-medium text-gray-900">{customerData.email || '—'}</div>
                             </div>
                         </div>
-
-                        {/* Row 2 */}
                         <div className="flex items-start gap-3">
-                            <div className="mt-1 text-gray-400"><MapPinIcon size={16} /></div>
+                            <MapPinIcon size={16} className="mt-1 text-gray-400" />
                             <div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-0.5">Address</div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Address</div>
                                 <div className="text-sm font-medium text-gray-900">{customerData.address?.fullAddress || '—'}</div>
-                                <div className="text-xs text-gray-500 mt-0.5">{customerData.address?.postcode}</div>
                             </div>
                         </div>
-
                         <div className="flex items-start gap-3">
-                            <div className="mt-1 text-gray-400"><PhoneIcon size={16} /></div>
+                            <PhoneIcon size={16} className="mt-1 text-gray-400" />
                             <div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-0.5">Phone</div>
-                                <div className="text-sm font-medium text-gray-900">{customerData.number || '—'}</div>
-                                {customerData.phoneVerifiedAt && (
-                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                        Verified
-                                    </span>
-                                )}
+                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Phone</div>
+                                <div className="text-sm font-medium text-gray-900">
+                                    {customerData.number || '—'}
+                                    {customerData.phoneVerifiedAt && (
+                                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                            Verified
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
-
-                        {/* Row 3 */}
                         <div className="flex items-start gap-3">
-                            <div className="mt-1 text-gray-400"><MapPinIcon size={16} /></div>
+                            <HashIcon size={16} className="mt-1 text-gray-400" />
                             <div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-0.5">State</div>
-                                <div className="text-sm font-medium text-gray-900">{customerData.address?.state || '—'}</div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-start gap-3">
-                            <div className="mt-1 text-gray-400"><HashIcon size={16} /></div>
-                            <div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-0.5">NMI</div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">NMI</div>
                                 <div className="text-sm font-medium text-gray-900">{customerData.address?.nmi || '—'}</div>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <MapPinIcon size={16} className="mt-1 text-gray-400" />
+                            <div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">State</div>
+                                <div className="text-sm font-medium text-gray-900">{customerData.address?.state || '—'}</div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="mt-8 pt-6 border-t border-gray-100">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                            <UserIcon size={16} className="text-gray-400" /> Customer Details
-                        </h3>
-                        <div className="grid grid-cols-2 text-left sm:grid-cols-4 gap-4 bg-gray-50 rounded-lg p-4">
+                    {/* Additional Details */}
+                    <div className="mt-6 pt-4 border-t border-gray-100">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Customer Details</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-gray-50 rounded-lg p-4">
                             <div>
                                 <div className="text-xs text-gray-500 mb-1">Property Type</div>
-                                <div className="text-sm font-medium">{customerData.propertyType === 1 ? 'Business' : 'Residential'}</div>
+                                <div className="text-sm font-medium">{customerData.propertyType === 1 ? 'Commercial' : 'Residential'}</div>
+                            </div>
+                            {customerData.propertyType === 1 && (
+                                <>
+                                    <div>
+                                        <div className="text-xs text-gray-500 mb-1">Business Name</div>
+                                        <div className="text-sm font-medium">{customerData.businessName || '—'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-gray-500 mb-1">ABN</div>
+                                        <div className="text-sm font-medium">{customerData.abn || '—'}</div>
+                                    </div>
+                                </>
+                            )}
+                            <div>
+                                <div className="text-xs text-gray-500 mb-1">Date of Birth</div>
+                                <div className="text-sm font-medium">{customerData.dob ? formatDate(customerData.dob) : '—'}</div>
                             </div>
                             <div>
                                 <div className="text-xs text-gray-500 mb-1">Discount</div>
@@ -615,12 +732,8 @@ export const OfferAccessPage = () => {
                                 <div className="text-sm font-medium">{SALE_TYPE_LABELS[customerData.enrollmentDetails?.saletype ?? 0] || 'Direct'}</div>
                             </div>
                             <div>
-                                <div className="text-xs text-gray-500 mb-1">Preferred Connection</div>
+                                <div className="text-xs text-gray-500 mb-1">Connection Date</div>
                                 <div className="text-sm font-medium">{customerData.enrollmentDetails?.connectiondate ? formatDate(customerData.enrollmentDetails.connectiondate) : 'ASAP'}</div>
-                            </div>
-                            <div>
-                                <div className="text-xs text-gray-500 mb-1">Date of Birth</div>
-                                <div className="text-sm font-medium">{customerData.dob ? formatDate(customerData.dob) : '—'}</div>
                             </div>
                             <div>
                                 <div className="text-xs text-gray-500 mb-1">Billing Preference</div>
@@ -634,95 +747,189 @@ export const OfferAccessPage = () => {
                                 <div className="text-xs text-gray-500 mb-1">Life Support</div>
                                 <div className="text-sm font-medium">{customerData.enrollmentDetails?.lifesupport === 1 ? 'Yes' : 'No'}</div>
                             </div>
+                        </div>
 
-                            {/* VPP Details */}
-                            <div className="col-span-2 sm:col-span-4 mt-2 pt-2 border-t border-gray-200">
-                                <div className="text-xs text-gray-500 mb-2 font-medium uppercase">VPP Details</div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div>
-                                        <div className="text-xs text-gray-500 mb-1">VPP Active</div>
-                                        <div className="text-sm font-medium">{customerData.vppDetails?.vpp === 1 ? 'Yes' : 'No'}</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-gray-500 mb-1">VPP Connected</div>
-                                        <div className="text-sm font-medium">{customerData.vppDetails?.vppConnected === 1 ? 'Yes' : 'No'}</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-gray-500 mb-1">Signup Bonus</div>
-                                        <div className="text-sm font-medium">{customerData.vppDetails?.vppSignupBonus ? `$${customerData.vppDetails.vppSignupBonus}` : '—'}</div>
+                        {/* VPP Details */}
+                        <div className="mt-4">
+                            <h4 className="text-xs text-gray-500 mb-2 font-medium uppercase">VPP Details</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 rounded-lg p-4">
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">VPP Active</div>
+                                    <div className="text-sm font-medium">{customerData.vppDetails?.vpp === 1 ? 'Yes' : 'No'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">VPP Connected</div>
+                                    <div className="text-sm font-medium">{customerData.vppDetails?.vppConnected === 1 ? 'Yes' : 'No'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">Signup Bonus</div>
+                                    <div className="text-sm font-medium">
+                                        {customerData.vppDetails?.vppSignupBonus
+                                            ? `$${customerData.vppDetails.vppSignupBonus} monthly bill credit for 12 months (total $${customerData.vppDetails.vppSignupBonus * 12})`
+                                            : '—'}
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Solar Details */}
-                            <div className="col-span-2 sm:col-span-4 mt-2 pt-2 border-t border-gray-200">
-                                <div className="text-xs text-gray-500 mb-2 font-medium uppercase">Solar System</div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div>
-                                        <div className="text-xs text-gray-500 mb-1">Has Solar</div>
-                                        <div className="text-sm font-medium">{customerData.solarDetails?.hassolar === 1 ? 'Yes' : 'No'}</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-gray-500 mb-1">Solar Capacity</div>
-                                        <div className="text-sm font-medium">{customerData.solarDetails?.solarcapacity ? `${customerData.solarDetails.solarcapacity} kW` : '—'}</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-gray-500 mb-1">Inverter Capacity</div>
-                                        <div className="text-sm font-medium">{customerData.solarDetails?.invertercapacity ? `${customerData.solarDetails.invertercapacity} kW` : '—'}</div>
-                                    </div>
+                        {/* Solar System */}
+                        <div className="mt-4">
+                            <h4 className="text-xs text-gray-500 mb-2 font-medium uppercase">Solar System</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 rounded-lg p-4">
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">Has Solar</div>
+                                    <div className="text-sm font-medium">{customerData.solarDetails?.hassolar === 1 ? 'Yes' : 'No'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">Solar Capacity</div>
+                                    <div className="text-sm font-medium">{customerData.solarDetails?.solarcapacity ? `${customerData.solarDetails.solarcapacity} kW` : '—'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">Inverter Capacity</div>
+                                    <div className="text-sm font-medium">{customerData.solarDetails?.invertercapacity ? `${customerData.solarDetails.invertercapacity} kW` : '—'}</div>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* ID Details */}
-                            <div className="col-span-2 sm:col-span-4 mt-2 pt-2 border-t border-gray-200">
-                                <div className="text-xs text-gray-500 mb-2 font-medium uppercase">Identification</div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div>
-                                        <div className="text-xs text-gray-500 mb-1">ID Number</div>
-                                        <div className="text-sm font-medium">
-                                            {ID_TYPE_MAP[customerData.enrollmentDetails?.idtype as number] || 'ID'} {customerData.enrollmentDetails?.idnumber || '—'}
-                                        </div>
+                        {/* Identification */}
+                        <div className="mt-4">
+                            <h4 className="text-xs text-gray-500 mb-2 font-medium uppercase">Identification</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 rounded-lg p-4">
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">ID Type & Number</div>
+                                    <div className="text-sm font-medium">
+                                        {ID_TYPE_MAP[customerData.enrollmentDetails?.idtype as number] || 'ID'} {customerData.enrollmentDetails?.idnumber || '—'}
                                     </div>
-                                    <div>
-                                        <div className="text-xs text-gray-500 mb-1">ID State</div>
-                                        <div className="text-sm font-medium">{customerData.enrollmentDetails?.idstate || '—'}</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-gray-500 mb-1">ID Expiry</div>
-                                        <div className="text-sm font-medium">{customerData.enrollmentDetails?.idexpiry ? formatDate(customerData.enrollmentDetails.idexpiry) : '—'}</div>
-                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">ID State</div>
+                                    <div className="text-sm font-medium">{customerData.enrollmentDetails?.idstate || '—'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">ID Expiry</div>
+                                    <div className="text-sm font-medium">{customerData.enrollmentDetails?.idexpiry ? formatDate(customerData.enrollmentDetails.idexpiry) : '—'}</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Plan & Rates Card */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
-                        <RatesIcon size={16} className="text-gray-500" />
-                        <h3 className="text-sm font-semibold text-gray-900">Plan & Rates</h3>
+                {/* Plan & Rates Card - Matching CustomerFormPage.tsx style */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div className="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 className="text-base font-bold text-gray-900">Your Energy Rates</h3>
+                            <p className="text-xs text-gray-500">Tariff: {customerData.tariffCode || customerData.ratePlan?.tariff || '—'}</p>
+                        </div>
+                        {customerData.discount > 0 && (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                {customerData.discount}% Discount Applied
+                            </span>
+                        )}
                     </div>
-                    <div className="p-0">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-white text-gray-500 font-medium border-b border-gray-100">
-                                <tr>
-                                    <th className="px-6 py-3 font-normal w-2/3">Description</th>
-                                    <th className="px-6 py-3 font-normal text-right">Price</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {ratesData.map((rate, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50/50">
-                                        <td className="px-6 py-3 text-gray-600 font-medium">{rate.label}</td>
-                                        <td className="px-6 py-3 text-right text-gray-900 font-semibold">
-                                            {rate.unit === '' ? rate.value : formatCurrency(rate.value as number)}
-                                            <span className="text-gray-400 font-normal ml-1">{rate.unit}</span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+
+                    <div className={`grid grid-cols-1 ${activeOffer.fit > 0 && (activeOffer.cl1Usage > 0 || activeOffer.cl2Usage > 0) ? 'md:grid-cols-4' : (activeOffer.fit > 0 || activeOffer.cl1Usage > 0 || activeOffer.cl2Usage > 0 ? 'md:grid-cols-3' : 'md:grid-cols-2')} gap-6`}>
+                        {/* Energy Rates Column */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-blue-600">
+                                <RatesIcon size={16} />
+                                <h4 className="text-sm font-bold uppercase tracking-wide">Energy Rates</h4>
+                            </div>
+                            <div className="space-y-2">
+                                {activeOffer.peak > 0 && (
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                                        <div className="text-blue-600 font-bold text-base">${calculateDiscountedRate(activeOffer.peak, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                        <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider opacity-80">Peak</div>
+                                    </div>
+                                )}
+                                {activeOffer.offPeak > 0 && (
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                                        <div className="text-blue-600 font-bold text-base">${calculateDiscountedRate(activeOffer.offPeak, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                        <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider opacity-80">Off-Peak</div>
+                                    </div>
+                                )}
+                                {activeOffer.shoulder > 0 && (
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                                        <div className="text-blue-600 font-bold text-base">${calculateDiscountedRate(activeOffer.shoulder, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                        <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider opacity-80">Shoulder</div>
+                                    </div>
+                                )}
+                                {activeOffer.anytime > 0 && (
+                                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
+                                        <div className="text-orange-600 font-bold text-base">${calculateDiscountedRate(activeOffer.anytime, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                        <div className="text-[10px] font-bold text-orange-600 uppercase tracking-wider opacity-80">Anytime</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Supply Charges Column */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-purple-600">
+                                <PlugIcon size={16} />
+                                <h4 className="text-sm font-bold uppercase tracking-wide">Supply Charges</h4>
+                            </div>
+                            <div className="space-y-2">
+                                {activeOffer.supplyCharge > 0 && (
+                                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
+                                        <div className="text-purple-600 font-bold text-base">${activeOffer.supplyCharge.toFixed(4)}/day</div>
+                                        <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wider opacity-80">Supply</div>
+                                    </div>
+                                )}
+                                {activeOffer.cl1Supply > 0 && (
+                                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
+                                        <div className="text-purple-600 font-bold text-base">${activeOffer.cl1Supply.toFixed(4)}/day</div>
+                                        <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wider opacity-80">CL1 Supply</div>
+                                    </div>
+                                )}
+                                {activeOffer.cl2Supply > 0 && (
+                                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
+                                        <div className="text-purple-600 font-bold text-base">${activeOffer.cl2Supply.toFixed(4)}/day</div>
+                                        <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wider opacity-80">CL2 Supply</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Solar FiT Column */}
+                        {activeOffer.fit > 0 && (
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-green-600">
+                                    <ZapIcon size={16} />
+                                    <h4 className="text-sm font-bold uppercase tracking-wide">Solar FiT</h4>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                                        <div className="text-green-600 font-bold text-base">${activeOffer.fit.toFixed(4)}/kWh</div>
+                                        <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider opacity-80">Feed-in</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Controlled Load Column */}
+                        {(activeOffer.cl1Usage > 0 || activeOffer.cl2Usage > 0) && (
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-green-600">
+                                    <PlugIcon size={16} />
+                                    <h4 className="text-sm font-bold uppercase tracking-wide">Controlled Load</h4>
+                                </div>
+                                <div className="space-y-2">
+                                    {activeOffer.cl1Usage > 0 && (
+                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                                            <div className="text-green-600 font-bold text-base">${calculateDiscountedRate(activeOffer.cl1Usage, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                            <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider opacity-80">CL1 Usage</div>
+                                        </div>
+                                    )}
+                                    {activeOffer.cl2Usage > 0 && (
+                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                                            <div className="text-green-600 font-bold text-base">${calculateDiscountedRate(activeOffer.cl2Usage, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                            <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider opacity-80">CL2 Usage</div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -1015,7 +1222,7 @@ export const OfferAccessPage = () => {
                             {/* Signature mode toggle */}
                             <div className="flex gap-2 text-sm">
                                 <button
-                                    className={`px-2 py-1 rounded-full ${mode === 'pad' ? 'bg-black text-white' : 'bg-neutral-100'
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'pad' ? 'bg-black text-white' : 'bg-neutral-100'
                                         }`}
                                     onPointerDown={() => {
                                         // Start drawing
@@ -1025,10 +1232,11 @@ export const OfferAccessPage = () => {
                                         setTyped('')
                                     }}
                                 >
+                                    <PencilIcon size={14} />
                                     Draw
                                 </button>
                                 <button
-                                    className={`px-2 py-1 rounded-full ${mode === 'type' ? 'bg-black text-white' : 'bg-neutral-100'
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'type' ? 'bg-black text-white' : 'bg-neutral-100'
                                         }`}
                                     onClick={() => {
                                         setMode('type')
@@ -1037,6 +1245,7 @@ export const OfferAccessPage = () => {
                                         }
                                     }}
                                 >
+                                    <TypeIcon size={14} />
                                     Type
                                 </button>
                             </div>
@@ -1102,7 +1311,7 @@ export const OfferAccessPage = () => {
                                             <>
                                                 {', '}
                                                 <a
-                                                    href="/onboarding/GEE Virtual Power Plant Program Terms and Conditions.pdf"
+                                                    href="/onboarding/GEE-VPP-Program-Terms-and-Conditions.pdf"
                                                     className="underline"
                                                     style={{ color: '#4B8A10' }}
                                                     target="_blank"
@@ -1114,7 +1323,7 @@ export const OfferAccessPage = () => {
                                         )}
                                         {' and '}
                                         <a
-                                            href="/onboarding/GEE Privacy Policy.pdf"
+                                            href="/onboarding/GEE-Privacy-Policy.pdf"
                                             className="underline"
                                             style={{ color: '#4B8A10' }}
                                             target="_blank"
@@ -1127,9 +1336,15 @@ export const OfferAccessPage = () => {
                                             <>
                                                 {' '}
                                                 I will receive{' '}
-                                                <strong>
+                                                <a
+                                                    href="/onboarding/GEE Direct Debit Service Agreement.pdf"
+                                                    className="underline font-bold"
+                                                    style={{ color: '#4B8A10' }}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
                                                     GEE Direct Debit Service Agreement.pdf
-                                                </strong>{' '}
+                                                </a>{' '}
                                                 with my signed documents.
                                             </>
                                         )}

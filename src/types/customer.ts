@@ -9,6 +9,7 @@ export interface CustomerFormData {
     businessName: string;
     abn: string;
     showAsBusinessName: boolean;
+    showName?: boolean;
 
     // Address
     unitNumber: string;
