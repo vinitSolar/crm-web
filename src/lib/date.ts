@@ -62,7 +62,7 @@ export function formatDate(
     format: string = 'DD/MM/YYYY'
 ): string {
     if (!date) return '-';
-    return dayjs(date).tz(getUserTimezone()).format(format);
+    return dayjs.utc(date).tz(getUserTimezone()).format(format);
 }
 
 /**
@@ -75,7 +75,7 @@ export function formatDateTime(
     format: string = 'DD/MM/YYYY, hh:mm A'
 ): string {
     if (!date) return '-';
-    return dayjs(date).tz(getUserTimezone()).format(format);
+    return dayjs.utc(date).tz(getUserTimezone()).format(format);
 }
 
 /**
@@ -88,7 +88,7 @@ export function formatTime(
     format: string = 'hh:mm A'
 ): string {
     if (!date) return '-';
-    return dayjs(date).tz(getUserTimezone()).format(format);
+    return dayjs.utc(date).tz(getUserTimezone()).format(format);
 }
 
 // ============================================================
