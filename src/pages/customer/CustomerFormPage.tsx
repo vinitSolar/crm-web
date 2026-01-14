@@ -17,6 +17,7 @@ import {
     UPDATE_CUSTOMER,
 } from '@/graphql';
 import { DNSP_MAP, SALE_TYPE_OPTIONS, BILLING_PREF_OPTIONS, ID_TYPE_OPTIONS, STATE_OPTIONS } from '@/lib/constants';
+import { formatDateTime } from '@/lib/date';
 import {
     ChevronRightIcon,
     HomeIcon,
@@ -906,13 +907,7 @@ export const CustomerFormPage = () => {
                                                 </button>
                                                 {phoneVerified && phoneVerifiedAt && (
                                                     <span className="text-xs text-muted-foreground ml-2">
-                                                        at {new Date(phoneVerifiedAt).toLocaleString('en-AU', {
-                                                            day: '2-digit',
-                                                            month: 'short',
-                                                            year: 'numeric',
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        })}
+                                                        at {formatDateTime(phoneVerifiedAt)}
                                                     </span>
                                                 )}
                                             </div>

@@ -13,6 +13,8 @@ const config: CodegenConfig = {
                 gqlTagName: 'gql',
             },
             config: {
+                useTypeImports: true,
+                enumsAsTypes: true,
                 scalars: {
                     DateTime: 'string',
                     JSON: 'Record<string, unknown>',

@@ -7,7 +7,11 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { DataTable, type Column, Modal } from '@/components/common';
-import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, EyeOffIcon, CopyIcon, RefreshCwIcon } from '@/components/icons';
+import {
+    PlusIcon, PencilIcon, TrashIcon,
+    // EyeIcon, EyeOffIcon, CopyIcon,
+    RefreshCwIcon
+} from '@/components/icons';
 import { UserPermissionsModal } from '@/components/users/UserPermissionsModal';
 import { GET_USERS, UPDATE_USER, SOFT_DELETE_USER, RESTORE_USER, GET_ROLES, CREATE_USER } from '@/graphql';
 import { formatDateTime } from '@/lib/date';
@@ -71,7 +75,7 @@ export function UsersPage() {
     const [page, setPage] = useState(1);
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
+    // const [visiblePasswords, setVisiblePasswords] = useState<Set<string>>(new Set());
 
     // Delete modal state
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -181,23 +185,23 @@ export function UsersPage() {
         }
     }, [data, page, statusFilter]);
 
-    // Toggle password visibility
-    const togglePasswordVisibility = (uid: string) => {
-        setVisiblePasswords(prev => {
-            const next = new Set(prev);
-            if (next.has(uid)) {
-                next.delete(uid);
-            } else {
-                next.add(uid);
-            }
-            return next;
-        });
-    };
+    // // Toggle password visibility
+    // const togglePasswordVisibility = (uid: string) => {
+    //     setVisiblePasswords(prev => {
+    //         const next = new Set(prev);
+    //         if (next.has(uid)) {
+    //             next.delete(uid);
+    //         } else {
+    //             next.add(uid);
+    //         }
+    //         return next;
+    //     });
+    // };
 
-    // Copy to clipboard
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-    };
+    // // Copy to clipboard
+    // const copyToClipboard = (text: string) => {
+    //     navigator.clipboard.writeText(text);
+    // };
 
     // Toggle user status (ACTIVE <-> INACTIVE)
     const toggleUserStatus = async (user: User) => {
@@ -289,7 +293,7 @@ export function UsersPage() {
         setFormData({
             name: user.name || '',
             email: user.email || '',
-            password: '', // Password field empty for edit
+            password: user.password || '', // Prefill with actual password hash
             number: user.number || '',
             roleUid: user.roleUid || '',
         });
@@ -341,6 +345,11 @@ export function UsersPage() {
                     number: formData.number,
                     role_uid: formData.roleUid,
                 };
+
+                // Only update password if it has changed from the original (hash)
+                if (formData.password && formData.password !== editingUser.password) {
+                    updateInput.password = formData.password;
+                }
 
                 // Only send fields that changed or are relevant
                 response = await updateUser({
@@ -416,38 +425,38 @@ export function UsersPage() {
             width: 'w-[200px]',
             render: (user) => <span className="text-foreground">{user.email}</span>,
         },
-        {
-            key: 'password',
-            header: 'Password',
-            width: 'w-[140px]',
-            render: (user) => (
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center px-3 py-1.5 border border-gray-200 rounded-lg bg-white w-[100px] overflow-hidden">
-                        <span className="text-foreground font-mono text-sm tracking-wider truncate">
-                            {visiblePasswords.has(user.uid)
-                                ? (user.password?.substring(0, 12) || '••••••••')
-                                : '••••••••'}
-                        </span>
-                    </div>
-                    <Tooltip content={visiblePasswords.has(user.uid) ? 'Hide password' : 'Show password'}>
-                        <button
-                            className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
-                            onClick={() => togglePasswordVisibility(user.uid)}
-                        >
-                            {visiblePasswords.has(user.uid) ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
-                        </button>
-                    </Tooltip>
-                    <Tooltip content="Copy password">
-                        <button
-                            className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
-                            onClick={() => copyToClipboard(user.password || '')}
-                        >
-                            <CopyIcon size={16} />
-                        </button>
-                    </Tooltip>
-                </div>
-            ),
-        },
+        // {
+        //     key: 'password',
+        //     header: 'Password',
+        //     width: 'w-[140px]',
+        //     render: (user) => (
+        //         <div className="flex items-center gap-2">
+        //             <div className="flex items-center px-3 py-1.5 border border-gray-200 rounded-lg bg-white w-[100px] overflow-hidden">
+        //                 <span className="text-foreground font-mono text-sm tracking-wider truncate">
+        //                     {visiblePasswords.has(user.uid)
+        //                         ? (user.password?.substring(0, 12) || '••••••••')
+        //                         : '••••••••'}
+        //                 </span>
+        //             </div>
+        //             <Tooltip content={visiblePasswords.has(user.uid) ? 'Hide password' : 'Show password'}>
+        //                 <button
+        //                     className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
+        //                     onClick={() => togglePasswordVisibility(user.uid)}
+        //                 >
+        //                     {visiblePasswords.has(user.uid) ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
+        //                 </button>
+        //             </Tooltip>
+        //             <Tooltip content="Copy password">
+        //                 <button
+        //                     className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
+        //                     onClick={() => copyToClipboard(user.password || '')}
+        //                 >
+        //                     <CopyIcon size={16} />
+        //                 </button>
+        //             </Tooltip>
+        //         </div>
+        //     ),
+        // },
         {
             key: 'role',
             header: 'Role',
@@ -790,24 +799,22 @@ export function UsersPage() {
                         />
                     </div>
 
-                    {modalMode === 'create' && (
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">
-                                Password <span className="text-red-500 ml-1">*</span>
-                            </label>
-                            <Input
-                                type="password"
-                                placeholder="••••••••"
-                                value={formData.password}
-                                onChange={(e) => {
-                                    setFormData(prev => ({ ...prev, password: e.target.value }));
-                                    if (errors.password) setErrors(prev => ({ ...prev, password: '' }));
-                                }}
-                                error={errors.password}
-                                autoComplete="new-password"
-                            />
-                        </div>
-                    )}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">
+                            Password
+                        </label>
+                        <Input
+                            type="password"
+                            placeholder={modalMode === 'create' ? "Enter password" : "Enter new password"}
+                            value={formData.password}
+                            onChange={(e) => {
+                                setFormData(prev => ({ ...prev, password: e.target.value }));
+                                if (errors.password) setErrors(prev => ({ ...prev, password: '' }));
+                            }}
+                            error={errors.password}
+                            autoComplete="new-password"
+                        />
+                    </div>
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium">

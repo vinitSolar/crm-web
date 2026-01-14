@@ -532,6 +532,7 @@ export const GET_CUSTOMER_BY_CUSTOMER_ID = gql`
             discount
             signDate
             emailSent
+            offerEmailSentAt
             utilmateStatus
             viewCode
             isActive

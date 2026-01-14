@@ -5,12 +5,16 @@ import { calculateDiscountedRate } from '../../lib/rate-utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { DataTable, type Column, Modal } from '@/components/common';
-import { PlusIcon, PencilIcon, TrashIcon, CheckIcon, XIcon, MailIcon, SnowflakeIcon, Settings2Icon, PlugIcon, ZapIcon } from '@/components/icons';
+import {
+    PlusIcon, PencilIcon,
+    // TrashIcon,
+    CheckIcon, XIcon, MailIcon, SnowflakeIcon, Settings2Icon, PlugIcon, ZapIcon
+} from '@/components/icons';
 import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL, CREATE_CUSTOMER, UPDATE_CUSTOMER } from '@/graphql';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { Select } from '@/components/ui/Select';
 import { StatusField } from '@/components/common';
-import { formatDateTime } from '@/lib/date';
+import { formatDateTime, formatDate } from '@/lib/date';
 import { SALE_TYPE_LABELS, BILLING_PREF_LABELS, DNSP_LABELS, DNSP_OPTIONS, DISCOUNT_OPTIONS, CUSTOMER_STATUS_OPTIONS, VPP_OPTIONS, VPP_CONNECTED_OPTIONS, ULTIMATE_STATUS_OPTIONS, MSAT_CONNECTED_OPTIONS } from '@/lib/constants';
 import { toast } from 'react-toastify';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -149,6 +153,7 @@ interface CustomerDetails {
     msatDetails?: {
         msatConnected?: number;
         msatConnectedAt?: string;
+        msatUpdatedAt?: string;
     };
     solarDetails?: {
         id?: string;
@@ -470,6 +475,93 @@ export function CustomersPage() {
         }
     };
 
+    const handleVppToggle = async (customerUid: string, newValue: boolean) => {
+        // Optimistic update - immediately update UI
+        const previousValue = selectedCustomerDetails?.vppDetails?.vppConnected;
+        if (selectedCustomerDetails) {
+            setSelectedCustomerDetails({
+                ...selectedCustomerDetails,
+                vppDetails: {
+                    ...selectedCustomerDetails.vppDetails,
+                    vppConnected: newValue ? 1 : 0
+                }
+            });
+        }
+
+        try {
+            await updateCustomer({
+                variables: {
+                    uid: customerUid,
+                    input: {
+                        vppDetails: {
+                            vppConnected: newValue ? 1 : 0
+                        }
+                    }
+                }
+            });
+            toast.success(`VPP ${newValue ? 'connected' : 'disconnected'} successfully`);
+        } catch (error: any) {
+            console.error('Error updating VPP status:', error);
+            toast.error(error.message || 'Failed to update VPP status');
+            // Revert to previous value on failure
+            if (selectedCustomerDetails) {
+                setSelectedCustomerDetails({
+                    ...selectedCustomerDetails,
+                    vppDetails: {
+                        ...selectedCustomerDetails.vppDetails,
+                        vppConnected: previousValue
+                    }
+                });
+            }
+        }
+    };
+
+    const handleMsatToggle = async (customerUid: string, newValue: boolean) => {
+        // Optimistic update - immediately update UI
+        const previousValue = selectedCustomerDetails?.msatDetails?.msatConnected;
+        const now = new Date().toISOString();
+        if (selectedCustomerDetails) {
+            setSelectedCustomerDetails({
+                ...selectedCustomerDetails,
+                msatDetails: {
+                    ...selectedCustomerDetails.msatDetails,
+                    msatConnected: newValue ? 1 : 0,
+                    msatConnectedAt: newValue ? now : selectedCustomerDetails.msatDetails?.msatConnectedAt,
+                    msatUpdatedAt: now
+                }
+            });
+        }
+
+        try {
+            await updateCustomer({
+                variables: {
+                    uid: customerUid,
+                    input: {
+                        msatDetails: {
+                            msatConnected: newValue ? 1 : 0,
+                            msatConnectedAt: newValue ? now : undefined,
+                            msatUpdatedAt: now
+                        }
+                    }
+                }
+            });
+            toast.success(`MSAT ${newValue ? 'connected' : 'disconnected'} successfully`);
+        } catch (error: any) {
+            console.error('Error updating MSAT status:', error);
+            toast.error(error.message || 'Failed to update MSAT status');
+            // Revert to previous value on failure
+            if (selectedCustomerDetails) {
+                setSelectedCustomerDetails({
+                    ...selectedCustomerDetails,
+                    msatDetails: {
+                        ...selectedCustomerDetails.msatDetails,
+                        msatConnected: previousValue
+                    }
+                });
+            }
+        }
+    };
+
     const handleSendReminder = async (customerUid: string) => {
         setSendingReminder(true);
         try {
@@ -491,11 +583,11 @@ export function CustomersPage() {
         }
     };
 
-    const handleDeleteClick = (customer: Customer) => {
-        setCustomerToDelete(customer);
-        setDeleteConfirmName('');
-        setDeleteModalOpen(true);
-    };
+    // const handleDeleteClick = (customer: Customer) => {
+    //     setCustomerToDelete(customer);
+    //     setDeleteConfirmName('');
+    //     setDeleteModalOpen(true);
+    // };
 
     const handleConfirmDelete = async () => {
         if (!customerToDelete) return;
@@ -581,6 +673,276 @@ export function CustomersPage() {
 
     const columns: Column<Customer>[] = [
         // Only show actions column if user has at least one action permission or we need selection
+
+        {
+            key: 'id',
+            header: (
+                <div className="flex flex-col gap-1 max-w-[100px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Customer ID</span>
+                    </div>
+                    <Input
+                        value={searchFilters.id}
+                        onChange={(e) => handleSearchChange('id', e.target.value)}
+                        placeholder="Search ID..."
+                        className="h-7 text-xs"
+                    />
+                </div>
+            ),
+            render: (row) => (
+                row.status === 4 ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500 cursor-not-allowed">
+                        {row.customerId || row.uid.slice(0, 8)}
+                    </span>
+                ) : (
+                    <button
+                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                        onClick={() => handleViewDetails(row)}
+                    >
+                        {row.customerId || row.uid.slice(0, 8)}
+                    </button>
+                )
+            ),
+        },
+        {
+            key: 'name',
+            header: (
+                <div className="flex flex-col gap-1 min-w-[100px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Name</span>
+                    </div>
+                    <Input
+                        value={searchFilters.name}
+                        onChange={(e) => handleSearchChange('name', e.target.value)}
+                        placeholder="Search name..."
+                        className="h-7 text-xs"
+                    />
+                </div>
+            ),
+            width: 'w-[120px]',
+            render: (row) => <span className="font-medium text-foreground">{row.firstName} {row.lastName}</span>,
+        },
+        {
+            key: 'mobile',
+            header: (
+                <div className="flex flex-col gap-1 max-w-[110px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Mobile</span>
+                    </div>
+                    <Input
+                        value={searchFilters.mobile}
+                        onChange={(e) => handleSearchChange('mobile', e.target.value)}
+                        placeholder="Search mobile..."
+                        className="h-7 text-xs"
+                    />
+                </div>
+            ),
+            render: (row) => <span className="text-foreground">{row.number || '-'}</span>,
+        },
+        {
+            key: 'address',
+            header: (
+                <div className="flex flex-col gap-1 min-w-[120px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Address</span>
+                    </div>
+                    <Input
+                        value={searchFilters.address}
+                        onChange={(e) => handleSearchChange('address', e.target.value)}
+                        placeholder="Search address..."
+                        className="h-7 text-xs"
+                    />
+                </div>
+            ),
+            render: (row) => {
+                const fullAddr = row.address?.fullAddress;
+                if (!fullAddr) return <span className="text-muted-foreground">-</span>;
+                return (
+                    <Tooltip content={fullAddr}>
+                        <span className="text-foreground text-sm truncate max-w-[220px] block">
+                            {fullAddr}
+                        </span>
+                    </Tooltip>
+                );
+            },
+        },
+        {
+            key: 'tariff',
+            header: (
+                <div className="flex flex-col gap-1 max-w-[100px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Tariff</span>
+                    </div>
+                    <Input
+                        value={searchFilters.tariff}
+                        onChange={(e) => handleSearchChange('tariff', e.target.value)}
+                        placeholder="Search tariff..."
+                        className="h-7 text-xs"
+                    />
+                </div>
+            ),
+            render: (row) => <span className="text-foreground">{row.tariffCode || row.ratePlan?.tariff || '-'}</span>,
+        },
+        {
+            key: 'dnsp',
+            header: (
+                <div className="flex flex-col gap-1 items-start">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">DNSP</span>
+                    </div>
+                    <Select
+                        options={[{ value: '', label: 'All' }, ...DNSP_OPTIONS]}
+                        value={searchFilters.dnsp}
+                        onChange={(val) => handleSearchChange('dnsp', val as string)}
+                        placeholder="All"
+                        className="h-7 text-xs w-[90px]"
+                    />
+                </div>
+            ),
+            render: (row) => <StatusField type="dnsp" value={row.ratePlan?.dnsp} mode="badge" />,
+        },
+        {
+            key: 'discount',
+            header: (
+                <div className="flex flex-col gap-1 items-start">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Discount</span>
+                    </div>
+                    <Select
+                        options={[{ value: '', label: 'All' }, ...DISCOUNT_OPTIONS]}
+                        value={searchFilters.discount}
+                        onChange={(val) => handleSearchChange('discount', val as string)}
+                        placeholder="All"
+                        className="h-7 text-xs w-[70px]"
+                    />
+                </div>
+            ),
+            render: (row) => <span className="text-foreground">{row.discount ? `${row.discount} %` : '0 %'}</span>,
+        },
+        {
+            key: 'status',
+            header: (
+                <div className="flex flex-col gap-1 items-start">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Status</span>
+                    </div>
+                    <Select
+                        options={[{ value: '', label: 'All' }, ...CUSTOMER_STATUS_OPTIONS]}
+                        value={searchFilters.status}
+                        onChange={(val) => handleSearchChange('status', val as string)}
+                        placeholder="All"
+                        className="h-7 text-xs w-[90px]"
+                    />
+                </div>
+            ),
+            width: 'w-[110px]',
+            render: (row: Customer) => (
+                <StatusField
+                    type="customer_status"
+                    value={row.status}
+                    mode="badge"
+                />
+            ),
+        },
+        {
+            key: 'vppConnected',
+            header: (
+                <div className="flex flex-col gap-1 items-start">
+                    <div className='flex gap-1 items-center'>
+                        <span className="text-xs font-semibold uppercase text-muted-foreground whitespace-nowrap">VPP</span>
+                        <Select
+                            options={[{ value: '', label: 'All' }, ...VPP_OPTIONS]}
+                            value={searchFilters.vpp}
+                            onChange={(val) => handleSearchChange('vpp', val as string)}
+                            placeholder="All"
+                            className="h-7 text-xs w-[65px]"
+                        />
+                    </div>
+                    <Select
+                        options={[{ value: '', label: 'All' }, ...VPP_CONNECTED_OPTIONS]}
+                        value={searchFilters.vppConnected}
+                        onChange={(val) => handleSearchChange('vppConnected', val as string)}
+                        placeholder="All"
+                        className="h-7 text-xs w-[93px]"
+                    />
+                </div>
+            ),
+            render: (row) => (
+                <div className="flex justify-center">
+                    {row.vppDetails?.vppConnected === 1 ? (
+                        <div className="rounded-full bg-green-100 p-1">
+                            <CheckIcon className="h-4 w-4 text-green-600" />
+                        </div>
+                    ) : (
+                        <div className="rounded-full bg-red-100 p-1">
+                            <XIcon className="h-4 w-4 text-red-600" />
+                        </div>
+                    )}
+                </div>
+            ),
+        },
+        ...(searchFilters.status === '3' ? [
+            {
+                key: 'utilmateStatus',
+                header: (
+                    <div className="flex flex-col gap-1 items-start">
+                        <div className="h-7 flex items-center">
+                            <span className="text-xs font-semibold uppercase text-muted-foreground">Ultimate Status</span>
+                        </div>
+                        <Select
+                            options={[{ value: '', label: 'All' }, ...ULTIMATE_STATUS_OPTIONS]}
+                            value={searchFilters.utilmateStatus}
+                            onChange={(val) => handleSearchChange('utilmateStatus', val as string)}
+                            placeholder="All"
+                            className="h-7 text-xs w-[70px]"
+                        />
+                    </div>
+                ),
+                render: (row: Customer) => (
+                    <div className="flex justify-center">
+                        {row.utilmateStatus === 1 ? (
+                            <div className="rounded-full bg-green-100 p-1">
+                                <CheckIcon className="h-4 w-4 text-green-600" />
+                            </div>
+                        ) : (
+                            <div className="rounded-full bg-red-100 p-1">
+                                <XIcon className="h-4 w-4 text-red-600" />
+                            </div>
+                        )}
+                    </div>
+                ),
+            },
+            {
+                key: 'msatConnected',
+                header: (
+                    <div className="flex flex-col gap-1 items-start">
+                        <div className="h-7 flex items-center">
+                            <span className="text-xs font-semibold uppercase text-muted-foreground">MSAT Connected</span>
+                        </div>
+                        <Select
+                            options={[{ value: '', label: 'All' }, ...MSAT_CONNECTED_OPTIONS]}
+                            value={searchFilters.msatConnected}
+                            onChange={(val) => handleSearchChange('msatConnected', val as string)}
+                            placeholder="All"
+                            className="h-7 text-xs w-[70px]"
+                        />
+                    </div>
+                ),
+                render: (row: Customer) => (
+                    <div className="flex justify-center">
+                        {row.msatDetails?.msatConnected === 1 ? (
+                            <div className="rounded-full bg-green-100 p-1">
+                                <CheckIcon className="h-4 w-4 text-green-600" />
+                            </div>
+                        ) : (
+                            <div className="rounded-full bg-red-100 p-1">
+                                <XIcon className="h-4 w-4 text-red-600" />
+                            </div>
+                        )}
+                    </div>
+                ),
+            }
+        ] : []),
         ...(showActionsColumn ? [{
             key: 'actions' as const,
             header: (
@@ -601,7 +963,7 @@ export function CustomersPage() {
                     </div> */}
                 </div>
             ),
-            width: 'w-[140px]',
+            width: 'w-[100px]',
             render: (row: Customer) => (
                 <div className="flex items-center gap-3">
                     {/* <div className="flex items-center">
@@ -634,6 +996,7 @@ export function CustomersPage() {
                                 </button>
                             </Tooltip>
                         )}
+                        {/* Delete button hidden
                         {canDelete && (
                             <Tooltip content="Delete Customer">
                                 <button
@@ -644,280 +1007,12 @@ export function CustomersPage() {
                                 </button>
                             </Tooltip>
                         )}
+                        */}
 
                     </div>
                 </div>
             ),
-        }] : []),
-        {
-            key: 'id',
-            header: (
-                <div className="flex flex-col gap-1 min-w-[90px]">
-                    <div className="h-7 flex items-center">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">ID</span>
-                    </div>
-                    <Input
-                        value={searchFilters.id}
-                        onChange={(e) => handleSearchChange('id', e.target.value)}
-                        placeholder="Search ID..."
-                        className="h-7 text-xs"
-                    />
-                </div>
-            ),
-            render: (row) => (
-                row.status === 4 ? (
-                    <span className="text-gray-400 text-sm font-medium cursor-not-allowed">
-                        {row.customerId || row.uid.slice(0, 8)}
-                    </span>
-                ) : (
-                    <button
-                        className="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium"
-                        onClick={() => handleViewDetails(row)}
-                    >
-                        {row.customerId || row.uid.slice(0, 8)}
-                    </button>
-                )
-            ),
-        },
-        {
-            key: 'name',
-            header: (
-                <div className="flex flex-col gap-1 min-w-[140px]">
-                    <div className="h-7 flex items-center">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">Customer</span>
-                    </div>
-                    <Input
-                        value={searchFilters.name}
-                        onChange={(e) => handleSearchChange('name', e.target.value)}
-                        placeholder="Search name..."
-                        className="h-7 text-xs"
-                    />
-                </div>
-            ),
-            width: 'w-[180px]',
-            render: (row) => <span className="font-medium text-foreground">{row.firstName} {row.lastName}</span>,
-        },
-        {
-            key: 'mobile',
-            header: (
-                <div className="flex flex-col gap-1 min-w-[110px]">
-                    <div className="h-7 flex items-center">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">Mobile</span>
-                    </div>
-                    <Input
-                        value={searchFilters.mobile}
-                        onChange={(e) => handleSearchChange('mobile', e.target.value)}
-                        placeholder="Search mobile..."
-                        className="h-7 text-xs"
-                    />
-                </div>
-            ),
-            render: (row) => <span className="text-foreground">{row.number || '-'}</span>,
-        },
-        {
-            key: 'address',
-            header: (
-                <div className="flex flex-col gap-1 min-w-[160px]">
-                    <div className="h-7 flex items-center">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">Address</span>
-                    </div>
-                    <Input
-                        value={searchFilters.address}
-                        onChange={(e) => handleSearchChange('address', e.target.value)}
-                        placeholder="Search address..."
-                        className="h-7 text-xs"
-                    />
-                </div>
-            ),
-            render: (row) => {
-                const fullAddr = row.address?.fullAddress;
-                if (!fullAddr) return <span className="text-muted-foreground">-</span>;
-                return (
-                    <Tooltip content={fullAddr}>
-                        <span className="text-foreground text-sm truncate max-w-[220px] block">
-                            {fullAddr}
-                        </span>
-                    </Tooltip>
-                );
-            },
-        },
-        {
-            key: 'tariff',
-            header: (
-                <div className="flex flex-col gap-1 min-w-[100px]">
-                    <div className="h-7 flex items-center">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">Tariff</span>
-                    </div>
-                    <Input
-                        value={searchFilters.tariff}
-                        onChange={(e) => handleSearchChange('tariff', e.target.value)}
-                        placeholder="Search tariff..."
-                        className="h-7 text-xs"
-                    />
-                </div>
-            ),
-            render: (row) => <span className="text-foreground">{row.tariffCode || row.ratePlan?.tariff || '-'}</span>,
-        },
-        {
-            key: 'dnsp',
-            header: (
-                <div className="flex flex-col gap-1 min-w-[120px]">
-                    <div className="h-7 flex items-center">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">DNSP</span>
-                    </div>
-                    <Select
-                        options={[{ value: '', label: 'All DNSPs' }, ...DNSP_OPTIONS]}
-                        value={searchFilters.dnsp}
-                        onChange={(val) => handleSearchChange('dnsp', val as string)}
-                        placeholder="All DNSPs"
-                        className="h-7 text-xs"
-                    />
-                </div>
-            ),
-            render: (row) => <StatusField type="dnsp" value={row.ratePlan?.dnsp} mode="badge" />,
-        },
-        {
-            key: 'discount',
-            header: (
-                <div className="flex flex-col gap-1 min-w-[120px]">
-                    <div className="h-7 flex items-center">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">Discount</span>
-                    </div>
-                    <Select
-                        options={[{ value: '', label: 'All discounts' }, ...DISCOUNT_OPTIONS]}
-                        value={searchFilters.discount}
-                        onChange={(val) => handleSearchChange('discount', val as string)}
-                        placeholder="All discounts"
-                        className="h-7 text-xs"
-                    />
-                </div>
-            ),
-            render: (row) => <span className="text-foreground">{row.discount ? `${row.discount} %` : '0 %'}</span>,
-        },
-        {
-            key: 'status',
-            header: (
-                <div className="flex flex-col gap-1 min-w-[140px]">
-                    <div className="h-7 flex items-center">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">Status</span>
-                    </div>
-                    <Select
-                        options={[{ value: '', label: 'Select Status' }, ...CUSTOMER_STATUS_OPTIONS]}
-                        value={searchFilters.status}
-                        onChange={(val) => handleSearchChange('status', val as string)}
-                        placeholder="Select Status"
-                        className="h-7 text-xs"
-                    />
-                </div>
-            ),
-            width: 'w-[150px]',
-            render: (row: Customer) => (
-                <StatusField
-                    type="customer_status"
-                    value={row.status}
-                    mode="badge"
-                />
-            ),
-        },
-        {
-            key: 'vppConnected',
-            header: (
-                <div className="flex flex-col gap-1 min-w-[140px]">
-                    <div className='flex gap-2 items-center'>
-                        <span className="text-xs font-semibold uppercase text-muted-foreground whitespace-nowrap">VPP</span>
-                        <Select
-                            options={[{ value: '', label: 'Select VPP' }, ...VPP_OPTIONS]}
-                            value={searchFilters.vpp}
-                            onChange={(val) => handleSearchChange('vpp', val as string)}
-                            placeholder="Select VPP"
-                            className="h-7 text-xs flex-1"
-                        />
-                    </div>
-                    <Select
-                        options={[{ value: '', label: 'Select Connected' }, ...VPP_CONNECTED_OPTIONS]}
-                        value={searchFilters.vppConnected}
-                        onChange={(val) => handleSearchChange('vppConnected', val as string)}
-                        placeholder="Select Connected"
-                        className="h-7 text-xs"
-                    />
-                </div>
-            ),
-            render: (row) => (
-                <div className="flex justify-center">
-                    {row.vppDetails?.vppConnected === 1 ? (
-                        <div className="rounded-full bg-green-100 p-1">
-                            <CheckIcon className="h-4 w-4 text-green-600" />
-                        </div>
-                    ) : (
-                        <div className="rounded-full bg-red-100 p-1">
-                            <XIcon className="h-4 w-4 text-red-600" />
-                        </div>
-                    )}
-                </div>
-            ),
-        },
-        ...(searchFilters.status === '3' ? [
-            {
-                key: 'utilmateStatus',
-                header: (
-                    <div className="flex flex-col gap-1 min-w-[120px]">
-                        <div className="h-7 flex items-center">
-                            <span className="text-xs font-semibold uppercase text-muted-foreground">Ultimate Status</span>
-                        </div>
-                        <Select
-                            options={[{ value: '', label: 'All' }, ...ULTIMATE_STATUS_OPTIONS]}
-                            value={searchFilters.utilmateStatus}
-                            onChange={(val) => handleSearchChange('utilmateStatus', val as string)}
-                            placeholder="All"
-                            className="h-7 text-xs"
-                        />
-                    </div>
-                ),
-                render: (row: Customer) => (
-                    <div className="flex justify-center">
-                        {row.utilmateStatus === 1 ? (
-                            <div className="rounded-full bg-green-100 p-1">
-                                <CheckIcon className="h-4 w-4 text-green-600" />
-                            </div>
-                        ) : (
-                            <div className="rounded-full bg-red-100 p-1">
-                                <XIcon className="h-4 w-4 text-red-600" />
-                            </div>
-                        )}
-                    </div>
-                ),
-            },
-            {
-                key: 'msatConnected',
-                header: (
-                    <div className="flex flex-col gap-1 min-w-[120px]">
-                        <div className="h-7 flex items-center">
-                            <span className="text-xs font-semibold uppercase text-muted-foreground">MSAT Connected</span>
-                        </div>
-                        <Select
-                            options={[{ value: '', label: 'All' }, ...MSAT_CONNECTED_OPTIONS]}
-                            value={searchFilters.msatConnected}
-                            onChange={(val) => handleSearchChange('msatConnected', val as string)}
-                            placeholder="All"
-                            className="h-7 text-xs"
-                        />
-                    </div>
-                ),
-                render: (row: Customer) => (
-                    <div className="flex justify-center">
-                        {row.msatDetails?.msatConnected === 1 ? (
-                            <div className="rounded-full bg-green-100 p-1">
-                                <CheckIcon className="h-4 w-4 text-green-600" />
-                            </div>
-                        ) : (
-                            <div className="rounded-full bg-red-100 p-1">
-                                <XIcon className="h-4 w-4 text-red-600" />
-                            </div>
-                        )}
-                    </div>
-                ),
-            }
-        ] : [])
+        }] : [])
     ];
 
     return (
@@ -1102,7 +1197,18 @@ export function CustomersPage() {
                                         )}
                                         {item.showToggle && (
                                             <div className="mt-1">
-                                                <ToggleSwitch checked={item.completed} onChange={(val) => console.log('Toggle', item.label, val)} />
+                                                <ToggleSwitch
+                                                    checked={item.completed}
+                                                    onChange={(val) => {
+                                                        if (item.step === 3) {
+                                                            handleVppToggle(selectedCustomerDetails.uid, val);
+                                                        } else if (item.step === 4) {
+                                                            handleMsatToggle(selectedCustomerDetails.uid, val);
+                                                        } else {
+                                                            console.log('Toggle', item.label, val);
+                                                        }
+                                                    }}
+                                                />
                                             </div>
                                         )}
                                     </div>
@@ -1126,7 +1232,7 @@ export function CustomersPage() {
                                         { label: 'ABN', value: selectedCustomerDetails.abn },
                                         { label: 'Email', value: selectedCustomerDetails.email },
                                         { label: 'Mobile', value: selectedCustomerDetails.number },
-                                        { label: 'DOB', value: selectedCustomerDetails.dob ? new Date(selectedCustomerDetails.dob).toLocaleDateString() : null },
+                                        { label: 'DOB', value: selectedCustomerDetails.dob ? formatDate(selectedCustomerDetails.dob) : null },
                                         { label: 'ID Number', value: selectedCustomerDetails.enrollmentDetails?.idnumber },
                                     ].map((item, i) => (
                                         <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
@@ -1175,7 +1281,7 @@ export function CustomersPage() {
                                         { label: 'Billing', value: BILLING_PREF_LABELS[selectedCustomerDetails.enrollmentDetails?.billingpreference ?? 0] || 'eBill' },
                                         { label: 'Discount', value: selectedCustomerDetails.discount ? `${selectedCustomerDetails.discount}%` : '0%' },
                                         { label: 'Rate Version', value: selectedCustomerDetails.rateVersion ?? '—' },
-                                        { label: 'Connection', value: selectedCustomerDetails.enrollmentDetails?.connectiondate ? new Date(selectedCustomerDetails.enrollmentDetails.connectiondate).toLocaleDateString() : null },
+                                        { label: 'Connection', value: selectedCustomerDetails.enrollmentDetails?.connectiondate ? formatDate(selectedCustomerDetails.enrollmentDetails.connectiondate) : null },
                                     ].map((item, i) => (
                                         <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
                                             <span className="text-xs text-gray-500">{item.label}</span>
@@ -1213,6 +1319,34 @@ export function CustomersPage() {
                                 </div>
                             </div>
 
+                            {/* MSAT Details Card */}
+                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                                    </div>
+                                    <h3 className="text-sm font-semibold text-gray-800">MSAT Details</h3>
+                                    {selectedCustomerDetails.msatDetails?.msatConnected === 1 && (
+                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">Connected</span>
+                                    )}
+                                </div>
+                                <div className="space-y-3">
+                                    {[
+                                        { label: 'MSAT Connected', value: selectedCustomerDetails.msatDetails?.msatConnected === 1 ? 'Yes' : 'No' },
+                                        { label: 'Connected At', value: selectedCustomerDetails.msatDetails?.msatConnectedAt ? formatDateTime(selectedCustomerDetails.msatDetails.msatConnectedAt) : '—' },
+                                        { label: 'Updated At', value: selectedCustomerDetails.msatDetails?.msatUpdatedAt ? formatDateTime(selectedCustomerDetails.msatDetails.msatUpdatedAt) : '—' },
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex justify-between items-start py-1.5 border-b border-gray-50 last:border-0">
+                                            <span className="text-xs text-gray-500 shrink-0 w-24 pt-0.5">{item.label}</span>
+                                            <span className="text-xs font-medium text-gray-800 text-right flex-1">{item.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Solar System Row */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             {/* Solar System Card */}
                             <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
                                 <div className="flex items-center gap-2 mb-4">

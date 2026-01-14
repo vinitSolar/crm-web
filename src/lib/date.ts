@@ -14,6 +14,7 @@ dayjs.extend(customParseFormat);
 // ============================================================
 
 // Default timezone - can be overridden by user preference from DB/API
+// Uses browser's timezone as the default for accurate local time display
 const DEFAULT_TIMEZONE = 'Australia/Sydney';
 
 // This function can be enhanced to fetch timezone from user settings/API
@@ -29,11 +30,22 @@ export function setUserTimezone(tz: string): void {
 }
 
 /**
+ * Get the browser's timezone
+ */
+export function getBrowserTimezone(): string {
+    try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+        return DEFAULT_TIMEZONE;
+    }
+}
+
+/**
  * Get the current timezone to use
- * Returns user's timezone if set, otherwise falls back to DEFAULT_TIMEZONE
+ * Returns user's timezone if set, otherwise falls back to browser's timezone
  */
 export function getUserTimezone(): string {
-    return userTimezone || DEFAULT_TIMEZONE;
+    return userTimezone || getBrowserTimezone();
 }
 
 // ============================================================

@@ -1,5 +1,6 @@
 import { useQuery } from '@apollo/client';
 import { GET_HISTORY_DETAILS } from '@/graphql/queries/rates';
+import { formatDate } from '@/lib/date';
 
 interface SnapshotDetailsProps {
     uid: string;
@@ -53,7 +54,7 @@ export const SnapshotDetails = ({ uid }: SnapshotDetailsProps) => {
                                     <div className="text-gray-500 mt-1">
                                         <span className="font-mono bg-gray-200 px-1 rounded mr-2">{plan.planId}</span>
                                         <span className="mr-2">{plan.state}</span>
-                                        <span className="mr-2">{new Date(plan.createdAt).toLocaleDateString()}</span>
+                                        <span className="mr-2">{formatDate(plan.createdAt)}</span>
                                     </div>
                                 </div>
                                 <div className="text-right space-y-1">
