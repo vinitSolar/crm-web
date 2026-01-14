@@ -236,7 +236,7 @@ export function Select({
     };
 
     return (
-        <div className={cn("w-full space-y-1", containerClassName)} ref={containerRef}>
+        <div className={cn("space-y-1", containerClassName)} ref={containerRef}>
             {label && (
                 <label className="text-sm font-medium text-title leading-none block">
                     {label}
@@ -248,9 +248,10 @@ export function Select({
                 {/* Trigger Input */}
                 <div
                     className={cn(
-                        "flex items-center justify-between w-full h-10 px-3 py-2",
+                        "flex items-center justify-between px-2 py-1",
                         "border border-input rounded-md bg-background text-sm",
                         "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
+                        "min-w-0",
                         disabled && "opacity-50 cursor-not-allowed",
                         error && "border-destructive focus-within:ring-destructive",
                         className
@@ -268,7 +269,7 @@ export function Select({
                         placeholder={multiple && selectedValues.length > 0 ? displayLabel : placeholder}
                         disabled={disabled}
                         className={cn(
-                            "flex-1 bg-transparent border-none outline-none placeholder:text-muted-foreground",
+                            "flex-1 min-w-0 bg-transparent border-none outline-none placeholder:text-muted-foreground truncate",
                             "disabled:cursor-not-allowed"
                         )}
                     />
@@ -305,7 +306,7 @@ export function Select({
                                 position: 'fixed',
                                 top: containerRef.current ? containerRef.current.getBoundingClientRect().bottom + window.scrollY + 4 : 0,
                                 left: containerRef.current ? containerRef.current.getBoundingClientRect().left + window.scrollX : 0,
-                                width: containerRef.current ? containerRef.current.getBoundingClientRect().width : 'auto',
+                                minWidth: containerRef.current ? containerRef.current.getBoundingClientRect().width : 'auto',
                                 zIndex: 9999
                             }}
                             className="bg-background border border-border rounded-md shadow-lg max-h-60 overflow-hidden"

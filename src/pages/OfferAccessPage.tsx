@@ -14,15 +14,8 @@ import BankAutocomplete from '@/components/BankAutocomplete';
 import LocationAutocomplete from '@/pages/LocationAutocomplete';
 import { ID_TYPE_MAP, SALE_TYPE_LABELS } from '@/lib/constants';
 import { calculateDiscountedRate } from '@/lib/rate-utils';
+import { formatDateTime, formatDate } from '@/lib/date';
 
-
-const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-    });
-};
 
 async function loadSignaturePad(): Promise<void> {
     if ((window as any).SignaturePad) return
@@ -53,6 +46,7 @@ export const OfferAccessPage = () => {
     const [isAuthorized, setIsAuthorized] = useState(false);
     const [customerData, setCustomerData] = useState<any>(null);
     const [fetchError, setFetchError] = useState(false);
+    const [offerExpired, setOfferExpired] = useState(false);
 
     const [directDebitOptIn, setDirectDebitOptIn] = useState(false);
     const [ddDetails, setDdDetails] = useState({
@@ -101,6 +95,23 @@ export const OfferAccessPage = () => {
         onCompleted: (data) => {
             if (data.customerByCustomerId) {
                 const customer = data.customerByCustomerId;
+
+                // Check for Offer Expiration (Frontend Side)
+                if (customer.offerEmailSentAt) {
+                    const sentAt = new Date(customer.offerEmailSentAt);
+                    const now = new Date();
+                    const diffTime = Math.abs(now.getTime() - sentAt.getTime());
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    // Expiry days (default to 1)
+                    const expiryDays = 1;
+
+                    if (diffDays > expiryDays) {
+                        setOfferExpired(true);
+                        return; // Stop processing further
+                    }
+                }
+
                 setCustomerData(customer);
                 // Prefill Signatory Name
                 setSignatoryName(`${customer.firstName || ''} ${customer.lastName || ''}`.trim());
@@ -229,6 +240,49 @@ export const OfferAccessPage = () => {
 
     if (!customerId) {
         return <div className="min-h-screen flex items-center justify-center">Invalid Offer Link</div>;
+    }
+
+    if (offerExpired) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-amber-50 flex items-center justify-center p-4">
+                <div className="bg-white p-10 rounded-2xl shadow-xl border border-slate-200 max-w-lg w-full text-center relative overflow-hidden">
+                    {/* Decorative top gradient bar */}
+                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500"></div>
+
+                    {/* Icon */}
+                    <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                        <svg className="w-10 h-10 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+
+                    {/* Title */}
+                    <h2 className="text-2xl font-bold text-slate-800 mb-3">Offer Has Expired</h2>
+
+                    {/* Description */}
+                    <p className="text-slate-600 mb-8 leading-relaxed">
+                        Unfortunately, this offer link is no longer valid. Offers expire after 24 hours for security purposes.
+                    </p>
+
+                    {/* Divider */}
+                    <div className="border-t border-slate-200 mb-6"></div>
+
+                    {/* Contact Section */}
+                    <div className="bg-slate-50 rounded-xl p-5">
+                        <p className="text-sm text-slate-500 mb-3">Need a new offer? Contact our team</p>
+                        <a
+                            href="tel:1300707042"
+                            className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-3 rounded-lg font-medium hover:from-emerald-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            1300 707 042
+                        </a>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     if (fetchError) {
@@ -768,6 +822,25 @@ export const OfferAccessPage = () => {
                                             ? '$50 monthly bill credit for 12 months (total $600)'
                                             : '—'}
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* MSAT Details */}
+                        <div className="mt-4">
+                            <h4 className="text-xs text-gray-500 mb-2 font-medium uppercase">MSAT Details</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 rounded-lg p-4">
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">MSAT Connected</div>
+                                    <div className="text-sm font-medium">{customerData.msatDetails?.msatConnected === 1 ? 'Yes' : 'No'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">Connected At</div>
+                                    <div className="text-sm font-medium">{customerData.msatDetails?.msatConnectedAt ? formatDateTime(customerData.msatDetails.msatConnectedAt) : '—'}</div>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-500 mb-1">Updated At</div>
+                                    <div className="text-sm font-medium">{customerData.msatDetails?.msatUpdatedAt ? formatDateTime(customerData.msatDetails.msatUpdatedAt) : '—'}</div>
                                 </div>
                             </div>
                         </div>
