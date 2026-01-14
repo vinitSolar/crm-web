@@ -23,3 +23,7 @@ export * from './mutations/users';
 export * from './mutations/permissions';
 export * from './mutations/roles';
 export * from './mutations/userPermissions';
+export * from './mutations/emailTemplates';
+
+// Queries
+export * from './queries/emailTemplates';

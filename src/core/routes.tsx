@@ -15,6 +15,7 @@ const OfferAccessPage = lazy(() => import('@/pages/OfferAccessPage').then(m => (
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 const RolePage = lazy(() => import('@/pages/role/RolePage').then(m => ({ default: m.RolePage })));
 const AuditLogsPage = lazy(() => import('@/pages/logs/AuditLogsPage').then(m => ({ default: m.AuditLogsPage })));
+const EmailTemplatesPage = lazy(() => import('@/pages/email/EmailTemplatesPage').then(m => ({ default: m.EmailTemplatesPage })));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -64,6 +65,7 @@ const router = createBrowserRouter(
                 <Route path="/roles" element={<RequirePermission menuCode="roles"><RolePage /></RequirePermission>} />
                 <Route path="/rates" element={<RequirePermission menuCode="rates"><RatesPage /></RequirePermission>} />
                 <Route path="/audit-logs" element={<RequirePermission menuCode="audit_logs"><AuditLogsPage /></RequirePermission>} />
+                <Route path="/email-templates" element={<EmailTemplatesPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

@@ -46,6 +46,7 @@ const pathMap: Record<string, string> = {
     users: '/users',
     roles: '/roles',
     audit_logs: '/audit-logs',
+    email_templates: '/email-templates',
     // user_management has no path, it's a grouper
 };
 
