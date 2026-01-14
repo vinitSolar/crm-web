@@ -1486,11 +1486,10 @@ export type UserOperationResponse = {
   success: Scalars['Boolean']['output'];
 };
 
-export enum UserStatus {
-  Active = 'ACTIVE',
-  Disabled = 'DISABLED',
-  Inactive = 'INACTIVE'
-}
+export type UserStatus =
+  | 'ACTIVE'
+  | 'DISABLED'
+  | 'INACTIVE';
 
 export type CustomerBasicFieldsFragment = { __typename?: 'Customer', uid: string, customerId?: string | null, firstName?: string | null, lastName?: string | null, email?: string | null, number?: string | null, status?: number | null, createdAt: any, updatedAt: any } & { ' $fragmentName'?: 'CustomerBasicFieldsFragment' };
 
