@@ -3,7 +3,7 @@ import { print } from 'graphql';
 import axios, { AxiosError } from 'axios';
 import { getAccessToken } from '@/lib/auth';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:4000');
 
 // Shared axios instance for all API requests
 const axiosInstance = axios.create({
