@@ -4,7 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/main-logo-dark-1.png';
 import { useAccessibleMenus } from '@/stores/useAuthStore';
-import { CustomerIcon, RatesIcon, UserSettingIcon, FileTextIcon, ShieldCheckIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, UserIcon, MailIcon } from '@/components/icons';
+import { CustomerIcon, RatesIcon, UserSettingIcon, FileTextIcon, ShieldCheckIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, UserIcon, MailIcon, CopyIcon, SendIcon } from '@/components/icons';
 import { Tooltip } from '@/components/ui/Tooltip';
 
 // Dashboard icon component (locally defined in Header originally)
@@ -35,7 +35,10 @@ const iconMap: Record<string, React.FC<{ size?: number; className?: string }>> =
     roles: ShieldCheckIcon,
     audit_logs: FileTextIcon,
     user_management: UserSettingIcon, // Parent gets the management icon
-    email_templates: MailIcon,
+    email: MailIcon,
+    email_templates: CopyIcon,
+    email_logs: FileTextIcon,
+    email_send: SendIcon,
 };
 
 // Path mapping
@@ -46,8 +49,10 @@ const pathMap: Record<string, string> = {
     users: '/users',
     roles: '/roles',
     audit_logs: '/audit-logs',
-    email_templates: '/email-templates',
-    // user_management has no path, it's a grouper
+    email_templates: '/email-templates', // Keep existing if needed, or update if route changed
+    email_logs: '/email-logs',
+    email_send: '/email-send',
+    // user_management and email have no path, they are groupers
 };
 
 interface SidebarProps {

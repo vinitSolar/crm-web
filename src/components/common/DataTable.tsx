@@ -55,6 +55,12 @@ export interface DataTableProps<T> {
     onSelectionChange?: (keys: string[]) => void;
     /** Optional function to apply a class name to a row */
     rowClassName?: (row: T) => string;
+    /** Callback for select all - use this to fetch all IDs from backend */
+    onSelectAll?: (selectAll: boolean) => void;
+    /** Total filtered count (for showing "Select all X" message) */
+    totalFilteredCount?: number;
+    /** Whether select all is loading */
+    isSelectingAll?: boolean;
 }
 
 // ============================================================
@@ -79,6 +85,9 @@ export function DataTable<T>({
     enableSelection = false,
     selectedRowKeys = [],
     onSelectionChange,
+    onSelectAll,
+    totalFilteredCount,
+    isSelectingAll = false,
 }: DataTableProps<T>) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const colSpan = columns.length + (enableSelection ? 1 : 0);
@@ -115,8 +124,17 @@ export function DataTable<T>({
 
     // Selection Logic
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const checked = e.target.checked;
+
+        // If onSelectAll is provided, use it for external handling (like fetching all IDs)
+        if (onSelectAll) {
+            onSelectAll(checked);
+            return;
+        }
+
+        // Default behavior: select/deselect only visible rows
         if (!onSelectionChange) return;
-        if (e.target.checked) {
+        if (checked) {
             const allKeys = data.map(rowKey);
             onSelectionChange(allKeys);
         } else {
@@ -133,7 +151,11 @@ export function DataTable<T>({
         }
     };
 
-    const allSelected = data.length > 0 && data.every(row => selectedRowKeys.includes(rowKey(row)));
+    // Check if all visible items are selected
+    const allVisibleSelected = data.length > 0 && data.every(row => selectedRowKeys.includes(rowKey(row)));
+    // Check if all filtered (total) items are selected
+    const allFilteredSelected = totalFilteredCount !== undefined && selectedRowKeys.length >= totalFilteredCount;
+    const allSelected = allFilteredSelected || allVisibleSelected;
     const someSelected = data.length > 0 && selectedRowKeys.length > 0 && !allSelected;
 
     return (
@@ -147,15 +169,22 @@ export function DataTable<T>({
                         <tr className="border-b border-border shadow-sm">
                             {enableSelection && (
                                 <th className="sticky left-0 z-30 w-[40px] px-3 py-3 text-left bg-background border-b border-border">
-                                    <input
-                                        type="checkbox"
-                                        checked={allSelected}
-                                        ref={input => {
-                                            if (input) input.indeterminate = someSelected;
-                                        }}
-                                        onChange={handleSelectAll}
-                                        className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        {isSelectingAll ? (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent" />
+                                        ) : (
+                                            <input
+                                                type="checkbox"
+                                                checked={allSelected}
+                                                ref={input => {
+                                                    if (input) input.indeterminate = someSelected;
+                                                }}
+                                                onChange={handleSelectAll}
+                                                className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                                                title={totalFilteredCount ? `Select all ${totalFilteredCount} items` : 'Select all visible items'}
+                                            />
+                                        )}
+                                    </div>
                                 </th>
                             )}
                             {columns.map((col, colIndex) => {

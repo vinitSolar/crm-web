@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
 import { toast } from 'react-toastify';
+import logo from '@/assets/main-logo-dark-1.png';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Switch } from '@/components/ui/Switch';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { HtmlEditor } from '@/components/ui/HtmlEditor';
 import { DataTable, type Column, Modal, StatusField } from '@/components/common';
 import { PlusIcon, PencilIcon, TrashIcon, RefreshCwIcon, FileTextIcon } from '@/components/icons';
 import {
@@ -16,6 +18,7 @@ import {
     RESTORE_EMAIL_TEMPLATE
 } from '@/graphql';
 import { formatDateTime, getUserTimezone } from '@/lib/date';
+import { EMAIL_VARIABLES } from '@/lib/email-variables';
 import { useAuthStore } from '@/stores/useAuthStore';
 
 // Types
@@ -50,6 +53,35 @@ const ENTITY_TYPES = [
     // Add more types as they become available
 ];
 
+// Default Email Footer
+const DEFAULT_EMAIL_FOOTER = `
+<br>
+<br>
+<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+    <p style="color: #5c8a14; font-weight: bold; font-size: 16px; margin: 0 0 10px 0;">GEE Energy</p>
+    
+    <div style="margin-bottom: 10px;">
+        <img src="${logo}" alt="GEE Energy" style="height: 25px;" />
+    </div>
+
+    <p style="margin: 0 0 2px 0;">
+        <a href="mailto:noreply@gee.com.au" style="color: #0000EE; text-decoration: underline;">noreply@gee.com.au</a>
+    </p>
+    
+    <p style="margin: 0 0 2px 0;">(P) 1300 707 042 / (M)</p>
+    
+    <p style="margin: 0 0 2px 0;">PO Box 567, South Melbourne, Victoria 3205</p>
+    
+    <p style="margin: 0 0 15px 0;">
+        <a href="https://www.gee.com.au" style="color: #0000EE; text-decoration: underline;">www.gee.com.au</a>
+    </p>
+    
+    <p style="color: #999; font-size: 10px; line-height: 1.3;">
+        The content of this email is confidential and intended for the recipient specified in message only. It is strictly forbidden to share any part of this message with any third party, without a written consent of the sender. If you received this message by mistake, please reply to this message and follow with its deletion, so that we can ensure such a mistake does not occur in the future.
+    </p>
+</div>
+`;
+
 export function EmailTemplatesPage() {
     // Permissions
     // Assuming 'email_templates' is the menu code
@@ -78,13 +110,14 @@ export function EmailTemplatesPage() {
         name: '',
         entityType: 1,
         subject: '',
-        body: '',
+        body: DEFAULT_EMAIL_FOOTER,
         isActive: true
     };
 
     const [formData, setFormData] = useState(initialFormState);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoadingBody, setIsLoadingBody] = useState(false);
 
     // Delete Modal State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -192,6 +225,7 @@ export function EmailTemplatesPage() {
         });
         setErrors({});
         setModalOpen(true);
+        setIsLoadingBody(true);
 
         // Fetch full details (specifically body)
         try {
@@ -205,6 +239,8 @@ export function EmailTemplatesPage() {
         } catch (error) {
             console.error('Failed to fetch template details:', error);
             toast.error('Failed to load template body');
+        } finally {
+            setIsLoadingBody(false);
         }
     };
 
@@ -212,8 +248,7 @@ export function EmailTemplatesPage() {
         const newErrors: { [key: string]: string } = {};
         if (!formData.name.trim()) newErrors.name = 'Template name is required';
         if (!formData.subject.trim()) newErrors.subject = 'Subject is required';
-        // Body might be optional? Let's require it for now.
-        // if (!formData.body.trim()) newErrors.body = 'Body is required';
+        if (!formData.body.trim()) newErrors.body = 'Body content is required';
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
@@ -510,7 +545,7 @@ export function EmailTemplatesPage() {
                 isOpen={modalOpen}
                 onClose={() => setModalOpen(false)}
                 title={modalMode === 'create' ? 'Create Template' : 'Edit Template'}
-                size="lg" // Larger modal for content editing
+                size="full" // Larger modal for content editing
                 footer={
                     <>
                         <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
@@ -520,6 +555,15 @@ export function EmailTemplatesPage() {
                     </>
                 }
             >
+                {/* Loading Overlay */}
+                {isLoadingBody && (
+                    <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center z-10 rounded-lg">
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+                            <span className="text-sm text-muted-foreground">Loading template...</span>
+                        </div>
+                    </div>
+                )}
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -564,14 +608,19 @@ export function EmailTemplatesPage() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Body Content (HTML)</label>
-                        <textarea
-                            className="w-full min-h-[200px] p-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 font-mono"
-                            placeholder="<html><body>...</body></html>"
+                        <label className="text-sm font-medium">Body Content (HTML) <span className="text-red-500">*</span></label>
+                        <HtmlEditor
                             value={formData.body}
-                            onChange={(e) => setFormData(prev => ({ ...prev, body: e.target.value }))}
+                            onChange={(newBody) => {
+                                setFormData(prev => ({ ...prev, body: newBody }));
+                                if (errors.body) setErrors(prev => ({ ...prev, body: '' }));
+                            }}
+                            placeholder="<html><body>...</body></html>"
+                            placeholders={[...EMAIL_VARIABLES]}
+                            helperText="Click 'Insert Variable' to add dynamic placeholders"
+                            minHeight="250px"
+                            error={errors.body}
                         />
-                        <p className="text-xs text-muted-foreground">Supported placeholders: [[PROJECT_NO]], [[ORG_NAME]]</p>
                     </div>
 
                     {modalMode === 'edit' && (
