@@ -415,6 +415,7 @@ export const GET_CUSTOMER_BY_ID = gql`
             emailSent
             utilmateStatus
             rateVersion
+            viewCode
             isActive
             isDeleted
             createdAt

@@ -12,12 +12,14 @@ export const EMAIL_VARIABLES = [
     { label: 'Proposal Link', value: '[[PROPOSAL_LINK]]', description: 'Link to proposal document' },
     { label: 'Pricing', value: '[[PRICING]]', description: 'Pricing details' },
     { label: 'Agreement Date', value: '[[AGREEMENT_DATE]]', description: 'Date of agreement' },
+    { label: 'Signed Date', value: '[[SIGNED_DATE]]', description: 'Date customer signed' },
 
     // Verification
     { label: 'Verification Code', value: '[[VERIFICATION_CODE]]', description: 'Email verification code' },
 
     // Organization
     { label: 'Org Name', value: '[[ORG_NAME]]', description: 'Organization name' },
+    { label: 'Org Phone', value: '[[ORG_PHONE]]', description: 'Organization phone number' },
 
     // Sender/Receiver
     { label: 'Sender Name', value: '[[SENDER_NAME]]', description: 'Email sender name' },

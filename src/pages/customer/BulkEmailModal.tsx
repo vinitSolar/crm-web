@@ -37,7 +37,7 @@ const replaceEmailVariables = (content: string, customer: any): string => {
         '[[PROPOSAL_LINK]]': '',
         '[[PRICING]]': '',
         '[[AGREEMENT_DATE]]': customer.signDate || '',
-        '[[VERIFICATION_CODE]]': '',
+        '[[VERIFICATION_CODE]]': customer.viewCode || '',
         '[[ORG_NAME]]': 'Go Sync',
         '[[SENDER_NAME]]': 'Go Sync',
         '[[SENDER_EMAIL]]': 'info@gosync.com.au',
