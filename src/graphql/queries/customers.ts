@@ -291,6 +291,47 @@ export const GET_CUSTOMERS_LIST = gql`
     }
 `;
 
+// Query to get all customer IDs matching filters (for bulk select all)
+export const GET_ALL_FILTERED_CUSTOMER_IDS = gql`
+    query GetAllFilteredCustomerIds(
+        $searchId: String, 
+        $searchName: String, 
+        $searchMobile: String, 
+        $searchAddress: String, 
+        $searchTariff: String, 
+        $searchDnsp: String, 
+        $searchDiscount: Int, 
+        $searchStatus: Int, 
+        $searchVpp: Int, 
+        $searchVppConnected: Int, 
+        $searchUtilmateStatus: Int, 
+        $searchMsatConnected: Int
+    ) {
+        customersCursor(
+            first: 10000, 
+            searchId: $searchId, 
+            searchName: $searchName, 
+            searchMobile: $searchMobile, 
+            searchAddress: $searchAddress, 
+            searchTariff: $searchTariff, 
+            searchDnsp: $searchDnsp, 
+            searchDiscount: $searchDiscount, 
+            searchStatus: $searchStatus, 
+            searchVpp: $searchVpp, 
+            searchVppConnected: $searchVppConnected, 
+            searchUtilmateStatus: $searchUtilmateStatus, 
+            searchMsatConnected: $searchMsatConnected
+        ) {
+            data {
+                uid
+            }
+            pageInfo {
+                hasNextPage
+            }
+        }
+    }
+`;
+
 export const GET_CUSTOMERS_CURSOR = gql`
     query CustomersCursor($first: Int, $after: String, $search: String, $discount: Float, $status: Int, $searchId: String, $searchName: String, $searchMobile: String, $searchAddress: String, $searchTariff: String, $searchDnsp: String, $searchDiscount: Int, $searchStatus: Int, $searchVpp: Int, $searchVppConnected: Int, $searchUtilmateStatus: Int, $searchMsatConnected: Int) {
         customersCursor(first: $first, after: $after, search: $search, discount: $discount, status: $status, searchId: $searchId, searchName: $searchName, searchMobile: $searchMobile, searchAddress: $searchAddress, searchTariff: $searchTariff, searchDnsp: $searchDnsp, searchDiscount: $searchDiscount, searchStatus: $searchStatus, searchVpp: $searchVpp, searchVppConnected: $searchVppConnected, searchUtilmateStatus: $searchUtilmateStatus, searchMsatConnected: $searchMsatConnected) {

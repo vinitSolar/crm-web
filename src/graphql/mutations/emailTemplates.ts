@@ -33,3 +33,14 @@ export const RESTORE_EMAIL_TEMPLATE = gql`
         restoreEmailTemplate(uid: $uid)
     }
 `;
+
+export const SEND_BULK_EMAIL = gql`
+    mutation SendBulkEmail($templateUid: String!, $customerUids: [String!]!, $cc: String, $bcc: String, $attachments: [EmailAttachmentInput!]) {
+        sendBulkEmail(templateUid: $templateUid, customerUids: $customerUids, cc: $cc, bcc: $bcc, attachments: $attachments) {
+             success
+             message
+             sentCount
+             failedCount
+        }
+    }
+`;

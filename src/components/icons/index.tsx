@@ -940,3 +940,292 @@ export const TypeIcon = ({ size = 18, className, ...props }: IconProps) => (
     </svg>
 );
 
+
+export const SendIcon = ({ size = 18, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <line x1="22" y1="2" x2="11" y2="13" />
+        <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+);
+
+// ============================================================
+// HTML Editor Icons
+// ============================================================
+
+export const BoldIcon = ({ size = 16, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" />
+        <path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" />
+    </svg>
+);
+
+export const ItalicIcon = ({ size = 16, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <line x1="19" y1="4" x2="10" y2="4" />
+        <line x1="14" y1="20" x2="5" y2="20" />
+        <line x1="15" y1="4" x2="9" y2="20" />
+    </svg>
+);
+
+export const UnderlineIcon = ({ size = 16, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3" />
+        <line x1="4" y1="21" x2="20" y2="21" />
+    </svg>
+);
+
+export const EditorLinkIcon = ({ size = 16, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+);
+
+export const ListIcon = ({ size = 16, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <line x1="8" y1="6" x2="21" y2="6" />
+        <line x1="8" y1="12" x2="21" y2="12" />
+        <line x1="8" y1="18" x2="21" y2="18" />
+        <line x1="3" y1="6" x2="3.01" y2="6" />
+        <line x1="3" y1="12" x2="3.01" y2="12" />
+        <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+);
+
+export const OrderedListIcon = ({ size = 16, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <line x1="10" y1="6" x2="21" y2="6" />
+        <line x1="10" y1="12" x2="21" y2="12" />
+        <line x1="10" y1="18" x2="21" y2="18" />
+        <path d="M4 6h1v4" />
+        <path d="M4 10h2" />
+        <path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" />
+    </svg>
+);
+
+export const VariableIcon = ({ size = 16, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M7 15V9l2 3 2-3v6" />
+        <path d="M17 9h-4v6h4" />
+        <path d="M13 12h3" />
+    </svg>
+);
+
+export const TableIcon = ({ size = 16, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+        <line x1="3" y1="9" x2="21" y2="9" />
+        <line x1="3" y1="15" x2="21" y2="15" />
+        <line x1="9" y1="3" x2="9" y2="21" />
+        <line x1="15" y1="3" x2="15" y2="21" />
+    </svg>
+);
+
+export const CTAButtonIcon = ({ size = 16, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <rect x="4" y="7" width="16" height="10" rx="3" />
+        <path d="M9 12h6" />
+        <path d="M12 9v6" />
+    </svg>
+);
+
+export const PreviewIcon = ({ size = 16, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+        <circle cx="12" cy="12" r="3" />
+    </svg>
+);
+
+export const CodeBracketIcon = ({ size = 16, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <polyline points="16 18 22 12 16 6" />
+        <polyline points="8 6 2 12 8 18" />
+    </svg>
+);
+
+export const MaximizeIcon = ({ size = 16, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+        <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+        <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+        <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+    </svg>
+);
+
+export const MinimizeIcon = ({ size = 16, className, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={cn(className)}
+        {...props}
+    >
+        <path d="M4 14h6v6" />
+        <path d="M20 10h-6V4" />
+        <path d="M14 10l7-7" />
+        <path d="M3 21l7-7" />
+    </svg>
+);

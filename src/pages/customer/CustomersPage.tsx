@@ -10,11 +10,12 @@ import {
     // TrashIcon,
     CheckIcon, XIcon, MailIcon, SnowflakeIcon, Settings2Icon, PlugIcon, ZapIcon
 } from '@/components/icons';
-import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL, CREATE_CUSTOMER, UPDATE_CUSTOMER } from '@/graphql';
+import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL, CREATE_CUSTOMER, UPDATE_CUSTOMER, GET_ALL_FILTERED_CUSTOMER_IDS } from '@/graphql';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { Select } from '@/components/ui/Select';
 import { StatusField } from '@/components/common';
 import { formatDateTime, formatDate } from '@/lib/date';
+import BulkEmailModal from './BulkEmailModal';
 import { SALE_TYPE_LABELS, BILLING_PREF_LABELS, DNSP_LABELS, DNSP_OPTIONS, DISCOUNT_OPTIONS, CUSTOMER_STATUS_OPTIONS, VPP_OPTIONS, VPP_CONNECTED_OPTIONS, ULTIMATE_STATUS_OPTIONS, MSAT_CONNECTED_OPTIONS } from '@/lib/constants';
 import { toast } from 'react-toastify';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -241,8 +242,16 @@ export function CustomersPage() {
         fetchPolicy: 'network-only',
     });
 
-    // State for selection (commented out since checkbox UI is disabled)
-    // const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
+    // Lazy query for fetching all filtered customer IDs (for Select All)
+    const [fetchAllFilteredIds] = useLazyQuery(GET_ALL_FILTERED_CUSTOMER_IDS, {
+        fetchPolicy: 'network-only',
+    });
+
+    // State for selection
+    const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
+    const [bulkEmailModalOpen, setBulkEmailModalOpen] = useState(false);
+    const [isSelectingAll, setIsSelectingAll] = useState(false);
+    const [totalFilteredCount, setTotalFilteredCount] = useState<number | undefined>(undefined);
 
     const limit = 20;
 
@@ -253,6 +262,9 @@ export function CustomersPage() {
                 setAllCustomers([]);
                 setEndCursor(null);
                 setDebouncedFilters(searchFilters);
+                // Reset selection when filters change
+                setSelectedCustomerIds([]);
+                setTotalFilteredCount(undefined);
             }
         }, 500);
         return () => clearTimeout(timer);
@@ -643,33 +655,50 @@ export function CustomersPage() {
 
     const showActionsColumn = canView || canEdit || canDelete;
 
-    // Selection Logic (commented out since checkbox UI is disabled)
-    // const allSelected = filteredCustomers.length > 0 && filteredCustomers.every(c => selectedCustomerIds.includes(c.uid));
-    // const someSelected = filteredCustomers.length > 0 && selectedCustomerIds.length > 0 && !allSelected;
+    // Selection Logic handled by DataTable
+    const hasSelection = selectedCustomerIds.length > 0;
 
-    // const handleSelectAll = (checked: boolean) => {
-    //     if (checked) {
-    //         const allIds = filteredCustomers.map(c => c.uid);
-    //         // Combine with existing non-visible ids if any?
-    //         // For now, simple behavior: check selects visible, uncheck deselects all visible
-    //         setSelectedCustomerIds(prev => {
-    //             const combined = new Set([...prev, ...allIds]);
-    //             return Array.from(combined);
-    //         });
-    //     } else {
-    //         // Uncheck: remove visible IDs from selection
-    //         const visibleIds = new Set(filteredCustomers.map(c => c.uid));
-    //         setSelectedCustomerIds(prev => prev.filter(id => !visibleIds.has(id)));
-    //     }
-    // };
+    // Handle Select All - fetches all customer IDs matching current filters from backend
+    const handleSelectAll = async (selectAll: boolean) => {
+        if (!selectAll) {
+            // Deselect all
+            setSelectedCustomerIds([]);
+            return;
+        }
 
-    // const handleSelectRow = (uid: string, checked: boolean) => {
-    //     if (checked) {
-    //         setSelectedCustomerIds(prev => [...prev, uid]);
-    //     } else {
-    //         setSelectedCustomerIds(prev => prev.filter(id => id !== uid));
-    //     }
-    // };
+        // Fetch all customer IDs matching the current filters
+        setIsSelectingAll(true);
+        try {
+            const { data } = await fetchAllFilteredIds({
+                variables: {
+                    searchId: debouncedFilters.id || undefined,
+                    searchName: debouncedFilters.name || undefined,
+                    searchMobile: debouncedFilters.mobile || undefined,
+                    searchAddress: debouncedFilters.address || undefined,
+                    searchTariff: debouncedFilters.tariff || undefined,
+                    searchDnsp: debouncedFilters.dnsp || undefined,
+                    searchDiscount: debouncedFilters.discount ? parseInt(debouncedFilters.discount) : undefined,
+                    searchStatus: debouncedFilters.status ? parseInt(debouncedFilters.status) : undefined,
+                    searchVpp: debouncedFilters.vpp ? parseInt(debouncedFilters.vpp) : undefined,
+                    searchVppConnected: debouncedFilters.vppConnected ? parseInt(debouncedFilters.vppConnected) : undefined,
+                    searchUtilmateStatus: debouncedFilters.utilmateStatus ? parseInt(debouncedFilters.utilmateStatus) : undefined,
+                    searchMsatConnected: debouncedFilters.msatConnected ? parseInt(debouncedFilters.msatConnected) : undefined,
+                },
+            });
+
+            if (data?.customersCursor?.data) {
+                const allIds = data.customersCursor.data.map((c: { uid: string }) => c.uid);
+                setSelectedCustomerIds(allIds);
+                setTotalFilteredCount(allIds.length);
+                // toast.success(`Selected all ${allIds.length} customers matching your filters`);
+            }
+        } catch (error: any) {
+            console.error('Error fetching all customer IDs:', error);
+            toast.error('Failed to select all customers');
+        } finally {
+            setIsSelectingAll(false);
+        }
+    };
 
     const columns: Column<Customer>[] = [
         // Only show actions column if user has at least one action permission or we need selection
@@ -1023,14 +1052,30 @@ export function CustomersPage() {
                     <h1 className="text-2xl font-bold text-foreground">Customers</h1>
                     <p className="text-muted-foreground">Manage your customer accounts</p>
                 </div>
-                {canCreate && (
-                    <Button
-                        leftIcon={<PlusIcon size={16} />}
-                        onClick={() => navigate('/customers/new')}
-                    >
-                        Add Customer
-                    </Button>
-                )}
+                <div className="flex items-center gap-2">
+                    {hasSelection && (
+                        <div className="flex items-center gap-2 mr-2">
+                            <span className="text-sm text-muted-foreground">{selectedCustomerIds.length} selected</span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setBulkEmailModalOpen(true)}
+                                className="flex items-center gap-2"
+                            >
+                                <MailIcon size={16} />
+                                Send Email
+                            </Button>
+                        </div>
+                    )}
+                    {canCreate && (
+                        <Button
+                            leftIcon={<PlusIcon size={16} />}
+                            onClick={() => navigate('/customers/new')}
+                        >
+                            Add Customer
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {/* Customers Table */}
@@ -1056,8 +1101,25 @@ export function CustomersPage() {
                     hasMore={hasMore}
                     isLoadingMore={isLoadingMore}
                     onLoadMore={handleLoadMore}
+                    enableSelection={true}
+                    selectedRowKeys={selectedCustomerIds}
+                    onSelectionChange={setSelectedCustomerIds}
+                    onSelectAll={handleSelectAll}
+                    isSelectingAll={isSelectingAll}
+                    totalFilteredCount={totalFilteredCount}
                 />
             </div>
+
+            <BulkEmailModal
+                isOpen={bulkEmailModalOpen}
+                onClose={() => setBulkEmailModalOpen(false)}
+                selectedCustomerIds={selectedCustomerIds}
+                onSuccess={() => {
+                    setSelectedCustomerIds([]);
+                    // Optional: refresh list if needed, but not strictly required for email sending
+                    toast.success("Bulk email process completed");
+                }}
+            />
 
             <Modal
                 isOpen={deleteModalOpen}
