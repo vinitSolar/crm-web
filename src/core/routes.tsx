@@ -16,6 +16,8 @@ const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ defa
 const RolePage = lazy(() => import('@/pages/role/RolePage').then(m => ({ default: m.RolePage })));
 const AuditLogsPage = lazy(() => import('@/pages/logs/AuditLogsPage').then(m => ({ default: m.AuditLogsPage })));
 const EmailTemplatesPage = lazy(() => import('@/pages/email/EmailTemplatesPage').then(m => ({ default: m.EmailTemplatesPage })));
+const EmailLogsPage = lazy(() => import('@/pages/email/EmailLogsPage').then(m => ({ default: m.EmailLogsPage })));
+const EmailSendPage = lazy(() => import('@/pages/email/EmailSendPage').then(m => ({ default: m.EmailSendPage })));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -65,7 +67,9 @@ const router = createBrowserRouter(
                 <Route path="/roles" element={<RequirePermission menuCode="roles"><RolePage /></RequirePermission>} />
                 <Route path="/rates" element={<RequirePermission menuCode="rates"><RatesPage /></RequirePermission>} />
                 <Route path="/audit-logs" element={<RequirePermission menuCode="audit_logs"><AuditLogsPage /></RequirePermission>} />
-                <Route path="/email-templates" element={<EmailTemplatesPage />} />
+                <Route path="/email-templates" element={<RequirePermission menuCode="email_templates"><EmailTemplatesPage /></RequirePermission>} />
+                <Route path="/email-logs" element={<RequirePermission menuCode="email_logs"><EmailLogsPage /></RequirePermission>} />
+                <Route path="/email-send" element={<RequirePermission menuCode="email_templates"><EmailSendPage /></RequirePermission>} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

@@ -749,7 +749,7 @@ ${content}
                                 if (editorRef.current) {
                                     editorRef.current.focus();
                                     // Create an email-compatible button for offer page with customer ID variable
-                                    const offerButtonHtml = `<p></p><table border="0" cellpadding="0" cellspacing="0" style="margin: 16px 0;"><tr><td align="center" bgcolor="#2563eb" style="border-radius: 6px; background-color: #2563eb;"><a href="${window.location.origin}/?offer=[[CUSTOMER_ID]]" style="display: inline-block; padding: 12px 24px; font-size: 14px; font-weight: 600; color: #ffffff !important; text-decoration: none !important; border-radius: 6px; background-color: #2563eb;" target="_blank">View Your Offer</a></td></tr></table><p></p>`;
+                                    const offerButtonHtml = `<p></p><table border="0" cellpadding="0" cellspacing="0" style="margin: 16px 0;"><tr><td align="center" bgcolor="#638C1C" style="border-radius: 6px; background-color: #638C1C;"><a href="${window.location.origin}/?offer=[[CUSTOMER_ID]]" style="display: inline-block; padding: 12px 24px; font-size: 14px; font-weight: 600; color: #ffffff !important; text-decoration: none !important; border-radius: 6px; background-color: #638C1C;" target="_blank">View Your Offer</a></td></tr></table><p></p>`;
                                     document.execCommand('insertHTML', false, offerButtonHtml);
                                     handleInput();
                                 }

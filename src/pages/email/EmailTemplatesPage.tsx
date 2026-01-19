@@ -15,7 +15,8 @@ import {
     CREATE_EMAIL_TEMPLATE,
     UPDATE_EMAIL_TEMPLATE,
     SOFT_DELETE_EMAIL_TEMPLATE,
-    RESTORE_EMAIL_TEMPLATE
+    RESTORE_EMAIL_TEMPLATE,
+
 } from '@/graphql';
 import { formatDateTime, getUserTimezone } from '@/lib/date';
 import { EMAIL_VARIABLES } from '@/lib/email-variables';
@@ -161,6 +162,8 @@ export function EmailTemplatesPage() {
     const [softDeleteTemplate] = useMutation(SOFT_DELETE_EMAIL_TEMPLATE);
     const [restoreTemplate] = useMutation(RESTORE_EMAIL_TEMPLATE);
     const [fetchTemplate] = useLazyQuery(GET_EMAIL_TEMPLATE);
+
+
 
     const meta = data?.emailTemplates?.meta;
     const hasMore = meta ? page < meta.totalPages : false;
@@ -505,6 +508,9 @@ export function EmailTemplatesPage() {
                 )}
             </div>
 
+            {/* Automated Email Configuration */}
+
+
             <div className="p-5 bg-background rounded-lg border border-border shadow-sm">
                 <div className="flex items-center gap-4 mb-6">
                     <StatusField
@@ -694,6 +700,6 @@ export function EmailTemplatesPage() {
                     Are you sure you want to restore <span className="font-semibold text-foreground">{templateToRestore?.name}</span>?
                 </p>
             </Modal>
-        </div>
+        </div >
     );
 }

@@ -40,3 +40,12 @@ export const GET_EMAIL_TEMPLATE = gql`
         }
     }
 `;
+
+export const PREVIEW_SYSTEM_TEMPLATE = gql`
+    query PreviewSystemTemplate($eventType: String!) {
+        previewSystemTemplate(eventType: $eventType) {
+            subject
+            body
+        }
+    }
+`;
