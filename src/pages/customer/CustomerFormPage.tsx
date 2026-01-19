@@ -49,14 +49,14 @@ import { Modal } from '@/components/common/Modal';
 // ============================================================================
 
 const Field = ({ label, required, hint, children, error }: { label: string, required?: boolean, hint?: string, children: React.ReactNode, error?: string }) => (
-    <div className="space-y-1.5">
-        <label className="text-sm font-medium flex items-center gap-1 text-foreground">
+    <div className="space-y-1">
+        <label className="text-sm font-medium leading-none flex items-center gap-1 text-foreground">
             {label}
             {required && <span className="text-red-500">*</span>}
         </label>
         {children}
-        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {hint && <p className="text-sm text-muted-foreground">{hint}</p>}
+        {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
 );
 
@@ -839,9 +839,9 @@ export const CustomerFormPage = () => {
                                     </h2>
 
 
-                                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <Field label="Mobile" required error={errors.phone}>
-                                            <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+                                            <div className="flex flex-wrap gap-2 items-center">
                                                 <Input containerClassName="w-full sm:w-64" placeholder="+61 400 000 000" value={formData.phone} onChange={(e) => updateField('phone', e.target.value)} onBlur={() => handleBlur('phone')} />
                                                 <button
                                                     onClick={handleSendOTP}
@@ -1088,8 +1088,8 @@ export const CustomerFormPage = () => {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                                        <div className="col-span-2 md:col-span-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Detailed Breakdown</div>
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                        <div className="col-span-2 lg:col-span-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Detailed Breakdown</div>
                                         <Input label="Unit No." disabled className="bg-white" value={formData.unitNumber} onChange={(e) => updateField('unitNumber', e.target.value)} onBlur={() => handleBlur('unitNumber')} placeholder="1A" />
                                         <Input label="Street No." disabled required error={errors.streetNumber} className="bg-white" value={formData.streetNumber} onChange={(e) => updateField('streetNumber', e.target.value)} onBlur={() => handleBlur('streetNumber')} placeholder="123" />
                                         <Input label="Street Name" disabled required error={errors.streetName} className="bg-white" value={formData.streetName} onChange={(e) => updateField('streetName', e.target.value)} onBlur={() => handleBlur('streetName')} placeholder="Main" />
@@ -1111,6 +1111,10 @@ export const CustomerFormPage = () => {
                                 <div className="flex items-center justify-between border-b border-border pb-2">
                                     <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                                         <ShieldIcon size={20} className="text-neutral-700" /> Select tariff & discount
+                                        <div className="ml-2 px-2.5 py-1 rounded-md bg-neutral-100 border border-neutral-200 text-neutral-600 text-xs font-mono tracking-tight flex items-center gap-1">
+                                            <span className="opacity-60">v.</span>
+                                            {(isEditMode && customerRateVersion) ? customerRateVersion : activeRateVersion}
+                                        </div>
                                     </h2>
                                     <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Role limited</span>
                                 </div>
@@ -1265,7 +1269,7 @@ export const CustomerFormPage = () => {
                                 <div className="space-y-4">
                                     <h2 className="text-lg font-semibold text-foreground border-b border-border pb-2">Personal & Enrollment Details</h2>
                                     <div className="space-y-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                             <Input label="First Name" required error={errors.firstName} placeholder="e.g. Alex" value={formData.firstName} onChange={(e) => updateField('firstName', e.target.value)} onBlur={() => handleBlur('firstName')} />
                                             <Input label="Last Name" required error={errors.lastName} placeholder="e.g. Taylor" value={formData.lastName} onChange={(e) => updateField('lastName', e.target.value)} onBlur={() => handleBlur('lastName')} />
                                             <Input label="Email" required helperText="We'll send confirmations here" error={errors.email} type="email" placeholder="name@example.com" value={formData.email} onChange={(e) => updateField('email', e.target.value)} onBlur={() => handleBlur('email')} />
@@ -1289,7 +1293,7 @@ export const CustomerFormPage = () => {
                                         <Select label="ID State" options={STATE_OPTIONS} value={formData.idState} onChange={(val) => updateField('idState', val as string)} />
                                         <DatePicker label="ID Expiry" value={formData.idExpiry} onChange={(date) => updateField('idExpiry', date ? date.toISOString().split('T')[0] : '')} minDate={new Date()} />
                                     </div>
-                                    <div className="flex gap-6 pt-2">
+                                    <div className="flex flex-wrap gap-6 pt-2">
 
                                         <ToggleSwitch
                                             checked={formData.concession}

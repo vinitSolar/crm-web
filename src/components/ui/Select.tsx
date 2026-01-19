@@ -248,7 +248,7 @@ export function Select({
                 {/* Trigger Input */}
                 <div
                     className={cn(
-                        "flex items-center justify-between px-2 py-1",
+                        "flex items-center justify-between w-full h-10 px-3 py-2",
                         "border border-input rounded-md bg-background text-sm",
                         "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
                         "min-w-0",
