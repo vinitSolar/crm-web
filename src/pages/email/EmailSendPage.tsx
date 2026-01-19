@@ -36,8 +36,8 @@ export function EmailSendPage() {
         variables: { limit: 1000 },
     });
 
-    const [fetchTemplate, { loading: templateLoading }] = useLazyQuery(GET_EMAIL_TEMPLATE);
-    const [fetchSystemTemplate, { loading: systemTemplateLoading }] = useLazyQuery(PREVIEW_SYSTEM_TEMPLATE);
+    const [fetchTemplate] = useLazyQuery(GET_EMAIL_TEMPLATE);
+    const [fetchSystemTemplate] = useLazyQuery(PREVIEW_SYSTEM_TEMPLATE);
     const [previewModalOpen, setPreviewModalOpen] = useState(false);
     const [previewTemplate, setPreviewTemplate] = useState<any>(null);
 
