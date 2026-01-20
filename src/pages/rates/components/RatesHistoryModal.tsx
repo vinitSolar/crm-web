@@ -168,11 +168,16 @@ export function RatesHistoryModal({ isOpen, onClose, refetchChanges, refetchRate
                                                                         setActiveVersionUid(record.uid);
 
                                                                         try {
+                                                                            // First restore the snapshot data to rate_plans and rate_offers (same as Edit)
+                                                                            await restoreRatesSnapshot({ variables: { historyUid: record.uid } });
+
+                                                                            // Then set it as the active version
                                                                             const { data } = await setActiveRatesVersion({ variables: { uid: record.uid } });
                                                                             toast.success(data?.setActiveRatesVersion?.message || 'Version activated successfully');
-                                                                            // No need to revert if successful, fetchHistory will eventually update data
+
                                                                             fetchHistory({ variables: { page: historyPage, limit: 20 } });
                                                                             refetchChanges?.();
+                                                                            refetchRatePlans?.();
                                                                         } catch (err: any) {
                                                                             // Revert on failure
                                                                             setActiveVersionUid(previousActiveUid);

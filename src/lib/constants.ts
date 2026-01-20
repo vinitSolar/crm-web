@@ -170,3 +170,43 @@ export const BILLING_PREF_OPTIONS = Object.entries(BILLING_PREF_LABELS).map(([va
     value: value,
     label,
 }));
+
+// --- Email Constants ---
+
+// Email Status
+export const EMAIL_STATUS_MAP: Record<number, { label: string; color: string }> = {
+    0: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+    1: { label: 'Sent', color: 'bg-green-100 text-green-700 border-green-200' },
+    2: { label: 'Failed', color: 'bg-red-100 text-red-700 border-red-200' },
+    3: { label: 'Verified', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+};
+
+export const EMAIL_STATUS_OPTIONS = [
+    { value: '', label: 'All Statuses' },
+    { value: '0', label: 'Pending' },
+    { value: '1', label: 'Sent' },
+    { value: '2', label: 'Failed' },
+    { value: '3', label: 'Verified' },
+];
+
+// Email Types
+export const EMAIL_TYPE_LABELS: Record<string, string> = {
+    CUSTOMER_CREATED: 'Customer Created',
+    SIGNATURE_REQUEST: 'Signature Request',
+    PASSWORD_RESET: 'Password Reset',
+    ACCOUNT_VERIFICATION: 'Account Verification',
+    REMINDER: 'Reminder',
+    BULK_EMAIL: 'Bulk Email',
+    AGREEMENT_SIGNED: 'Agreement Signed',
+};
+
+export const EMAIL_TYPE_OPTIONS = [
+    { value: '', label: 'All Types' },
+    { value: 'CUSTOMER_CREATED', label: 'Customer Created' },
+    { value: 'REMINDER', label: 'Reminder' },
+    { value: 'BULK_EMAIL', label: 'Bulk Email' },
+    { value: 'AGREEMENT_SIGNED', label: 'Agreement Signed' },
+    { value: 'SIGNATURE_REQUEST', label: 'Signature Request' },
+    { value: 'PASSWORD_RESET', label: 'Password Reset' },
+    { value: 'ACCOUNT_VERIFICATION', label: 'Account Verification' },
+];

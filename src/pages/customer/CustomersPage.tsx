@@ -1290,6 +1290,7 @@ export function CustomersPage() {
                                 </div>
                                 <div className="space-y-3">
                                     {[
+                                        { label: 'Customer Id', value: selectedCustomerDetails.customerId },
                                         { label: 'Business', value: selectedCustomerDetails.businessName },
                                         { label: 'ABN', value: selectedCustomerDetails.abn },
                                         { label: 'Email', value: selectedCustomerDetails.email },
