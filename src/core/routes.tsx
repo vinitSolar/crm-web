@@ -8,6 +8,7 @@ import { MainLayout } from '@/components/layout';
 const LoginPage = lazy(() => import('@/pages/LoginPage').then(m => ({ default: m.LoginPage })));
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const UsersPage = lazy(() => import('@/pages/user/UsersPage').then(m => ({ default: m.UsersPage })));
+const ChangePasswordPage = lazy(() => import('@/pages/user/ChangePasswordPage').then(m => ({ default: m.ChangePasswordPage })));
 const CustomersPage = lazy(() => import('@/pages/customer/CustomersPage').then(m => ({ default: m.CustomersPage })));
 const CustomerFormPage = lazy(() => import('@/pages/customer/CustomerFormPage').then(m => ({ default: m.CustomerFormPage })));
 const RatesPage = lazy(() => import('@/pages/rates/RatesPage').then(m => ({ default: m.RatesPage })));
@@ -70,6 +71,9 @@ const router = createBrowserRouter(
                 <Route path="/email-templates" element={<RequirePermission menuCode="email_templates"><EmailTemplatesPage /></RequirePermission>} />
                 <Route path="/email-logs" element={<RequirePermission menuCode="email_logs"><EmailLogsPage /></RequirePermission>} />
                 <Route path="/email-send" element={<RequirePermission menuCode="email_templates"><EmailSendPage /></RequirePermission>} />
+
+                {/* General authenticated routes */}
+                <Route path="/change-password" element={<ChangePasswordPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />
