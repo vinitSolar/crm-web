@@ -12,7 +12,9 @@ import {
 import MainLogo from '@/assets/main-logo-dark-1.png';
 import BankAutocomplete from '@/components/BankAutocomplete';
 import LocationAutocomplete from '@/pages/LocationAutocomplete';
-import { ID_TYPE_MAP, SALE_TYPE_LABELS } from '@/lib/constants';
+import {
+    ID_TYPE_MAP, SALE_TYPE_LABELS, BILLING_PREF_LABELS, RATE_TYPE_MAP
+} from '@/lib/constants';
 import { calculateDiscountedRate } from '@/lib/rate-utils';
 import { formatDateTime, formatDate } from '@/lib/date';
 
@@ -644,7 +646,7 @@ export const OfferAccessPage = () => {
                 signatureUrl: signatureUrl,
                 pdfAudit: JSON.stringify(pdfAudit),
                 emailSent: 1,
-                status: 2,
+                status: 3,
             };
 
             if (directDebitOptIn) {
@@ -755,7 +757,7 @@ export const OfferAccessPage = () => {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-gray-50 rounded-lg p-4">
                             <div>
                                 <div className="text-xs text-gray-500 mb-1">Property Type</div>
-                                <div className="text-sm font-medium">{customerData.propertyType === 1 ? 'Commercial' : 'Residential'}</div>
+                                <div className="text-sm font-medium">{RATE_TYPE_MAP[String(customerData.propertyType)] || 'Residential'}</div>
                             </div>
                             {customerData.propertyType === 1 && (
                                 <>
@@ -791,7 +793,7 @@ export const OfferAccessPage = () => {
                             </div>
                             <div>
                                 <div className="text-xs text-gray-500 mb-1">Billing Preference</div>
-                                <div className="text-sm font-medium">{customerData.enrollmentDetails?.billingpreference === 1 ? 'Email' : 'Post'}</div>
+                                <div className="text-sm font-medium">{BILLING_PREF_LABELS[customerData.enrollmentDetails?.billingpreference as number] || 'eBill'}</div>
                             </div>
                             <div>
                                 <div className="text-xs text-gray-500 mb-1">Concession</div>
