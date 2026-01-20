@@ -3,7 +3,8 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/main-logo-dark-1.png';
 import { useAccessibleMenus, useUser, useAuthStore } from '@/stores/useAuthStore';
-import { CustomerIcon, RatesIcon, UserSettingIcon, LogOutIcon, MenuIcon, XIcon, ChevronDownIcon, FileTextIcon, ShieldCheckIcon } from '@/components/icons';
+import { CustomerIcon, RatesIcon, UserSettingIcon, LogOutIcon, MenuIcon, XIcon, ChevronDownIcon, FileTextIcon, ShieldCheckIcon, LockIcon } from '@/components/icons';
+
 
 interface HeaderProps {
     className?: string;
@@ -189,6 +190,16 @@ export function Header({ className, isSidebarCollapsed }: HeaderProps) {
                                 <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                             </div>
                             <button
+                                onClick={() => {
+                                    navigate('/change-password');
+                                    setUserDropdownOpen(false);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors"
+                            >
+                                <LockIcon size={16} />
+                                <span>Change Password</span>
+                            </button>
+                            <button
                                 onClick={handleSignOut}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                             >
@@ -216,6 +227,8 @@ export function Header({ className, isSidebarCollapsed }: HeaderProps) {
                     </nav>
                 </div>
             )}
+
+
         </header>
     );
 }
