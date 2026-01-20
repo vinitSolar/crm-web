@@ -103,8 +103,8 @@ export const OfferAccessPage = () => {
                     const diffTime = Math.abs(now.getTime() - sentAt.getTime());
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                    // Expiry days (default to 1)
-                    const expiryDays = 1;
+                    // Expiry days (default to 3 = 72 hours)
+                    const expiryDays = 3;
 
                     if (diffDays > expiryDays) {
                         setOfferExpired(true);
@@ -261,7 +261,7 @@ export const OfferAccessPage = () => {
 
                     {/* Description */}
                     <p className="text-slate-600 mb-8 leading-relaxed">
-                        Unfortunately, this offer link is no longer valid. Offers expire after 24 hours for security purposes.
+                        Unfortunately, this offer link is no longer valid. Offers expire after 72 hours for security purposes.
                     </p>
 
                     {/* Divider */}
