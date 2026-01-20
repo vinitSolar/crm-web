@@ -609,7 +609,7 @@ export function RatesPage() {
             stickyOffset: showActions ? 100 : 0,
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'state') ? `Old: ${getOldValue(row, 'state')}` : null}>
-                    <span className={isFieldChanged(row, 'state') ? 'bg-orange-400 text-orange-950 font-bold px-2 py-0.5 rounded' : ''}>{row.state || '-'}</span>
+                    <span className={isFieldChanged(row, 'state') ? 'bg-orange-800 text-orange-950 font-bold px-2 py-0.5 rounded' : ''}>{row.state || '-'}</span>
                 </Tooltip>
             ),
         },
@@ -643,7 +643,7 @@ export function RatesPage() {
                     <Tooltip content={codesChanged ? `Old: ${getOldValue(row, 'codes')}` : null}>
                         <div className={`flex flex-wrap gap-1 ${codesChanged ? 'bg-orange-300 dark:bg-orange-700/50 -m-2 p-2 rounded ring-1 ring-orange-400' : ''}`}>
                             {codes.map((code, idx) => (
-                                <span key={idx} className={`text-xs px-2 py-0.5 rounded ${codesChanged ? 'bg-orange-400 text-orange-950 font-bold' : 'bg-gray-100 text-gray-800'}`}>
+                                <span key={idx} className={`text-xs px-2 py-0.5 rounded ${codesChanged ? 'bg-orange-800 text-orange-950 font-bold' : 'bg-gray-100 text-gray-900 dark:bg-zinc-800 dark:text-zinc-300'}`}>
                                     {code}
                                 </span>
                             )) || '-'}
@@ -676,7 +676,7 @@ export function RatesPage() {
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_anytime') ? `Old: ${getOldValue(row, 'offer_anytime')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_anytime') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-orange-50 text-orange-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_anytime') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-orange-200 text-orange-900 dark:bg-orange-900/20 dark:text-orange-400'}`}>
                         {row.offers?.[0]?.anytime ?? '-'}
                     </span>
                 </Tooltip>
@@ -688,7 +688,7 @@ export function RatesPage() {
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_peak') ? `Old: ${getOldValue(row, 'offer_peak')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_peak') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-50 text-blue-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_peak') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-200 text-blue-900 dark:bg-blue-900/20 dark:text-blue-400'}`}>
                         {row.offers?.[0]?.peak ?? '-'}
                     </span>
                 </Tooltip>
@@ -700,7 +700,7 @@ export function RatesPage() {
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_shoulder') ? `Old: ${getOldValue(row, 'offer_shoulder')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_shoulder') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-50 text-blue-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_shoulder') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-200 text-blue-900 dark:bg-blue-900/20 dark:text-blue-400'}`}>
                         {row.offers?.[0]?.shoulder ?? '-'}
                     </span>
                 </Tooltip>
@@ -712,7 +712,7 @@ export function RatesPage() {
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_offPeak') ? `Old: ${getOldValue(row, 'offer_offPeak')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_offPeak') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-50 text-blue-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_offPeak') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-200 text-blue-900 dark:bg-blue-900/20 dark:text-blue-400'}`}>
                         {row.offers?.[0]?.offPeak ?? '-'}
                     </span>
                 </Tooltip>
@@ -724,7 +724,7 @@ export function RatesPage() {
             width: 'w-[120px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_supplyCharge') ? `Old: ${getOldValue(row, 'offer_supplyCharge')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_supplyCharge') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-purple-50 text-purple-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_supplyCharge') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-purple-200 text-purple-900 dark:bg-purple-900/20 dark:text-purple-400'}`}>
                         {row.offers?.[0]?.supplyCharge ?? '-'}
                     </span>
                 </Tooltip>
@@ -736,7 +736,7 @@ export function RatesPage() {
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_cl1Supply') ? `Old: ${getOldValue(row, 'offer_cl1Supply')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl1Supply') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl1Supply') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400'}`}>
                         {row.offers?.[0]?.cl1Supply ?? '-'}
                     </span>
                 </Tooltip>
@@ -748,7 +748,7 @@ export function RatesPage() {
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_cl1Usage') ? `Old: ${getOldValue(row, 'offer_cl1Usage')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl1Usage') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl1Usage') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400'}`}>
                         {row.offers?.[0]?.cl1Usage ?? '-'}
                     </span>
                 </Tooltip>
@@ -760,7 +760,7 @@ export function RatesPage() {
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_cl2Supply') ? `Old: ${getOldValue(row, 'offer_cl2Supply')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl2Supply') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl2Supply') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400'}`}>
                         {row.offers?.[0]?.cl2Supply ?? '-'}
                     </span>
                 </Tooltip>
@@ -772,7 +772,7 @@ export function RatesPage() {
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_cl2Usage') ? `Old: ${getOldValue(row, 'offer_cl2Usage')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl2Usage') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl2Usage') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400'}`}>
                         {row.offers?.[0]?.cl2Usage ?? '-'}
                     </span>
                 </Tooltip>
@@ -784,7 +784,7 @@ export function RatesPage() {
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_demand') ? `Old: ${getOldValue(row, 'offer_demand')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demand') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-red-50 text-red-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demand') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-red-200 text-red-900 dark:bg-red-900/20 dark:text-red-400'}`}>
                         {row.offers?.[0]?.demand ?? '-'}
                     </span>
                 </Tooltip>
@@ -796,7 +796,7 @@ export function RatesPage() {
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_demandOp') ? `Old: ${getOldValue(row, 'offer_demandOp')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandOp') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-red-50 text-red-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandOp') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-red-200 text-red-900 dark:bg-red-900/20 dark:text-red-400'}`}>
                         {row.offers?.[0]?.demandOp ?? '-'}
                     </span>
                 </Tooltip>
@@ -808,7 +808,7 @@ export function RatesPage() {
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_demandP') ? `Old: ${getOldValue(row, 'offer_demandP')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandP') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-red-50 text-red-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandP') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-red-200 text-red-900 dark:bg-red-900/20 dark:text-red-400'}`}>
                         {row.offers?.[0]?.demandP ?? '-'}
                     </span>
                 </Tooltip>
@@ -820,7 +820,7 @@ export function RatesPage() {
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_demandS') ? `Old: ${getOldValue(row, 'offer_demandS')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandS') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-red-50 text-red-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandS') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-red-200 text-red-900 dark:bg-red-900/20 dark:text-red-400'}`}>
                         {row.offers?.[0]?.demandS ?? '-'}
                     </span>
                 </Tooltip>
@@ -832,7 +832,7 @@ export function RatesPage() {
             width: 'w-[80px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_fit') ? `Old: ${getOldValue(row, 'offer_fit')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_fit') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_fit') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400'}`}>
                         {row.offers?.[0]?.fit ?? '-'}
                     </span>
                 </Tooltip>
@@ -844,7 +844,7 @@ export function RatesPage() {
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_vppOrcharge') ? `Old: ${getOldValue(row, 'offer_vppOrcharge')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_vppOrcharge') ? 'bg-orange-400 text-orange-950 border border-orange-500 font-bold' : 'bg-green-50 text-green-600'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_vppOrcharge') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400'}`}>
                         {row.offers?.[0]?.vppOrcharge ?? '-'}
                     </span>
                 </Tooltip>
@@ -854,13 +854,13 @@ export function RatesPage() {
             key: 'fitPeak',
             header: 'FIT-Peak',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.fitPeak ?? '-'}</span>,
+            render: (row: RatePlan) => <span className="bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.fitPeak ?? '-'}</span>,
         },
         {
             key: 'fitCritical',
             header: 'FIT-Critical',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-50 text-green-600 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.fitCritical ?? '-'}</span>,
+            render: (row: RatePlan) => <span className="bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.fitCritical ?? '-'}</span>,
         },
         {
             key: 'vpp',
@@ -1118,7 +1118,7 @@ export function RatesPage() {
                                         type="button"
                                         className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${formData.state === option.value
                                             ? 'bg-primary text-white border-primary'
-                                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                            : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
                                             }`}
                                         onClick={() => setFormData(prev => ({ ...prev, state: option.value }))}
                                     >
@@ -1139,7 +1139,7 @@ export function RatesPage() {
                                     type="button"
                                     className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${String(formData.dnsp) === opt.value
                                         ? 'bg-primary text-white border-primary'
-                                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                        : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
                                         }`}
                                     onClick={() => setFormData(prev => ({ ...prev, dnsp: parseInt(opt.value, 10) }))}
                                 >
@@ -1158,7 +1158,7 @@ export function RatesPage() {
                                     type="button"
                                     className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${formData.type === 0
                                         ? 'bg-primary text-white border-primary'
-                                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                        : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
                                         }`}
                                     onClick={() => setFormData(prev => ({ ...prev, type: 0 }))}
                                 >
@@ -1168,7 +1168,7 @@ export function RatesPage() {
                                     type="button"
                                     className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${formData.type === 1
                                         ? 'bg-primary text-white border-primary'
-                                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                        : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
                                         }`}
                                     onClick={() => setFormData(prev => ({ ...prev, type: 1 }))}
                                 >
@@ -1181,7 +1181,7 @@ export function RatesPage() {
                             <br />
                             <button
                                 type="button"
-                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.vpp === 1 ? 'bg-primary' : 'bg-gray-200'
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.vpp === 1 ? 'bg-primary' : 'bg-muted'
                                     }`}
                                 onClick={() => setFormData(prev => ({ ...prev, vpp: prev.vpp === 1 ? 0 : 1 }))}
                             >
@@ -1194,7 +1194,7 @@ export function RatesPage() {
                             <br />
                             <button
                                 type="button"
-                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.discountApplies === 1 ? 'bg-primary' : 'bg-gray-200'
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.discountApplies === 1 ? 'bg-primary' : 'bg-muted'
                                     }`}
                                 onClick={() => setFormData(prev => ({ ...prev, discountApplies: prev.discountApplies === 1 ? 0 : 1 }))}
                             >
@@ -1205,7 +1205,7 @@ export function RatesPage() {
                     </div>
 
                     {/* Anytime and Supply Charge */}
-                    <div className="p-4 rounded-lg border border-orange-200 bg-orange-50 space-y-4">
+                    <div className="p-4 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-900/10 dark:border-orange-900/30 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Anytime</label>
@@ -1231,7 +1231,7 @@ export function RatesPage() {
                     </div>
 
                     {/* VPP Orchestration */}
-                    <div className="p-4 rounded-lg border border-gray-200 bg-gray-50 space-y-2">
+                    <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-2">
                         <label className="text-sm font-medium">VPP Orchestration</label>
                         <Input
                             type="number"
@@ -1243,7 +1243,7 @@ export function RatesPage() {
                     </div>
 
                     {/* Peak, Shoulder, Off-Peak */}
-                    <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 space-y-4">
+                    <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-900/10 dark:border-blue-900/30 space-y-4">
                         <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Peak</label>
@@ -1279,7 +1279,7 @@ export function RatesPage() {
                     </div>
 
                     {/* CL1/CL2 Supply/Usage */}
-                    <div className="p-4 rounded-lg border border-green-200 bg-green-50 space-y-4">
+                    <div className="p-4 rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-900/30 space-y-4">
                         <div className="grid grid-cols-4 gap-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">CL1 Supply</label>
@@ -1325,7 +1325,7 @@ export function RatesPage() {
                     </div>
 
                     {/* Demand fields */}
-                    <div className="p-4 rounded-lg border border-red-200 bg-red-50 space-y-4">
+                    <div className="p-4 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-900/30 space-y-4">
                         <div className="grid grid-cols-4 gap-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Demand</label>
@@ -1371,7 +1371,7 @@ export function RatesPage() {
                     </div>
 
                     {/* FIT fields */}
-                    <div className="p-4 rounded-lg border border-green-200 bg-green-50 space-y-4">
+                    <div className="p-4 rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-900/30 space-y-4">
                         <div className="grid grid-cols-4 gap-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">FIT</label>
@@ -1497,7 +1497,7 @@ export function RatesPage() {
                                         type="button"
                                         className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${formData.state === option.value
                                             ? 'bg-primary text-white border-primary'
-                                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                            : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
                                             }`}
                                         onClick={() => setFormData(prev => ({ ...prev, state: option.value }))}
                                     >
@@ -1518,7 +1518,7 @@ export function RatesPage() {
                                     type="button"
                                     className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${String(formData.dnsp) === opt.value
                                         ? 'bg-primary text-white border-primary'
-                                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                        : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
                                         }`}
                                     onClick={() => setFormData(prev => ({ ...prev, dnsp: parseInt(opt.value, 10) }))}
                                 >
@@ -1537,7 +1537,7 @@ export function RatesPage() {
                                     type="button"
                                     className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${formData.type === 0
                                         ? 'bg-primary text-white border-primary'
-                                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                        : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
                                         }`}
                                     onClick={() => setFormData(prev => ({ ...prev, type: 0 }))}
                                 >
@@ -1547,7 +1547,7 @@ export function RatesPage() {
                                     type="button"
                                     className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${formData.type === 1
                                         ? 'bg-primary text-white border-primary'
-                                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                        : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
                                         }`}
                                     onClick={() => setFormData(prev => ({ ...prev, type: 1 }))}
                                 >

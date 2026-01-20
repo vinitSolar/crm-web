@@ -1007,7 +1007,10 @@ export function CustomersPage() {
                         {canView && (
                             <Tooltip content={row.status === 4 ? "Cannot view frozen customer" : "View Details"}>
                                 <button
-                                    className={`p-2 border border-blue-200 rounded-lg bg-white text-blue-600 transition-colors ${row.status === 4 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-50 hover:text-blue-700'}`}
+                                    className={`p-2 border rounded-lg transition-colors ${row.status === 4
+                                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500'
+                                        : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/40'
+                                        }`}
                                     onClick={() => row.status !== 4 && handleViewDetails(row)}
                                     disabled={row.status === 4}
                                 >
@@ -1018,7 +1021,7 @@ export function CustomersPage() {
                         {canEdit && row.status !== 3 && (
                             <Tooltip content="Edit Customer">
                                 <button
-                                    className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
+                                    className="p-2 border border-border rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors dark:bg-card dark:text-muted-foreground dark:hover:text-foreground"
                                     onClick={() => handleEdit(row)}
                                 >
                                     <PencilIcon size={16} />

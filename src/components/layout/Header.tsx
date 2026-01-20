@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import logo from '@/assets/main-logo-dark-1.png';
 import { useAccessibleMenus, useUser, useAuthStore } from '@/stores/useAuthStore';
 import { CustomerIcon, RatesIcon, UserSettingIcon, LogOutIcon, MenuIcon, XIcon, ChevronDownIcon, FileTextIcon, ShieldCheckIcon } from '@/components/icons';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface HeaderProps {
     className?: string;
@@ -154,8 +155,14 @@ export function Header({ className, isSidebarCollapsed }: HeaderProps) {
                 <img src={logo} alt="Logo" className="h-8" />
             </div>
 
+
+
             {/* Spacer */}
             <div className="flex-1" />
+
+            <div className="mr-4">
+                <ThemeToggle />
+            </div>
 
             {/* User Menu */}
             <div className="relative">

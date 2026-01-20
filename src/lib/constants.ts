@@ -41,11 +41,11 @@ export const ROUTES = {
 
 // Customer Status
 export const CUSTOMER_STATUS_MAP: Record<number, { label: string; color: string }> = {
-    0: { label: 'Draft', color: 'text-gray-600 bg-gray-100' },
-    1: { label: 'Initial Offer', color: 'text-blue-600 bg-blue-50' },
-    2: { label: 'Signature Pending', color: 'text-orange-600 bg-orange-50' },
-    3: { label: 'Signed', color: 'text-green-600 bg-green-50' },
-    4: { label: 'Frozen', color: 'text-indigo-600 bg-indigo-50' },
+    0: { label: 'Draft', color: 'text-gray-600 bg-gray-100 dark:bg-gray-800 dark:text-gray-300' },
+    1: { label: 'Initial Offer', color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400' },
+    2: { label: 'Signature Pending', color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/30 dark:text-orange-400' },
+    3: { label: 'Signed', color: 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' },
+    4: { label: 'Frozen', color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-400' },
 };
 
 export const CUSTOMER_STATUS_OPTIONS = Object.entries(CUSTOMER_STATUS_MAP).map(([k, v]) => ({
@@ -54,9 +54,9 @@ export const CUSTOMER_STATUS_OPTIONS = Object.entries(CUSTOMER_STATUS_MAP).map((
 }));
 
 export const CUSTOMER_LEGACY_STATUS_MAP: Record<string, string> = {
-    'ACTIVE': 'text-green-600 bg-green-50',
-    'INACTIVE': 'text-red-600 bg-red-50',
-    'LEAD': 'text-blue-600 bg-blue-50',
+    'ACTIVE': 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400',
+    'INACTIVE': 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400',
+    'LEAD': 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400',
 };
 
 // User Status
@@ -175,10 +175,10 @@ export const BILLING_PREF_OPTIONS = Object.entries(BILLING_PREF_LABELS).map(([va
 
 // Email Status
 export const EMAIL_STATUS_MAP: Record<number, { label: string; color: string }> = {
-    0: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-    1: { label: 'Sent', color: 'bg-green-100 text-green-700 border-green-200' },
-    2: { label: 'Failed', color: 'bg-red-100 text-red-700 border-red-200' },
-    3: { label: 'Verified', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+    0: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800' },
+    1: { label: 'Sent', color: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' },
+    2: { label: 'Failed', color: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' },
+    3: { label: 'Verified', color: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800' },
 };
 
 export const EMAIL_STATUS_OPTIONS = [
