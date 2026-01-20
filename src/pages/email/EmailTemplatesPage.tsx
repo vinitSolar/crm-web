@@ -83,17 +83,18 @@ const DEFAULT_EMAIL_FOOTER = `
 </div>
 `;
 
+// Helper function for name matching (case-insensitive, exact match - no trimming)
+const isNameMatch = (input: string, actual: string): boolean => {
+    if (!input || !actual) return false;
+    return input.toLowerCase() === actual.toLowerCase();
+};
+
 export function EmailTemplatesPage() {
     // Permissions
     // Assuming 'email_templates' is the menu code
     const canCreate = useAuthStore((state) => state.canCreateInMenu('email_templates'));
     const canEdit = useAuthStore((state) => state.canEditInMenu('email_templates'));
     const canDelete = useAuthStore((state) => state.canDeleteInMenu('email_templates'));
-
-    const isNameMatch = (input: string, actual: string) => {
-        const clean = (str: string) => str.trim().toLowerCase().replace(/\s+/g, ' ');
-        return clean(input) === clean(actual);
-    };
 
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
     const [searchQuery, setSearchQuery] = useState('');

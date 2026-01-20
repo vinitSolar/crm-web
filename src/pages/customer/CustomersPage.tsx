@@ -884,7 +884,7 @@ export function CustomersPage() {
                             value={searchFilters.vpp}
                             onChange={(val) => handleSearchChange('vpp', val as string)}
                             placeholder="All"
-                            className="h-7 text-xs w-[65px]"
+                            className="h-7 text-xs w-[70px]"
                         />
                     </div>
                     <Select
@@ -892,7 +892,7 @@ export function CustomersPage() {
                         value={searchFilters.vppConnected}
                         onChange={(val) => handleSearchChange('vppConnected', val as string)}
                         placeholder="All"
-                        className="h-7 text-xs w-[93px]"
+                        className="h-7 text-xs w-[98px]"
                     />
                 </div>
             ),

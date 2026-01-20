@@ -11,6 +11,7 @@ export const GET_EMAIL_TEMPLATES = gql`
                 entityType
                 status
                 isActive
+                isDeleted
                 createdAt
                 updatedAt
             }
@@ -35,6 +36,7 @@ export const GET_EMAIL_TEMPLATE = gql`
             body
             status
             isActive
+            isDeleted
             createdAt
             updatedAt
         }
