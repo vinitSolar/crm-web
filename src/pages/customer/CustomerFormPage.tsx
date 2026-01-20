@@ -95,6 +95,7 @@ const initialFormData: CustomerFormData = {
     businessName: '',
     abn: '',
     showAsBusinessName: false,
+    showName: true,
     unitNumber: '',
     streetNumber: '',
     streetName: '',
@@ -362,6 +363,7 @@ export const CustomerFormPage = () => {
                 businessName: c.businessName || '',
                 abn: c.abn || '',
                 showAsBusinessName: c.showAsBusinessName || false,
+                showName: c.showName ?? true,
                 unitNumber: c.address?.unitNumber || '',
                 streetNumber: c.address?.streetNumber || '',
                 streetName: c.address?.streetName || '',
@@ -710,6 +712,7 @@ export const CustomerFormPage = () => {
                 businessName: formData.businessName,
                 abn: formData.abn,
                 showAsBusinessName: formData.showAsBusinessName,
+                showName: formData.showName,
                 number: formData.phone,
                 dob: formData.dob || null,
                 phoneVerifiedAt: phoneVerifiedAt,
@@ -1342,7 +1345,7 @@ export const CustomerFormPage = () => {
                                                         <p className="flex justify-between"><span className="text-muted-foreground">Business:</span> <span className="font-medium">{formData.businessName}</span></p>
                                                         <p className="flex justify-between"><span className="text-muted-foreground">ABN:</span> <span className="font-medium">{formData.abn}</span></p>
                                                         <p className="flex justify-between"><span className="text-muted-foreground">Show as Business:</span> <span className="font-medium text-xs bg-gray-100 px-1.5 py-0.5 rounded">{formData.showAsBusinessName ? 'Yes' : 'No'}</span></p>
-                                                        <p className="flex justify-between"><span className="text-muted-foreground">Show Name in Offer:</span> <span className="font-medium text-xs bg-gray-100 px-1.5 py-0.5 rounded">{formData.showName ? 'Yes' : 'No'}</span></p>
+                                                        <p className="flex justify-between"><span className="text-muted-foreground">Show Name in Offer:</span> <span className="font-medium text-xs bg-gray-100 px-1.5 py-0.5 rounded">{(formData.showName ?? true) ? 'Yes' : 'No'}</span></p>
                                                     </>
                                                 )}
                                             </div>

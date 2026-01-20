@@ -10,7 +10,7 @@ import { DataTable, type Column, Modal } from '@/components/common';
 import {
     PlusIcon, PencilIcon, TrashIcon,
     // EyeIcon, EyeOffIcon, CopyIcon,
-    RefreshCwIcon
+    RefreshCwIcon, ShieldCheckIcon
 } from '@/components/icons';
 import { UserPermissionsModal } from '@/components/users/UserPermissionsModal';
 import { GET_USERS, UPDATE_USER, SOFT_DELETE_USER, RESTORE_USER, GET_ROLES, CREATE_USER } from '@/graphql';
@@ -510,10 +510,11 @@ export function UsersPage() {
             header: 'Manage Access',
             width: 'w-[120px]',
             render: (user) => <button
-                className="px-3 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-[#5c8a14] bg-[#5c8a14]/10 border border-[#5c8a14]/20 rounded-md hover:bg-[#5c8a14]/20 transition-colors"
                 onClick={() => handleManagePermissions(user)}
             >
-                Manage
+                <ShieldCheckIcon size={14} />
+                Manage Access
             </button>
         });
     }
