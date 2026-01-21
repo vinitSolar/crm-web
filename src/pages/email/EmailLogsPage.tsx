@@ -246,16 +246,16 @@ export function EmailLogsPage() {
                                         isExpanded && "rotate-90"
                                     )}
                                 />
-                                <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-semibold">
+                                <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-2 py-0.5 rounded text-xs font-semibold">
                                     {batchCount} emails
                                 </span>
                             </button>
                         ) : (
                             <>
-                                {isChild && <span className="w-3.5 border-l-2 border-b-2 border-orange-200 h-3 rounded-bl flex-shrink-0" />}
-                                <MailIcon size={14} className={cn("text-gray-400 flex-shrink-0", isChild && "text-orange-400")} />
-                                <span className="text-sm text-gray-700 truncate max-w-[140px]" title={log.emailTo || ''}>
-                                    {log.emailTo || <span className="text-gray-400 italic">No email</span>}
+                                {isChild && <span className="w-3.5 border-l-2 border-b-2 border-orange-200 dark:border-orange-700 h-3 rounded-bl flex-shrink-0" />}
+                                <MailIcon size={14} className={cn("text-muted-foreground flex-shrink-0", isChild && "text-orange-400")} />
+                                <span className="text-sm text-foreground truncate max-w-[140px]" title={log.emailTo || ''}>
+                                    {log.emailTo || <span className="text-muted-foreground italic">No email</span>}
                                 </span>
                             </>
                         )}
@@ -268,11 +268,11 @@ export function EmailLogsPage() {
             header: 'Subject',
             width: 'w-[250px]',
             render: (log: ProcessedEmailLog) => (
-                <span className="text-sm text-gray-600 truncate block max-w-[240px]" title={log.subject || ''}>
+                <span className="text-sm text-foreground truncate block max-w-[240px]" title={log.subject || ''}>
                     {log._isBatchHeader ? (
-                        <span className="text-orange-600 font-medium">{log.subject || 'Bulk Email Batch'}</span>
+                        <span className="text-orange-600 dark:text-orange-400 font-medium">{log.subject || 'Bulk Email Batch'}</span>
                     ) : (
-                        log.subject || <span className="text-gray-400 italic">No subject</span>
+                        log.subject || <span className="text-muted-foreground italic">No subject</span>
                     )}
                 </span>
             )
@@ -284,7 +284,7 @@ export function EmailLogsPage() {
             render: (log: ProcessedEmailLog) => {
                 if (log._isBatchHeader) {
                     return (
-                        <span className="text-xs font-medium text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                        <span className="text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded">
                             Bulk Email
                         </span>
                     );
@@ -292,14 +292,14 @@ export function EmailLogsPage() {
 
                 if (log._isChild) {
                     return (
-                        <span className="text-xs font-medium text-orange-500 bg-orange-50 px-2 py-1 rounded">
+                        <span className="text-xs font-medium text-orange-500 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded">
                             Bulk Email
                         </span>
                     );
                 }
 
                 return (
-                    <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded">
                         {EMAIL_TYPE_LABELS[log.emailType || ''] || log.emailType || 'Unknown'}
                     </span>
                 );
@@ -311,7 +311,7 @@ export function EmailLogsPage() {
             width: 'w-[100px]',
             render: (log: ProcessedEmailLog) => {
                 if (log._isBatchHeader) {
-                    return <span className="text-xs text-gray-400">—</span>;
+                    return <span className="text-xs text-muted-foreground">—</span>;
                 }
                 const statusInfo = getStatusDisplay(log.status);
                 return (
@@ -326,8 +326,8 @@ export function EmailLogsPage() {
             header: 'Sent At',
             width: 'w-[150px]',
             render: (log: ProcessedEmailLog) => (
-                <span className="text-gray-600 text-sm">
-                    {log.sentAt ? formatDateTime(log.sentAt) : <span className="text-gray-400 italic">Not sent</span>}
+                <span className="text-foreground text-sm">
+                    {log.sentAt ? formatDateTime(log.sentAt) : <span className="text-muted-foreground italic">Not sent</span>}
                 </span>
             )
         },
@@ -344,22 +344,19 @@ export function EmailLogsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => toggleBatchExpansion(batchKey)}
-                            className="h-8 px-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                            className="h-8 px-2 text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/30"
                         >
                             {isExpanded ? 'Collapse' : 'Expand'}
                         </Button>
                     );
                 }
                 return (
-                    <Button
-                        variant="ghost"
-                        size="sm"
+                    <button
                         onClick={() => handleViewDetails(log)}
-                        className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        className="p-2 border rounded-lg transition-colors bg-white text-blue-600 border-blue-200 hover:bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/40"
                     >
-                        <EyeIcon size={14} className="mr-1.5" />
-                        View
-                    </Button>
+                        <EyeIcon size={16} />
+                    </button>
                 );
             }
         }
@@ -393,7 +390,7 @@ export function EmailLogsPage() {
                 <div className="flex flex-col gap-4 mb-6">
                     <div className="flex items-center gap-4 flex-wrap">
                         <div className="w-[60px] flex-shrink-0">
-                            <span className="text-sm font-medium text-gray-500">Filters:</span>
+                            <span className="text-sm font-medium text-muted-foreground">Filters:</span>
                         </div>
                         <Select
                             options={EMAIL_STATUS_OPTIONS}
@@ -410,7 +407,7 @@ export function EmailLogsPage() {
                             containerClassName="w-[170px]"
                         />
                         <div className="flex-1 min-w-[200px] max-w-md relative">
-                            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                             <Input
                                 placeholder="Search by email or subject..."
                                 value={searchQuery}
@@ -429,7 +426,7 @@ export function EmailLogsPage() {
                                     handleStatusFilterChange('');
                                     handleEmailTypeFilterChange('');
                                 }}
-                                className="text-gray-500"
+                                className="text-muted-foreground"
                             >
                                 Clear
                             </Button>
@@ -477,17 +474,17 @@ export function EmailLogsPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Left Column - Details */}
                         <div className="space-y-4">
-                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                                <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Email Information</h4>
+                            <div className="bg-muted/50 p-4 rounded-lg border border-border">
+                                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4">Email Information</h4>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-4">
                                     <div>
-                                        <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Email To</label>
-                                        <p className="text-sm font-medium text-gray-900 break-all">
+                                        <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Email To</label>
+                                        <p className="text-sm font-medium text-foreground break-all">
                                             {selectedLog.emailTo || 'N/A'}
                                         </p>
                                     </div>
                                     <div>
-                                        <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Status</label>
+                                        <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Status</label>
                                         <div className="mt-1">
                                             <span className={cn('px-2 py-0.5 text-xs font-semibold rounded-full border', getStatusDisplay(selectedLog.status).color)}>
                                                 {getStatusDisplay(selectedLog.status).label}
@@ -495,48 +492,48 @@ export function EmailLogsPage() {
                                         </div>
                                     </div>
                                     <div className="col-span-2">
-                                        <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Subject</label>
-                                        <p className="text-sm text-gray-700 mt-1 font-medium">
+                                        <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Subject</label>
+                                        <p className="text-sm text-foreground mt-1 font-medium">
                                             {selectedLog.subject || 'N/A'}
                                         </p>
                                     </div>
                                     <div>
-                                        <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Email Type</label>
-                                        <p className="text-sm text-gray-700">
+                                        <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Email Type</label>
+                                        <p className="text-sm text-foreground">
                                             {EMAIL_TYPE_LABELS[selectedLog.emailType || ''] || selectedLog.emailType || 'N/A'}
                                         </p>
                                     </div>
                                     <div>
-                                        <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Sent At</label>
-                                        <p className="text-sm text-gray-700">
+                                        <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Sent At</label>
+                                        <p className="text-sm text-foreground">
                                             {selectedLog.sentAt ? formatDateTime(selectedLog.sentAt) : 'Not sent'}
                                         </p>
                                     </div>
                                     {selectedLog.verifiedAt && (
                                         <div>
-                                            <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Verified At</label>
-                                            <p className="text-sm text-gray-700">
+                                            <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Verified At</label>
+                                            <p className="text-sm text-foreground">
                                                 {formatDateTime(selectedLog.verifiedAt)}
                                             </p>
                                         </div>
                                     )}
                                     <div>
-                                        <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Created At</label>
-                                        <p className="text-sm text-gray-700">
+                                        <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Created At</label>
+                                        <p className="text-sm text-foreground">
                                             {formatDateTime(selectedLog.createdAt)}
                                         </p>
                                     </div>
                                     {selectedLog.verificationCode && (
                                         <div>
-                                            <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Verification Code</label>
-                                            <p className="text-sm font-mono text-gray-600 bg-white px-2 py-1 rounded border border-gray-200 mt-1">
+                                            <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Verification Code</label>
+                                            <p className="text-sm font-mono text-foreground bg-card px-2 py-1 rounded border border-border mt-1">
                                                 {selectedLog.verificationCode}
                                             </p>
                                         </div>
                                     )}
                                     <div>
-                                        <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Customer ID</label>
-                                        <p className="text-xs font-mono text-gray-600 break-all bg-white px-2 py-1 rounded border border-gray-200 mt-1">
+                                        <label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Customer ID</label>
+                                        <p className="text-xs font-mono text-foreground break-all bg-card px-2 py-1 rounded border border-border mt-1">
                                             {selectedLog.customerId}
                                         </p>
                                     </div>
@@ -544,9 +541,9 @@ export function EmailLogsPage() {
                             </div>
 
                             {selectedLog.errorMessage && (
-                                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                    <label className="text-xs text-red-600 uppercase tracking-wider font-semibold">Error Message</label>
-                                    <p className="text-sm text-red-700 mt-1">
+                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                                    <label className="text-xs text-red-600 dark:text-red-400 uppercase tracking-wider font-semibold">Error Message</label>
+                                    <p className="text-sm text-red-700 dark:text-red-300 mt-1">
                                         {selectedLog.errorMessage}
                                     </p>
                                 </div>
@@ -555,35 +552,35 @@ export function EmailLogsPage() {
 
                         {/* Right Column - Email Preview */}
                         <div className="flex flex-col">
-                            <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Email Preview</h4>
-                            <div className="flex-1 flex flex-col rounded-lg overflow-hidden border border-gray-200 bg-white min-h-[400px]">
+                            <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">Email Preview</h4>
+                            <div className="flex-1 flex flex-col rounded-lg overflow-hidden border border-border bg-card min-h-[400px]">
                                 {/* Email Header */}
-                                <div className="border-b border-gray-200 bg-gray-50">
-                                    <div className="flex items-center px-4 py-2 border-b border-gray-100">
-                                        <span className="text-sm text-gray-500 w-16">To</span>
-                                        <div className="flex-1 text-sm text-gray-800">
+                                <div className="border-b border-border bg-muted/50">
+                                    <div className="flex items-center px-4 py-2 border-b border-border">
+                                        <span className="text-sm text-muted-foreground w-16">To</span>
+                                        <div className="flex-1 text-sm text-foreground">
                                             {selectedLog.emailTo || '—'}
                                         </div>
                                     </div>
                                     <div className="flex items-center px-4 py-2">
-                                        <span className="text-sm text-gray-500 w-16">Subject</span>
-                                        <div className="flex-1 text-sm text-gray-800 font-medium">
+                                        <span className="text-sm text-muted-foreground w-16">Subject</span>
+                                        <div className="flex-1 text-sm text-foreground font-medium">
                                             {selectedLog.subject || '(No subject)'}
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Email Body */}
-                                <div className="flex-1 overflow-y-auto p-4 bg-white">
+                                <div className="flex-1 overflow-y-auto p-4 bg-card">
                                     {selectedLog.body ? (
                                         <div
-                                            className="prose prose-sm max-w-none"
+                                            className="prose prose-sm dark:prose-invert max-w-none"
                                             dangerouslySetInnerHTML={{ __html: selectedLog.body }}
                                         />
                                     ) : (
-                                        <div className="flex items-center justify-center h-full text-gray-400">
+                                        <div className="flex items-center justify-center h-full text-muted-foreground">
                                             <div className="text-center">
-                                                <MailIcon size={32} className="mx-auto mb-2 text-gray-300" />
+                                                <MailIcon size={32} className="mx-auto mb-2 text-muted-foreground/50" />
                                                 <p className="text-sm">No email body available</p>
                                             </div>
                                         </div>

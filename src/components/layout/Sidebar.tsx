@@ -220,7 +220,7 @@ export function Sidebar({ className, isOpen = true, toggle }: SidebarProps) {
                             <DashboardIcon
                                 className={cn(
                                     "transition-all shrink-0",
-                                    isActive ? "text-[hsla(82,67%,33%,1)]" : "text-[#4D4D4D]",
+                                    isActive ? "text-[hsla(82,67%,33%,1)]" : "text-muted-foreground",
                                     isOpen ? "w-4 h-4" : "w-5 h-5"
                                 )}
                             />
@@ -250,7 +250,7 @@ export function Sidebar({ className, isOpen = true, toggle }: SidebarProps) {
                                                 size={isOpen ? 18 : 20}
                                                 className={cn(
                                                     "transition-all shrink-0",
-                                                    isActive ? "text-[hsla(82,67%,33%,1)]" : "text-[#4D4D4D]"
+                                                    isActive ? "text-[hsla(82,67%,33%,1)]" : "text-muted-foreground"
                                                 )}
                                             />
                                         )}
@@ -303,7 +303,7 @@ export function Sidebar({ className, isOpen = true, toggle }: SidebarProps) {
                                                 left: (parentRefs.current[menu.menuUid]?.getBoundingClientRect().right || 0) + 8,
                                                 zIndex: 9999
                                             }}
-                                            className="w-48 bg-white text-popover-foreground rounded-md border border-border shadow-md animate-in fade-in zoom-in-95 duration-200"
+                                            className="w-48 bg-background text-popover-foreground rounded-md border border-border shadow-md animate-in fade-in zoom-in-95 duration-200"
                                         >
                                             <div className="px-3 py-2 border-b border-border font-medium text-sm bg-muted/50 rounded-t-md">
                                                 {menu.menuName}
@@ -365,7 +365,7 @@ export function Sidebar({ className, isOpen = true, toggle }: SidebarProps) {
                                     {IconComponent && (
                                         <IconComponent
                                             size={18}
-                                            className={cn(isChildActive ? "text-foreground" : "text-[#4D4D4D]")}
+                                            className={cn(isChildActive ? "text-foreground" : "text-muted-foreground")}
                                         />
                                     )}
                                     <span className="truncate">{menu.menuName}</span>
@@ -401,7 +401,7 @@ export function Sidebar({ className, isOpen = true, toggle }: SidebarProps) {
                                                                 size={18}
                                                                 className={cn(
                                                                     "transition-all shrink-0",
-                                                                    isActive ? "text-[hsla(82,67%,33%,1)]" : "text-[#4D4D4D]"
+                                                                    isActive ? "text-[hsla(82,67%,33%,1)]" : "text-muted-foreground"
                                                                 )}
                                                             />
                                                         )}

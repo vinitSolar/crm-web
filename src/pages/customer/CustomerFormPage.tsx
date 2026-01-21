@@ -69,7 +69,7 @@ const ToggleSwitch = ({ checked, onChange }: { checked: boolean, onChange: (chec
             e.stopPropagation();
             onChange(!checked);
         }}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 ${checked ? 'bg-neutral-900' : 'bg-gray-200'}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 ${checked ? 'bg-neutral-900' : 'bg-muted'}`}
     >
         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
     </button>
@@ -197,16 +197,16 @@ const StepBadge: React.FC<StepBadgeProps> = ({ index, label, active, done, statu
         ? "bg-neutral-900 text-white border-neutral-900 shadow-md"
         : done
             ? "bg-green-50 text-green-700 border-green-200"
-            : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100";
+            : "bg-muted text-muted-foreground border-border hover:bg-muted/80";
 
     return (
         <div className={`${baseClasses} ${activeClasses}`}>
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${active ? 'bg-white text-neutral-900' : done ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${active ? 'bg-white text-neutral-900' : done ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                 {done ? <CheckIcon size={14} /> : index}
             </span>
             <span className="font-medium">{label}</span>
             {status && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${statusTone === 'success' ? 'bg-green-100 text-green-700' : statusTone === 'warning' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${statusTone === 'success' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : statusTone === 'warning' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-muted text-muted-foreground'}`}>
                     {status}
                 </span>
             )}
@@ -215,13 +215,13 @@ const StepBadge: React.FC<StepBadgeProps> = ({ index, label, active, done, statu
 };
 
 const SummaryItem = ({ icon: Icon, label, value, className }: { icon: any, label: string, value: string | React.ReactNode, className?: string }) => (
-    <div className={cn("flex items-start gap-2.5 py-1.5 border-b border-gray-50 last:border-0", className)}>
+    <div className={cn("flex items-start gap-2.5 py-1.5 border-b border-border/50 last:border-0", className)}>
         <div className="mt-0.5 p-1.5 bg-blue-50 rounded-lg text-blue-600 shrink-0">
             <Icon size={12} />
         </div>
         <div className="space-y-0 min-w-0 flex-1">
             <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider leading-none mb-0.5">{label}</p>
-            <p className="text-[11px] font-bold text-neutral-900 truncate">{value || '—'}</p>
+            <p className="text-[11px] font-bold text-foreground truncate">{value || '—'}</p>
         </div>
     </div>
 );
@@ -850,8 +850,8 @@ export const CustomerFormPage = () => {
                                                     onClick={handleSendOTP}
                                                     type="button"
                                                     className={`px-3 py-2 rounded-xl text-sm border flex items-center gap-2 ${otpSending || !formData.phone || phoneVerified
-                                                        ? 'border-neutral-300 text-neutral-400 opacity-60 cursor-not-allowed'
-                                                        : 'border-neutral-900'
+                                                        ? 'border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 opacity-60 cursor-not-allowed'
+                                                        : 'border-primary bg-primary/10 dark:bg-primary/20 text-primary hover:bg-primary/20 dark:hover:bg-primary/30'
                                                         }`}
                                                     disabled={otpSending || !formData.phone || phoneVerified}
                                                 >
@@ -867,11 +867,11 @@ export const CustomerFormPage = () => {
                                                 </button>
                                                 <div className="relative">
                                                     <input
-                                                        className={`w-28 px-3 py-2 rounded-xl border ${phoneVerified
-                                                            ? 'bg-neutral-100 text-neutral-500 cursor-not-allowed'
+                                                        className={`w-28 px-3 py-2 rounded-xl border bg-background text-foreground ${phoneVerified
+                                                            ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 cursor-not-allowed'
                                                             : verificationError
                                                                 ? 'border-red-500 focus:ring-red-200'
-                                                                : ''
+                                                                : 'border-border'
                                                             }`}
                                                         placeholder="Code"
                                                         value={otpCode}
@@ -893,7 +893,7 @@ export const CustomerFormPage = () => {
                                                     type="button"
                                                     className={`px-3 py-2 rounded-xl text-sm flex items-center gap-2 ${phoneVerified
                                                         ? 'bg-green-600 text-white'
-                                                        : 'border border-neutral-300'
+                                                        : 'border border-primary bg-primary/10 dark:bg-primary/20 text-primary hover:bg-primary/20 dark:hover:bg-primary/30'
                                                         } ${otpVerifying || phoneVerified || !otpSent || !otpCode
                                                             ? 'opacity-70 cursor-not-allowed'
                                                             : ''
@@ -923,7 +923,7 @@ export const CustomerFormPage = () => {
                                                         key={type}
                                                         type="button"
                                                         onClick={() => updateField('propertyType', idx)}
-                                                        className={`px-4 py-2 rounded-full border text-sm capitalize transition-colors ${formData.propertyType === idx ? 'bg-neutral-900 text-white border-neutral-900' : 'bg-white text-neutral-700 border-gray-300 hover:bg-gray-50'}`}
+                                                        className={`px-4 py-2 rounded-full border text-sm capitalize transition-colors ${formData.propertyType === idx ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground border-border hover:bg-accent'}`}
                                                     >
                                                         {type}
                                                     </button>
@@ -933,13 +933,13 @@ export const CustomerFormPage = () => {
                                     </div>
 
                                     {formData.propertyType === 1 && (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-muted/50 rounded-xl border border-dashed border-border">
                                             <div className="col-span-1 md:col-span-2 flex flex-col gap-3">
                                                 <div className="flex items-center gap-2">
                                                     <input
                                                         type="checkbox"
                                                         id="showAsBusinessName"
-                                                        className="h-4 w-4 rounded border-gray-300 text-neutral-900 focus:ring-neutral-900"
+                                                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                                                         checked={formData.showAsBusinessName}
                                                         onChange={(e) => {
                                                             const newValue = e.target.checked;
@@ -961,7 +961,7 @@ export const CustomerFormPage = () => {
                                                     <input
                                                         type="checkbox"
                                                         id="showName"
-                                                        className="h-4 w-4 rounded border-gray-300 text-neutral-900 focus:ring-neutral-900"
+                                                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                                                         checked={formData.showName ?? true}
                                                         onChange={(e) => {
                                                             const newValue = e.target.checked;
@@ -982,7 +982,7 @@ export const CustomerFormPage = () => {
 
                                 {/* Solar & VPP - Collapsible */}
                                 <details open={formData.hasSolar} className="rounded-xl border border-border group">
-                                    <summary className="flex items-center justify-between p-4 cursor-pointer list-none select-none hover:bg-gray-50 rounded-xl">
+                                    <summary className="flex items-center justify-between p-4 cursor-pointer list-none select-none hover:bg-accent rounded-xl">
                                         <div className="flex items-center gap-2 font-medium">
                                             <ZapIcon size={20} className="text-yellow-500" />
                                             <span>Solar at this property?</span>
@@ -995,7 +995,7 @@ export const CustomerFormPage = () => {
                                     </summary>
 
                                     {formData.hasSolar && (
-                                        <div className="p-4 border-t border-border space-y-6 bg-gray-50/50">
+                                        <div className="p-4 border-t border-border space-y-6 bg-muted/30">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <Input label="Solar Capacity (kW)" type="number" step="any" placeholder="6.6" value={formData.solarCapacity} onChange={(e) => updateField('solarCapacity', e.target.value)} />
                                                 <Input label="Inverter Capacity (kW)" type="number" step="any" placeholder="5.0" value={formData.inverterCapacity} onChange={(e) => updateField('inverterCapacity', e.target.value)} />
@@ -1005,8 +1005,8 @@ export const CustomerFormPage = () => {
                                 </details>
 
                                 {/* VPP Section - Standalone */}
-                                <details open={formData.vpp} className="rounded-xl border border-border group bg-white">
-                                    <summary className="flex items-center justify-between p-4 cursor-pointer list-none select-none hover:bg-gray-50 rounded-xl">
+                                <details open={formData.vpp} className="rounded-xl border border-border group bg-background">
+                                    <summary className="flex items-center justify-between p-4 cursor-pointer list-none select-none hover:bg-accent rounded-xl">
                                         <div className="flex items-center gap-2 font-medium">
                                             {/* Reuse ZapIcon or add a BatteryIcon if available, sticking to existing style for now */}
                                             <ZapIcon size={20} className="text-green-600" />
@@ -1020,15 +1020,15 @@ export const CustomerFormPage = () => {
                                     </summary>
                                     {formData.vpp && (
                                         <div className="p-4 space-y-4 border-t border-border">
-                                            <div className="p-3 rounded-xl border border-dashed bg-[#F6FFFC] flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div className="p-3 rounded-xl border border-dashed border-border bg-muted/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                 <div>
-                                                    <div className="text-sm font-semibold text-neutral-800 uppercase tracking-tight">VPP signup bonus</div>
-                                                    <div className="text-[10px] text-neutral-600">Eligible customers receive a $50 monthly bill credit for 12 months ($600 total).</div>
+                                                    <div className="text-sm font-semibold text-foreground uppercase tracking-tight">VPP signup bonus</div>
+                                                    <div className="text-[10px] text-muted-foreground">Eligible customers receive a $50 monthly bill credit for 12 months ($600 total).</div>
                                                 </div>
                                                 <button
                                                     type="button"
                                                     onClick={() => updateField('vppSignupBonus', formData.vppSignupBonus === '600' ? '' : '600')}
-                                                    className={`px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-colors ${formData.vppSignupBonus === '600' ? 'bg-green-600 text-white border-green-600' : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50'}`}
+                                                    className={`px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-colors ${formData.vppSignupBonus === '600' ? 'bg-green-600 text-white border-green-600' : 'border-neutral-300 dark:border-zinc-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-zinc-700'}`}
                                                 >
                                                     {formData.vppSignupBonus === '600' ? 'Bonus Applied' : 'Add $600 signup bonus'}
                                                 </button>
@@ -1091,16 +1091,16 @@ export const CustomerFormPage = () => {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-xl border border-border">
                                         <div className="col-span-2 lg:col-span-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Detailed Breakdown</div>
-                                        <Input label="Unit No." disabled className="bg-white" value={formData.unitNumber} onChange={(e) => updateField('unitNumber', e.target.value)} onBlur={() => handleBlur('unitNumber')} placeholder="1A" />
-                                        <Input label="Street No." disabled required error={errors.streetNumber} className="bg-white" value={formData.streetNumber} onChange={(e) => updateField('streetNumber', e.target.value)} onBlur={() => handleBlur('streetNumber')} placeholder="123" />
-                                        <Input label="Street Name" disabled required error={errors.streetName} className="bg-white" value={formData.streetName} onChange={(e) => updateField('streetName', e.target.value)} onBlur={() => handleBlur('streetName')} placeholder="Main" />
+                                        <Input label="Unit No." disabled className="bg-background" value={formData.unitNumber} onChange={(e) => updateField('unitNumber', e.target.value)} onBlur={() => handleBlur('unitNumber')} placeholder="1A" />
+                                        <Input label="Street No." disabled required error={errors.streetNumber} className="bg-background" value={formData.streetNumber} onChange={(e) => updateField('streetNumber', e.target.value)} onBlur={() => handleBlur('streetNumber')} placeholder="123" />
+                                        <Input label="Street Name" disabled required error={errors.streetName} className="bg-background" value={formData.streetName} onChange={(e) => updateField('streetName', e.target.value)} onBlur={() => handleBlur('streetName')} placeholder="Main" />
                                         <Select label="Type" disabled options={streetTypeOptions} value={formData.streetType} onChange={(val) => updateField('streetType', val)} placeholder="St" />
-                                        <Input label="Suburb" disabled required error={errors.suburb} className="bg-white" value={formData.suburb} onChange={(e) => updateField('suburb', e.target.value)} onBlur={() => handleBlur('suburb')} placeholder="Sydney" />
+                                        <Input label="Suburb" disabled required error={errors.suburb} className="bg-background" value={formData.suburb} onChange={(e) => updateField('suburb', e.target.value)} onBlur={() => handleBlur('suburb')} placeholder="Sydney" />
                                         <Select label="State" disabled options={STATE_OPTIONS} value={formData.state} onChange={(val) => updateField('state', val as string)} placeholder="NSW" />
-                                        <Input label="Postcode" disabled required error={errors.postcode} className="bg-white" value={formData.postcode} onChange={(e) => updateField('postcode', e.target.value)} onBlur={() => handleBlur('postcode')} maxLength={4} placeholder="2000" />
-                                        <Input label="Country" disabled className="bg-white" value={formData.country} onChange={(e) => updateField('country', e.target.value)} />
+                                        <Input label="Postcode" disabled required error={errors.postcode} className="bg-background" value={formData.postcode} onChange={(e) => updateField('postcode', e.target.value)} onBlur={() => handleBlur('postcode')} maxLength={4} placeholder="2000" />
+                                        <Input label="Country" disabled className="bg-background" value={formData.country} onChange={(e) => updateField('country', e.target.value)} />
                                     </div>
 
 
@@ -1164,19 +1164,16 @@ export const CustomerFormPage = () => {
                                         const renderRate = (label: string, value: number, colorClass: string = 'blue') => {
                                             const finalRate = calculateDiscountedRate(value, discount);
                                             const colors = {
-                                                blue: 'bg-blue-50 border-blue-200 text-blue-600',
-                                                orange: 'bg-orange-50 border-orange-200 text-orange-600',
+                                                blue: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400',
+                                                orange: 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800 text-orange-600 dark:text-orange-400',
                                             };
                                             const theme = colors[colorClass as keyof typeof colors] || colors.blue;
-
-                                            // Extract text color for the label (usually same as invalid text-blue-600 etc, but maybe lighter/different?)
-                                            // The original used specific hexes. Using tailwind classes similar to RatesPage:
-                                            // text-blue-600 etc.
+                                            const [bg, darkBg, border, darkBorder, text, darkText] = theme.split(' ');
 
                                             return (
-                                                <div className={`${theme.split(' ')[0]} border ${theme.split(' ')[1]} rounded-lg p-3 text-center space-y-0.5`}>
-                                                    <div className={`${theme.split(' ')[2]} font-bold text-base tracking-tight`}>${finalRate.toFixed(4)}/kWh</div>
-                                                    <div className={`text-[10px] font-bold ${theme.split(' ')[2]} uppercase tracking-wider opacity-80`}>{label}</div>
+                                                <div className={`${bg} ${darkBg} border ${border} ${darkBorder} rounded-lg p-3 text-center space-y-0.5`}>
+                                                    <div className={`${text} ${darkText} font-bold text-base tracking-tight`}>${finalRate.toFixed(4)}/kWh</div>
+                                                    <div className={`text-[10px] font-bold ${text} ${darkText} uppercase tracking-wider opacity-80`}>{label}</div>
                                                 </div>
                                             );
                                         };
@@ -1185,18 +1182,18 @@ export const CustomerFormPage = () => {
                                         const renderCL = (label: string, value: number) => {
                                             const finalRate = calculateDiscountedRate(value, discount);
                                             return (
-                                                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center space-y-0.5">
-                                                    <div className="text-green-600 font-bold text-base tracking-tight">${finalRate.toFixed(4)}/kWh</div>
-                                                    <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider opacity-80">{label}</div>
+                                                <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
+                                                    <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${finalRate.toFixed(4)}/kWh</div>
+                                                    <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">{label}</div>
                                                 </div>
                                             );
                                         };
 
                                         return (
-                                            <div key={offer.id} className="p-6 bg-white border border-border rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] relative overflow-hidden group">
+                                            <div key={offer.id} className="p-6 bg-card border border-border rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] relative overflow-hidden group">
                                                 <div className="flex justify-between items-start mb-8">
                                                     <div>
-                                                        <h3 className="text-base font-bold text-neutral-900 tracking-tight">{offer.offerName}</h3>
+                                                        <h3 className="text-base font-bold text-neutral-900 dark:text-white tracking-tight">{offer.offerName}</h3>
                                                     </div>
                                                 </div>
 
@@ -1222,9 +1219,9 @@ export const CustomerFormPage = () => {
                                                             <h4 className="text-sm font-bold uppercase tracking-wide">Supply Charges</h4>
                                                         </div>
                                                         <div className="space-y-3">
-                                                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center space-y-0.5">
-                                                                <div className="text-purple-600 font-bold text-base tracking-tight">${offer.supplyCharge.toFixed(4)}/day</div>
-                                                                <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wider opacity-80">Supply</div>
+                                                            <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                <div className="text-purple-600 dark:text-purple-400 font-bold text-base tracking-tight">${offer.supplyCharge.toFixed(4)}/day</div>
+                                                                <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">Supply</div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1237,9 +1234,9 @@ export const CustomerFormPage = () => {
                                                                 <h4 className="text-sm font-bold uppercase tracking-wide">Solar FiT</h4>
                                                             </div>
                                                             <div className="space-y-3">
-                                                                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-green-600 font-bold text-base tracking-tight">${offer.fit.toFixed(4)}/kWh</div>
-                                                                    <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider opacity-80">Feed-in</div>
+                                                                <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                    <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${offer.fit.toFixed(4)}/kWh</div>
+                                                                    <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">Feed-in</div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1331,10 +1328,10 @@ export const CustomerFormPage = () => {
                             <div className="space-y-6">
                                 <h2 className="text-lg font-semibold text-foreground border-b border-border pb-2">Review & Confirm</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="p-4 bg-gray-50 rounded-lg space-y-4">
+                                    <div className="p-4 bg-muted/50 rounded-lg space-y-4">
                                         <div>
                                             <h3 className="font-medium mb-3 flex items-center gap-2"><UserIcon size={16} className="text-blue-600" /> Customer Information</h3>
-                                            <div className="space-y-1 text-sm bg-white p-3 rounded border border-gray-100">
+                                            <div className="space-y-1 text-sm bg-card p-3 rounded border border-border">
                                                 <p className="flex justify-between"><span className="text-muted-foreground">Name:</span> <span className="font-medium">{formData.firstName} {formData.lastName}</span></p>
                                                 <p className="flex justify-between"><span className="text-muted-foreground">Email:</span> <span className="font-medium">{formData.email}</span></p>
                                                 <p className="flex justify-between"><span className="text-muted-foreground">Mobile:</span> <span className="font-medium">{formData.phone} {phoneVerified && '✓'}</span></p>
@@ -1344,8 +1341,8 @@ export const CustomerFormPage = () => {
                                                     <>
                                                         <p className="flex justify-between"><span className="text-muted-foreground">Business:</span> <span className="font-medium">{formData.businessName}</span></p>
                                                         <p className="flex justify-between"><span className="text-muted-foreground">ABN:</span> <span className="font-medium">{formData.abn}</span></p>
-                                                        <p className="flex justify-between"><span className="text-muted-foreground">Show as Business:</span> <span className="font-medium text-xs bg-gray-100 px-1.5 py-0.5 rounded">{formData.showAsBusinessName ? 'Yes' : 'No'}</span></p>
-                                                        <p className="flex justify-between"><span className="text-muted-foreground">Show Name in Offer:</span> <span className="font-medium text-xs bg-gray-100 px-1.5 py-0.5 rounded">{(formData.showName ?? true) ? 'Yes' : 'No'}</span></p>
+                                                        <p className="flex justify-between"><span className="text-muted-foreground">Show as Business:</span> <span className="font-medium text-xs bg-muted px-1.5 py-0.5 rounded">{formData.showAsBusinessName ? 'Yes' : 'No'}</span></p>
+                                                        <p className="flex justify-between"><span className="text-muted-foreground">Show Name in Offer:</span> <span className="font-medium text-xs bg-muted px-1.5 py-0.5 rounded">{(formData.showName ?? true) ? 'Yes' : 'No'}</span></p>
                                                     </>
                                                 )}
                                             </div>
@@ -1353,7 +1350,7 @@ export const CustomerFormPage = () => {
 
                                         <div>
                                             <h3 className="font-medium mb-3 flex items-center gap-2"><MapPinIcon size={16} className="text-blue-600" /> Service Address</h3>
-                                            <div className="space-y-1 text-sm bg-white p-3 rounded border border-gray-100">
+                                            <div className="space-y-1 text-sm bg-card p-3 rounded border border-border">
                                                 <div className="font-medium">
                                                     {formData.unitNumber && `Unit ${formData.unitNumber}, `}{formData.streetNumber} {formData.streetName} {formData.streetType}
                                                     <br />
@@ -1361,31 +1358,32 @@ export const CustomerFormPage = () => {
                                                     <br />
                                                     {formData.country}
                                                 </div>
-                                                <div className="pt-2 border-t border-gray-100 mt-2">
-                                                    <p className="flex justify-between"><span className="text-muted-foreground">NMI:</span> <span className="font-mono bg-gray-50 px-1 rounded">{formData.nmi}</span></p>
+                                                <div className="pt-2 border-t border-border mt-2">
+                                                    <p className="flex justify-between"><span className="text-muted-foreground">NMI:</span> <span className="font-mono bg-muted px-1 rounded">{formData.nmi}</span></p>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="p-4 bg-gray-50 rounded-lg space-y-4">
+                                    <div className="p-4 bg-muted/50 rounded-lg space-y-4">
                                         <div>
                                             <h3 className="font-medium mb-3 flex items-center gap-2"><ShieldIcon size={16} className="text-blue-600" /> Plan & Pricing</h3>
-                                            <div className="space-y-1 text-sm bg-white p-3 rounded border border-gray-100">
+                                            <div className="space-y-1 text-sm bg-card p-3 rounded border border-border">
                                                 <p className="flex justify-between"><span className="text-muted-foreground">Tariff Code:</span> <span className="font-medium">{formData.tariffCode}</span></p>
-                                                <p className="flex justify-between"><span className="text-muted-foreground">Discount:</span> <span className="font-medium badge bg-green-50 text-green-700 px-1.5 py-0.5 rounded">{formData.discount}%</span></p>
+                                                <p className="flex justify-between"><span className="text-muted-foreground">Discount:</span> <span className="font-medium badge bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded">{formData.discount}%</span></p>
                                                 <p className="flex justify-between"><span className="text-muted-foreground">Distributor:</span> <span className="font-medium">{selectedRatePlan?.dnsp !== undefined ? (DNSP_MAP[selectedRatePlan.dnsp.toString()] || selectedRatePlan.dnsp) : '—'}</span></p>
                                                 <p className="flex justify-between"><span className="text-muted-foreground">Tariff Type:</span> <span className="font-medium">{selectedRatePlan?.tariff || '—'}</span></p>
+                                                <p className="flex justify-between"><span className="text-muted-foreground">Pricing Version:</span> <span className="font-medium font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{(isEditMode && customerRateVersion) ? customerRateVersion : activeRateVersion}</span></p>
                                             </div>
                                         </div>
 
                                         <div>
                                             <h3 className="font-medium mb-3 flex items-center gap-2"><IdCardIcon size={16} className="text-blue-600" /> Enrollment Details</h3>
-                                            <div className="space-y-1 text-sm bg-white p-3 rounded border border-gray-100">
+                                            <div className="space-y-1 text-sm bg-card p-3 rounded border border-border">
                                                 <p className="flex justify-between"><span className="text-muted-foreground">Sale Type:</span> <span className="font-medium">{SALE_TYPE_OPTIONS.find(o => o.value === formData.saleType.toString())?.label}</span></p>
                                                 <p className="flex justify-between"><span className="text-muted-foreground">Connection Date:</span> <span className="font-medium">{formData.connectionDate}</span></p>
                                                 <p className="flex justify-between"><span className="text-muted-foreground">Billing:</span> <span className="font-medium">{BILLING_PREF_OPTIONS.find(o => o.value === formData.billingPreference.toString())?.label}</span></p>
-                                                <div className="pt-2 border-t border-gray-100 mt-2">
+                                                <div className="pt-2 border-t border-border mt-2">
                                                     <p className="flex justify-between"><span className="text-muted-foreground">ID Type:</span> <span className="font-medium">{ID_TYPE_OPTIONS.find(o => o.value === formData.idType.toString())?.label}</span></p>
                                                     <p className="flex justify-between"><span className="text-muted-foreground">ID Number:</span> <span className="font-medium">{formData.idNumber}</span></p>
                                                     <p className="flex justify-between"><span className="text-muted-foreground">Expiry:</span> <span className="font-medium">{formData.idExpiry || '—'}</span></p>
@@ -1394,26 +1392,121 @@ export const CustomerFormPage = () => {
                                         </div>
                                     </div>
 
+                                    {/* Rate Details - Full Width Section */}
+                                    {selectedRatePlan?.offers?.[0] && (() => {
+                                        const offer = selectedRatePlan.offers[0];
+                                        const discount = formData.discount || 0;
+                                        const hasCL = (offer.cl1Usage || 0) > 0 || (offer.cl2Usage || 0) > 0;
+                                        const hasFiT = (offer.fit || 0) > 0;
+
+                                        return (
+                                            <div className="md:col-span-2 p-5 bg-card border border-border rounded-xl">
+                                                <h4 className="text-sm font-bold text-foreground mb-5">{offer.offerName || 'DEFAULT MARKET OFFER'}</h4>
+                                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+                                                    {/* Column 1: Energy Rates */}
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-2 text-blue-500 dark:text-blue-400 mb-2">
+                                                            <Settings2Icon size={14} />
+                                                            <span className="text-xs font-bold uppercase tracking-wide">Energy Rates</span>
+                                                        </div>
+                                                        {offer.peak > 0 && (
+                                                            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
+                                                                <div className="text-blue-600 dark:text-blue-400 font-bold text-sm">${calculateDiscountedRate(offer.peak, discount).toFixed(4)}/kWh</div>
+                                                                <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Peak</div>
+                                                            </div>
+                                                        )}
+                                                        {offer.offPeak > 0 && (
+                                                            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
+                                                                <div className="text-blue-600 dark:text-blue-400 font-bold text-sm">${calculateDiscountedRate(offer.offPeak, discount).toFixed(4)}/kWh</div>
+                                                                <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Off-Peak</div>
+                                                            </div>
+                                                        )}
+                                                        {offer.shoulder > 0 && (
+                                                            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
+                                                                <div className="text-blue-600 dark:text-blue-400 font-bold text-sm">${calculateDiscountedRate(offer.shoulder, discount).toFixed(4)}/kWh</div>
+                                                                <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Shoulder</div>
+                                                            </div>
+                                                        )}
+                                                        {offer.anytime > 0 && (
+                                                            <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg p-3 text-center">
+                                                                <div className="text-orange-600 dark:text-orange-400 font-bold text-sm">${calculateDiscountedRate(offer.anytime, discount).toFixed(4)}/kWh</div>
+                                                                <div className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider opacity-80">Anytime</div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Column 2: Supply Charges */}
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-2 text-purple-500 dark:text-purple-400 mb-2">
+                                                            <PlugIcon size={14} />
+                                                            <span className="text-xs font-bold uppercase tracking-wide">Supply Charges</span>
+                                                        </div>
+                                                        <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center">
+                                                            <div className="text-purple-600 dark:text-purple-400 font-bold text-sm">${offer.supplyCharge.toFixed(4)}/day</div>
+                                                            <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">Supply</div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Column 3: Solar FiT */}
+                                                    {hasFiT && (
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center gap-2 text-green-500 dark:text-green-400 mb-2">
+                                                                <ZapIcon size={14} />
+                                                                <span className="text-xs font-bold uppercase tracking-wide">Solar FiT</span>
+                                                            </div>
+                                                            <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
+                                                                <div className="text-green-600 dark:text-green-400 font-bold text-sm">${offer.fit.toFixed(4)}/kWh</div>
+                                                                <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">Feed-in</div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Column 4: Controlled Load */}
+                                                    {hasCL && (
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center gap-2 text-green-500 dark:text-green-400 mb-2">
+                                                                <PlugIcon size={14} />
+                                                                <span className="text-xs font-bold uppercase tracking-wide">Controlled Load</span>
+                                                            </div>
+                                                            {offer.cl1Usage > 0 && (
+                                                                <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
+                                                                    <div className="text-green-600 dark:text-green-400 font-bold text-sm">${calculateDiscountedRate(offer.cl1Usage, discount).toFixed(4)}/kWh</div>
+                                                                    <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL1 Usage</div>
+                                                                </div>
+                                                            )}
+                                                            {offer.cl2Usage > 0 && (
+                                                                <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
+                                                                    <div className="text-green-600 dark:text-green-400 font-bold text-sm">${calculateDiscountedRate(offer.cl2Usage, discount).toFixed(4)}/kWh</div>
+                                                                    <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL2 Usage</div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
                                     {(formData.hasSolar || formData.batteryBrand || formData.vpp) && (
-                                        <div className="md:col-span-2 p-4 bg-gray-50 rounded-lg">
+                                        <div className="md:col-span-2 p-4 bg-muted/50 rounded-lg">
                                             <h3 className="font-medium mb-3 flex items-center gap-2"><ZapIcon size={16} className="text-blue-600" /> Technical Details</h3>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 {formData.hasSolar && (
-                                                    <div className="space-y-1 text-sm bg-white p-3 rounded border border-gray-100">
+                                                    <div className="space-y-1 text-sm bg-card p-3 rounded border border-border">
                                                         <p className="font-medium text-xs uppercase text-muted-foreground mb-1">Solar System</p>
                                                         <p className="flex justify-between"><span className="text-muted-foreground">Capacity:</span> <span className="font-medium">{formData.solarCapacity} kW</span></p>
                                                         <p className="flex justify-between"><span className="text-muted-foreground">Inverter:</span> <span className="font-medium">{formData.inverterCapacity} kW</span></p>
                                                     </div>
                                                 )}
                                                 {formData.batteryBrand && (
-                                                    <div className="space-y-1 text-sm bg-white p-3 rounded border border-gray-100">
+                                                    <div className="space-y-1 text-sm bg-card p-3 rounded border border-border">
                                                         <p className="font-medium text-xs uppercase text-muted-foreground mb-1">Battery Storage</p>
                                                         <p className="flex justify-between"><span className="text-muted-foreground">Brand:</span> <span className="font-medium">{formData.batteryBrand}</span></p>
                                                         <p className="flex justify-between"><span className="text-muted-foreground">Capacity:</span> <span className="font-medium">{formData.batteryCapacity} kWh</span></p>
                                                     </div>
                                                 )}
                                                 {formData.vpp && (
-                                                    <div className="space-y-1 text-sm bg-white p-3 rounded border border-gray-100">
+                                                    <div className="space-y-1 text-sm bg-card p-3 rounded border border-border">
                                                         <p className="font-medium text-xs uppercase text-muted-foreground mb-1">VPP & Bonuses</p>
                                                         <p className="flex justify-between"><span className="text-muted-foreground mr-2">VPP Participant:</span> <span className="font-medium text-green-600">Yes</span></p>
                                                         <div className="flex justify-between items-start gap-2">
@@ -1427,11 +1520,11 @@ export const CustomerFormPage = () => {
                                     )}
 
                                     {(formData.concession || formData.lifeSupport) && (
-                                        <div className="md:col-span-2 p-4 bg-amber-50 rounded-lg border border-amber-100">
+                                        <div className="md:col-span-2 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800">
                                             <h3 className="font-medium mb-2 flex items-center gap-2 text-amber-800"><ShieldIcon size={16} /> Important Declarations</h3>
                                             <div className="flex gap-4">
-                                                {formData.concession && <span className="px-2 py-1 bg-white rounded border border-amber-200 text-xs font-medium text-amber-900">Concession Card Holder</span>}
-                                                {formData.lifeSupport && <span className="px-2 py-1 bg-white rounded border border-amber-200 text-xs font-medium text-amber-900">Life Support Equipment</span>}
+                                                {formData.concession && <span className="px-2 py-1 bg-card rounded border border-amber-200 dark:border-amber-700 text-xs font-medium text-amber-900 dark:text-amber-300">Concession Card Holder</span>}
+                                                {formData.lifeSupport && <span className="px-2 py-1 bg-card rounded border border-amber-200 dark:border-amber-700 text-xs font-medium text-amber-900 dark:text-amber-300">Life Support Equipment</span>}
                                             </div>
                                         </div>
                                     )}
@@ -1511,9 +1604,9 @@ export const CustomerFormPage = () => {
 
                 {/* Sidebar: Live Summary */}
                 <aside className="w-full xl:w-[380px] shrink-0 xl:sticky xl:top-6 order-last xl:order-none">
-                    <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
-                        <div className="p-4 bg-gray-50/80 border-b border-border flex items-center justify-between">
-                            <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
+                    <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+                        <div className="p-4 bg-muted/50 border-b border-border flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                                 <ShieldIcon size={16} className="text-blue-600" />
                                 Live summary
                             </h3>

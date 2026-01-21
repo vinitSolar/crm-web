@@ -34,7 +34,7 @@ export const StatusField: React.FC<StatusFieldProps> = ({
 }) => {
     // 1. Determine Label and Color for View Mode
     let label = '-';
-    let colorClass = 'text-gray-600 bg-gray-100';
+    let colorClass = 'text-gray-600 bg-gray-100 dark:bg-gray-800 dark:text-gray-300';
 
     if (type === 'customer_status') {
         if (typeof value === 'number' && CUSTOMER_STATUS_MAP[value]) {
@@ -49,8 +49,8 @@ export const StatusField: React.FC<StatusFieldProps> = ({
     } else if (type === 'user_status') {
         const valStr = String(value || '');
         label = valStr === 'ACTIVE' ? 'Active' : valStr === 'INACTIVE' ? 'Inactive' : valStr;
-        if (valStr === 'ACTIVE') colorClass = 'text-green-600 bg-green-50';
-        else if (valStr === 'INACTIVE') colorClass = 'text-red-600 bg-red-50';
+        if (valStr === 'ACTIVE') colorClass = 'text-green-600 bg-green-50 dark:bg-green-900/10 dark:text-green-400';
+        else if (valStr === 'INACTIVE') colorClass = 'text-red-600 bg-red-50 dark:bg-red-900/10 dark:text-red-400';
     } else if (type === 'dnsp') {
         const valStr = value !== null && value !== undefined ? String(value) : '';
         label = DNSP_MAP[valStr] || valStr || '-';

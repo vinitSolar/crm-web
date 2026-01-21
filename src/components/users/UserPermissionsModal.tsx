@@ -88,9 +88,9 @@ const TriStateToggle = ({
     };
 
     const getStateColor = () => {
-        if (value === null) return effectiveValue ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200';
-        if (value === true) return 'bg-green-100 text-green-700 border-green-200';
-        return 'bg-red-100 text-red-700 border-red-200';
+        if (value === null) return effectiveValue ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50' : 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700';
+        if (value === true) return 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-900/50';
+        return 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50';
     };
 
     const getIndicatorColor = () => {
@@ -402,26 +402,26 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
             size="full"
             fullContent={true}
             showCloseButton={false}
-            className="w-[90vw] max-w-[1200px] h-[85vh] flex flex-col p-0 overflow-hidden rounded-xl bg-white"
+            className="w-[90vw] max-w-[1200px] h-[85vh] flex flex-col p-0 overflow-hidden rounded-xl bg-white dark:bg-gray-950 border dark:border-gray-800"
         >
-            <div className="flex flex-col h-full bg-white">
+            <div className="flex flex-col h-full bg-white dark:bg-gray-950">
                 {/* Header */}
-                <div className="px-8 py-5 border-b border-gray-100 bg-white shadow-sm z-10 flex items-center justify-between shrink-0">
+                <div className="px-8 py-5 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-sm z-10 flex items-center justify-between shrink-0">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                            <ShieldCheckIcon className="text-[#5c8a14]" /> User Access Management
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            <ShieldCheckIcon className="text-[#5c8a14] dark:text-[#7ab321]" /> User Access Management
                         </h2>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Configure specific access for <span className="font-semibold text-gray-900">{user.name}</span>
-                            <span className="ml-2 px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md text-xs">Overrides role permissions</span>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Configure specific access for <span className="font-semibold text-gray-900 dark:text-gray-200">{user.name}</span>
+                            <span className="ml-2 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-md text-xs">Overrides role permissions</span>
                         </p>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
-                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Base Role</span>
-                            <div className="h-4 w-px bg-gray-300 mx-1"></div>
-                            <span className="text-sm font-medium text-gray-800">{user.roleName || 'User'}</span>
+                        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Base Role</span>
+                            <div className="h-4 w-px bg-gray-300 dark:bg-gray-700 mx-1"></div>
+                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{user.roleName || 'User'}</span>
                         </div>
                         <button
                             onClick={onClose}
@@ -433,28 +433,28 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                 </div>
 
                 {/* Legend */}
-                <div className="px-8 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-6 text-xs">
-                    <span className="font-semibold text-gray-500">LEGEND:</span>
+                <div className="px-8 py-3 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-800 flex items-center gap-6 text-xs">
+                    <span className="font-semibold text-gray-500 dark:text-gray-400">LEGEND:</span>
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-400" />
-                        <span className="text-gray-600">Inherited from role</span>
+                        <span className="text-gray-600 dark:text-gray-300">Inherited from role</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500" />
-                        <span className="text-gray-600">Explicitly allowed</span>
+                        <div className="w-2 h-2 rounded-full bg-green-500 dark:bg-green-400" />
+                        <span className="text-gray-600 dark:text-gray-300">Explicitly allowed</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-red-500" />
-                        <span className="text-gray-600">Explicitly denied</span>
+                        <div className="w-2 h-2 rounded-full bg-red-500 dark:bg-red-400" />
+                        <span className="text-gray-600 dark:text-gray-300">Explicitly denied</span>
                     </div>
                 </div>
 
                 {/* Main Split View */}
-                <div className="flex-1 overflow-hidden flex bg-gray-50/50">
+                <div className="flex-1 overflow-hidden flex bg-gray-50/50 dark:bg-gray-900/50">
 
                     {/* Sidebar: Navigation */}
-                    <div className="w-[260px] bg-white border-r border-gray-200 flex flex-col shrink-0">
-                        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+                    <div className="w-[260px] bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 flex flex-col shrink-0">
+                        <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Modules</h3>
                         </div>
                         <div className="overflow-y-auto flex-1 p-3 space-y-1 custom-scrollbar">
@@ -470,8 +470,8 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                                         className={cn(
                                             "group flex items-center justify-between px-3 py-3 rounded-xl cursor-pointer transition-all duration-200 border border-transparent",
                                             isSelected
-                                                ? "bg-[#5c8a14]/10 border-[#5c8a14]/20 text-[#5c8a14]"
-                                                : "hover:bg-gray-50 text-gray-600 hover:text-gray-900"
+                                                ? "bg-[#5c8a14]/10 dark:bg-[#5c8a14]/20 border-[#5c8a14]/20 text-[#5c8a14] dark:text-[#7ab321]"
+                                                : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                                         )}
                                     >
                                         <div className="flex items-center gap-3 overflow-hidden">
@@ -482,7 +482,7 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                                             )} />
                                             <span className="font-semibold text-sm truncate">{menu.name}</span>
                                             {hasUserOverride && (
-                                                <span className="px-1.5 py-0.5 bg-orange-100 text-orange-600 text-[10px] font-bold rounded">CUSTOM</span>
+                                                <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-[10px] font-bold rounded">CUSTOM</span>
                                             )}
                                         </div>
 
@@ -496,17 +496,17 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                     </div>
 
                     {/* Right Panel: Content */}
-                    <div className="flex-1 flex flex-col overflow-hidden bg-gray-50/30">
+                    <div className="flex-1 flex flex-col overflow-hidden bg-gray-50/30 dark:bg-gray-900/30">
                         {/* Toolbar */}
-                        <div className="p-4 px-8 bg-white/80 backdrop-blur-sm sticky top-0 z-10 border-b border-gray-200/60 flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <div className="p-4 px-8 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm sticky top-0 z-10 border-b border-gray-200/60 dark:border-gray-800/60 flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                                 {selectedMenuName}
                             </h3>
                             <div className="relative w-72">
                                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                                 <Input
                                     placeholder="Search sub-menus..."
-                                    className="pl-10 bg-white border-gray-200 focus:border-[#5c8a14] focus:ring-[#5c8a14]/20 rounded-xl"
+                                    className="pl-10 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 focus:border-[#5c8a14] focus:ring-[#5c8a14]/20 rounded-xl"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
@@ -518,27 +518,27 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                                 <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-300">
 
                                     {/* Parent Permission Card */}
-                                    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-shadow">
-                                        <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                                    <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-shadow">
+                                        <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
                                             <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-[#5c8a14]/10 rounded-lg text-[#5c8a14]">
+                                                <div className="p-2 bg-[#5c8a14]/10 dark:bg-[#5c8a14]/20 rounded-lg text-[#5c8a14] dark:text-[#7ab321]">
                                                     <ShieldIcon size={20} />
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-bold text-gray-900">Module Access Control</h4>
-                                                    <p className="text-sm text-gray-500">Click to cycle: Inherited → Allowed → Denied</p>
+                                                    <h4 className="font-bold text-gray-900 dark:text-white">Module Access Control</h4>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">Click to cycle: Inherited → Allowed → Denied</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     onClick={handleSelectAll}
-                                                    className="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+                                                    className="px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
                                                 >
                                                     Allow All
                                                 </button>
                                                 <button
                                                     onClick={handleClear}
-                                                    className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                                                    className="px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                                                 >
                                                     Reset to Inherit
                                                 </button>
@@ -567,7 +567,7 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                                         </div>
 
                                         {/* Role baseline info */}
-                                        <div className="mt-4 pt-4 border-t border-gray-100">
+                                        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                                             <p className="text-xs text-gray-400">
                                                 Role baseline:
                                                 {' '}View: {getRolePermission(selectedMenuUid, 'canView') ? '✓' : '✗'}
@@ -582,25 +582,25 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                                     {currentChildMenus.length > 0 && (
                                         <div className="space-y-4">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <div className="h-px bg-gray-200 flex-1"></div>
-                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest px-2">Sub-Menus</span>
-                                                <div className="h-px bg-gray-200 flex-1"></div>
+                                                <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1"></div>
+                                                <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-2">Sub-Menus</span>
+                                                <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1"></div>
                                             </div>
 
                                             <div className="grid grid-cols-1 gap-4">
                                                 {currentChildMenus.map((child: Menu) => (
-                                                    <div key={child.uid} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                                                    <div key={child.uid} className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-3">
                                                                 <div
                                                                     className={cn(
                                                                         "w-2 h-8 rounded-full",
-                                                                        getEffectivePermission(child.uid, 'canView') ? "bg-[#5c8a14]" : "bg-gray-200"
+                                                                        getEffectivePermission(child.uid, 'canView') ? "bg-[#5c8a14] dark:bg-[#7ab321]" : "bg-gray-200 dark:bg-gray-700"
                                                                     )}
                                                                 ></div>
-                                                                <span className="font-bold text-gray-800">{child.name}</span>
+                                                                <span className="font-bold text-gray-800 dark:text-gray-200">{child.name}</span>
                                                                 {hasOverride(child.uid) && (
-                                                                    <span className="px-1.5 py-0.5 bg-orange-100 text-orange-600 text-[10px] font-bold rounded">CUSTOM</span>
+                                                                    <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-[10px] font-bold rounded">CUSTOM</span>
                                                                 )}
                                                             </div>
 
@@ -632,8 +632,8 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                                     )}
                                 </div>
                             ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                                    <ShieldIcon size={64} className="mb-4 text-gray-200" />
+                                <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+                                    <ShieldIcon size={64} className="mb-4 text-gray-200 dark:text-gray-800" />
                                     <p className="font-medium">Select a module to configure permissions</p>
                                 </div>
                             )}
@@ -642,16 +642,16 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between gap-3 px-8 py-5 border-t border-gray-100 bg-gray-50/50 z-20 shrink-0">
+                <div className="flex items-center justify-between gap-3 px-8 py-5 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 z-20 shrink-0">
                     <div className="text-sm text-gray-500 flex items-center gap-3">
                         {changedMenus.size > 0 && (
                             <>
-                                <span className="text-orange-600 font-medium">
+                                <span className="text-orange-600 dark:text-orange-400 font-medium">
                                     {changedMenus.size} menu(s) with unsaved changes
                                 </span>
                                 <button
                                     onClick={handleReset}
-                                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
                                 >
                                     Reset
                                 </button>

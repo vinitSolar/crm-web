@@ -329,7 +329,7 @@ export function RolePage() {
                         canEdit && (
                             <Tooltip content="Restore Role">
                                 <button
-                                    className="p-2 border border-green-200 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 transition-colors"
+                                    className="p-2 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
                                     onClick={() => handleRestoreClick(role)}
                                 >
                                     <RefreshCwIcon size={16} />
@@ -341,7 +341,7 @@ export function RolePage() {
                             {canEdit && (
                                 <Tooltip content="Edit Role">
                                     <button
-                                        className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
+                                        className="p-2 border border-border rounded-lg bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                                         onClick={() => handleEditRole(role)}
                                     >
                                         <PencilIcon size={16} />
@@ -351,7 +351,7 @@ export function RolePage() {
                             {canDelete && (
                                 <Tooltip content="Delete Role">
                                     <button
-                                        className="p-2 border border-red-200 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 transition-colors"
+                                        className="p-2 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
                                         onClick={() => handleDeleteClick(role)}
                                     >
                                         <TrashIcon size={16} />
@@ -393,7 +393,7 @@ export function RolePage() {
                             checked={role.isActive}
                             onChange={(checked) => canEdit && handleStatusToggle(role, checked)}
                             disabled={!canEdit}
-                            className={role.isActive ? "bg-[#5c8a14]" : "bg-gray-200"}
+                            className={role.isActive ? "bg-[#5c8a14]" : "bg-muted"}
                         />
                         <span className={`text-sm ${role.isActive ? 'text-[#5c8a14]' : 'text-gray-500'}`}>
                             {role.isActive ? 'Active' : 'Inactive'}

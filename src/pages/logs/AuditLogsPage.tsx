@@ -69,9 +69,9 @@ const tableNameMap: Record<string, string> = {
 
 // Operation badge colors
 const operationColors: Record<string, string> = {
-    INSERT: 'bg-green-100 text-green-700 border-green-200',
-    UPDATE: 'bg-blue-100 text-blue-700 border-blue-200',
-    DELETE: 'bg-red-100 text-red-700 border-red-200',
+    INSERT: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-900/50',
+    UPDATE: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-900/50',
+    DELETE: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50',
 };
 
 export const AuditLogsPage = () => {
@@ -199,14 +199,14 @@ export const AuditLogsPage = () => {
             key: 'changedAt',
             header: 'Timestamp',
             width: 'w-[180px]',
-            render: (log) => <span className="text-gray-600 text-sm">{formatDateTime(log.changedAt)}</span>
+            render: (log) => <span className="text-gray-600 dark:text-gray-400 text-sm">{formatDateTime(log.changedAt)}</span>
         },
         {
             key: 'tableName',
             header: 'Table',
             width: 'w-[150px]',
             render: (log) => (
-                <span className="font-medium text-gray-800 text-sm">
+                <span className="font-medium text-gray-800 dark:text-gray-200 text-sm">
                     {tableNameMap[log.tableName] || log.tableName}
                 </span>
             )
@@ -219,7 +219,7 @@ export const AuditLogsPage = () => {
                 <span
                     className={cn(
                         'px-2 py-1 text-xs font-semibold rounded-full border',
-                        operationColors[log.operation] || 'bg-gray-100 text-gray-600'
+                        operationColors[log.operation] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
                     )}
                 >
                     {log.operation}
@@ -231,8 +231,8 @@ export const AuditLogsPage = () => {
             header: 'Changed By',
             width: 'w-[150px]',
             render: (log) => (
-                <span className="text-gray-600 text-sm truncate block max-w-[140px]">
-                    {log.changedBy ? log.changedBy : <span className="text-gray-400 italic">System</span>}
+                <span className="text-gray-600 dark:text-gray-400 text-sm truncate block max-w-[140px]">
+                    {log.changedBy ? log.changedBy : <span className="text-gray-400 dark:text-gray-500 italic">System</span>}
                 </span>
             )
         },
@@ -243,22 +243,22 @@ export const AuditLogsPage = () => {
             render: (log) => (
                 <div className="flex items-center gap-2">
                     <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => handleViewDetails(log)}
-                        className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        className="h-8 w-8 p-0 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-900/50"
+                        title="View Details"
                     >
-                        <EyeIcon size={14} className="mr-1.5" />
-                        View
+                        <EyeIcon size={16} />
                     </Button>
                     <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => handleViewHistory(log)}
-                        className="h-8 px-2 text-gray-600 hover:text-gray-700 hover:bg-gray-100"
+                        className="h-8 w-8 p-0 text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-700"
+                        title="View History"
                     >
-                        <RefreshCwIcon size={14} className="mr-1.5" />
-                        History
+                        <RefreshCwIcon size={16} />
                     </Button>
                 </div>
             )
@@ -273,8 +273,8 @@ export const AuditLogsPage = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Audit Logs</h1>
-                    <p className="text-muted-foreground">View system changes and record history</p>
+                    <h1 className="text-2xl font-bold text-foreground dark:text-white">Audit Logs</h1>
+                    <p className="text-muted-foreground dark:text-gray-400">View system changes and record history</p>
                 </div>
                 <Button
                     variant="outline"
@@ -291,13 +291,13 @@ export const AuditLogsPage = () => {
             </div>
 
             {/* Main Content Info Card */}
-            <div className="p-5 bg-background rounded-lg border border-border shadow-sm">
+            <div className="p-5 bg-background dark:bg-card rounded-lg border border-border dark:border-border shadow-sm">
 
                 {/* Filters Row */}
                 <div className="flex flex-col gap-4 mb-6">
                     <div className="flex items-center gap-4 flex-wrap">
                         <div className="w-[60px] flex-shrink-0">
-                            <span className="text-sm font-medium text-gray-500">Filters:</span>
+                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Filters:</span>
                         </div>
                         <Select
                             options={[{ value: '', label: 'All Tables' }, ...tableOptions]}
@@ -365,15 +365,15 @@ export const AuditLogsPage = () => {
             >
                 {selectedLog && (
                     <div className="space-y-4 py-2">
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-4 bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-100 dark:border-gray-800">
                             <div>
-                                <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Table</label>
-                                <p className="text-sm font-medium text-gray-900">
+                                <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Table</label>
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                     {tableNameMap[selectedLog.tableName] || selectedLog.tableName}
                                 </p>
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Operation</label>
+                                <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Operation</label>
                                 <div className="mt-1">
                                     <span
                                         className={cn(
@@ -386,18 +386,18 @@ export const AuditLogsPage = () => {
                                 </div>
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Record ID</label>
-                                <p className="text-xs font-mono text-gray-600 break-all bg-white px-2 py-1 rounded border border-gray-200 mt-1">
+                                <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Record ID</label>
+                                <p className="text-xs font-mono text-gray-600 dark:text-gray-300 break-all bg-white dark:bg-gray-950 px-2 py-1 rounded border border-gray-200 dark:border-gray-800 mt-1">
                                     {selectedLog.recordId}
                                 </p>
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Changed At</label>
-                                <p className="text-sm text-gray-700">{formatDateTime(selectedLog.changedAt)}</p>
+                                <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Changed At</label>
+                                <p className="text-sm text-gray-700 dark:text-gray-300">{formatDateTime(selectedLog.changedAt)}</p>
                             </div>
-                            <div className="col-span-2 border-t border-gray-200 pt-2 mt-1">
-                                <label className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Changed By</label>
-                                <p className="text-sm font-mono text-gray-600">
+                            <div className="col-span-2 border-t border-gray-200 dark:border-gray-800 pt-2 mt-1">
+                                <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Changed By</label>
+                                <p className="text-sm font-mono text-gray-600 dark:text-gray-300">
                                     {selectedLog.changedBy || 'System'}
                                 </p>
                             </div>
@@ -412,16 +412,16 @@ export const AuditLogsPage = () => {
                                     const allKeys = Array.from(new Set([...Object.keys(oldData), ...Object.keys(newData)])).sort();
 
                                     return (
-                                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                        <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
                                             <table className="w-full text-sm">
-                                                <thead className="bg-gray-50 border-b border-gray-200">
+                                                <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
                                                     <tr>
-                                                        <th className="px-4 py-2 text-left font-semibold text-gray-600 w-1/3">Field</th>
-                                                        <th className="px-4 py-2 text-left font-semibold text-gray-600 w-1/3">Old Value</th>
-                                                        <th className="px-4 py-2 text-left font-semibold text-gray-600 w-1/3">New Value</th>
+                                                        <th className="px-4 py-2 text-left font-semibold text-gray-600 dark:text-gray-300 w-1/3">Field</th>
+                                                        <th className="px-4 py-2 text-left font-semibold text-gray-600 dark:text-gray-300 w-1/3">Old Value</th>
+                                                        <th className="px-4 py-2 text-left font-semibold text-gray-600 dark:text-gray-300 w-1/3">New Value</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-gray-100">
+                                                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                                     {allKeys.map((key) => {
                                                         const oldValue = oldData[key];
                                                         const newValue = newData[key];
@@ -435,12 +435,12 @@ export const AuditLogsPage = () => {
                                                         // Let's show all for now.
 
                                                         return (
-                                                            <tr key={key} className={isChanged ? 'bg-yellow-50/50' : 'bg-white'}>
-                                                                <td className="px-4 py-2 font-medium text-gray-700">{key}</td>
-                                                                <td className={cn("px-4 py-2 text-gray-600 font-mono text-xs", isChanged && "text-red-600 bg-red-50/30")}>
+                                                            <tr key={key} className={isChanged ? 'bg-yellow-50/50 dark:bg-yellow-900/10' : 'bg-white dark:bg-gray-950'}>
+                                                                <td className="px-4 py-2 font-medium text-gray-700 dark:text-gray-300">{key}</td>
+                                                                <td className={cn("px-4 py-2 text-gray-600 dark:text-gray-400 font-mono text-xs", isChanged && "text-red-600 dark:text-red-400 bg-red-50/30 dark:bg-red-900/20")}>
                                                                     {JSON.stringify(oldValue) || '-'}
                                                                 </td>
-                                                                <td className={cn("px-4 py-2 text-gray-600 font-mono text-xs", isChanged && "text-green-600 bg-green-50/30")}>
+                                                                <td className={cn("px-4 py-2 text-gray-600 dark:text-gray-400 font-mono text-xs", isChanged && "text-green-600 dark:text-green-400 bg-green-50/30 dark:bg-green-900/20")}>
                                                                     {JSON.stringify(newValue) || '-'}
                                                                 </td>
                                                             </tr>
@@ -473,11 +473,11 @@ export const AuditLogsPage = () => {
                                             {label}
                                         </div>
                                         <table className="w-full text-sm">
-                                            <tbody className="divide-y divide-gray-100">
+                                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                                 {Object.entries(displayData).map(([key, value]) => (
-                                                    <tr key={key} className="hover:bg-gray-50/50">
-                                                        <td className="px-4 py-2 font-medium text-gray-700 w-1/3 bg-gray-50/30">{key}</td>
-                                                        <td className="px-4 py-2 text-gray-600 font-mono text-xs">{JSON.stringify(value)}</td>
+                                                    <tr key={key} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
+                                                        <td className="px-4 py-2 font-medium text-gray-700 dark:text-gray-300 w-1/3 bg-gray-50/30 dark:bg-gray-900/30">{key}</td>
+                                                        <td className="px-4 py-2 text-gray-600 dark:text-gray-400 font-mono text-xs">{JSON.stringify(value)}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -520,23 +520,23 @@ export const AuditLogsPage = () => {
                         </div>
                     ) : historyData?.recordAuditHistory ? (
                         <div className="space-y-4 py-2">
-                            <div className="bg-blue-50/50 rounded-lg p-4 border border-blue-100">
+                            <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-100 dark:border-blue-900/30">
                                 <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm font-bold text-gray-800">
+                                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
                                         {tableNameMap[historyData.recordAuditHistory.tableName] ||
                                             historyData.recordAuditHistory.tableName}
                                     </span>
-                                    <span className="text-xs font-mono text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200">
+                                    <span className="text-xs font-mono text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-800">
                                         {historyData.recordAuditHistory.recordId}
                                     </span>
                                 </div>
                                 {historyData.recordAuditHistory.currentRecord && (
                                     <details className="mt-2 group">
-                                        <summary className="text-xs text-blue-600 cursor-pointer hover:underline font-medium select-none">
+                                        <summary className="text-xs text-blue-600 dark:text-blue-400 cursor-pointer hover:underline font-medium select-none">
                                             View Current Record Data
                                         </summary>
                                         <div className="mt-2 text-xs">
-                                            <pre className="bg-white p-3 rounded border border-blue-100 text-xs overflow-x-auto max-h-48 text-gray-600">
+                                            <pre className="bg-white dark:bg-gray-950 p-3 rounded border border-blue-100 dark:border-gray-800 text-xs overflow-x-auto max-h-48 text-gray-600 dark:text-gray-300">
                                                 {JSON.stringify(
                                                     parseJSON(historyData.recordAuditHistory.currentRecord),
                                                     null,
@@ -548,10 +548,10 @@ export const AuditLogsPage = () => {
                                 )}
                             </div>
 
-                            <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
                                 <RefreshCwIcon size={14} />
                                 Change History
-                                <span className="text-xs font-normal text-gray-500 ml-auto">
+                                <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-auto">
                                     {historyData.recordAuditHistory.auditHistory.length} entries found
                                 </span>
                             </h4>
@@ -560,7 +560,7 @@ export const AuditLogsPage = () => {
                                 {historyData.recordAuditHistory.auditHistory.map((log, index) => (
                                     <div
                                         key={log.uid}
-                                        className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                                        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4 hover:shadow-md transition-shadow"
                                     >
                                         <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-2">
@@ -572,36 +572,36 @@ export const AuditLogsPage = () => {
                                                 >
                                                     {log.operation}
                                                 </span>
-                                                <span className="text-xs text-gray-400">#{historyData.recordAuditHistory.auditHistory.length - index}</span>
+                                                <span className="text-xs text-gray-400 dark:text-gray-500">#{historyData.recordAuditHistory.auditHistory.length - index}</span>
                                             </div>
-                                            <span className="text-xs text-gray-500 font-medium">{formatDateTime(log.changedAt)}</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{formatDateTime(log.changedAt)}</span>
                                         </div>
 
                                         <div className="flex items-center gap-2 mb-3">
-                                            <span className="text-xs text-gray-400">By:</span>
-                                            <span className="text-xs font-mono text-gray-600 bg-gray-50 px-1.5 py-0.5 rounded">
+                                            <span className="text-xs text-gray-400 dark:text-gray-500">By:</span>
+                                            <span className="text-xs font-mono text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 rounded">
                                                 {log.changedBy ? log.changedBy.substring(0, 20) + (log.changedBy.length > 20 ? '...' : '') : 'System'}
                                             </span>
                                         </div>
 
                                         <details className="text-xs group">
-                                            <summary className="text-blue-600 cursor-pointer hover:underline font-medium select-none flex items-center gap-1">
+                                            <summary className="text-blue-600 dark:text-blue-400 cursor-pointer hover:underline font-medium select-none flex items-center gap-1">
                                                 <span>Show Changes</span>
                                                 <span className="group-open:rotate-180 transition-transform">▼</span>
                                             </summary>
-                                            <div className="mt-3 space-y-3 pl-2 border-l-2 border-gray-100">
+                                            <div className="mt-3 space-y-3 pl-2 border-l-2 border-gray-100 dark:border-gray-800">
                                                 {log.oldValues && (
                                                     <div>
-                                                        <span className="text-red-600 font-bold block mb-1">Old Values:</span>
-                                                        <pre className="bg-red-50 p-2 rounded border border-red-100 mt-1 overflow-x-auto max-h-40 text-[10px] leading-relaxed">
+                                                        <span className="text-red-600 dark:text-red-400 font-bold block mb-1">Old Values:</span>
+                                                        <pre className="bg-red-50 dark:bg-red-900/10 p-2 rounded border border-red-100 dark:border-red-900/30 mt-1 overflow-x-auto max-h-40 text-[10px] leading-relaxed dark:text-gray-300">
                                                             {JSON.stringify(parseJSON(log.oldValues), null, 2)}
                                                         </pre>
                                                     </div>
                                                 )}
                                                 {log.newValues && (
                                                     <div>
-                                                        <span className="text-green-600 font-bold block mb-1">New Values:</span>
-                                                        <pre className="bg-green-50 p-2 rounded border border-green-100 mt-1 overflow-x-auto max-h-40 text-[10px] leading-relaxed">
+                                                        <span className="text-green-600 dark:text-green-400 font-bold block mb-1">New Values:</span>
+                                                        <pre className="bg-green-50 dark:bg-green-900/10 p-2 rounded border border-green-100 dark:border-green-900/30 mt-1 overflow-x-auto max-h-40 text-[10px] leading-relaxed dark:text-gray-300">
                                                             {JSON.stringify(parseJSON(log.newValues), null, 2)}
                                                         </pre>
                                                     </div>

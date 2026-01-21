@@ -145,18 +145,18 @@ export default function BankAutocomplete({
             <ul
                 ref={node => { dropdownRef.current = node; }}
                 role="listbox"
-                className={`${zIndexClass} bg-white border rounded-xl shadow-xl max-h-72 overflow-auto`}
+                className={`${zIndexClass} bg-white dark:bg-neutral-900 border border-border rounded-xl shadow-xl max-h-72 overflow-auto`}
                 style={{ position: 'absolute', top: dropdownRect.top, left: dropdownRect.left, width: dropdownRect.width }}
             >
                 {options.length === 0 && (
-                    <li className="px-3 py-2 text-sm text-neutral-500">No matches</li>
+                    <li className="px-3 py-2 text-sm text-muted-foreground">No matches</li>
                 )}
                 {options.map((opt, idx) => (
                     <li
                         key={opt}
                         role="option"
                         aria-selected={idx === activeIndex}
-                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-neutral-50 ${idx === activeIndex ? 'bg-neutral-100' : ''}`}
+                        className={`px-3 py-2 text-sm cursor-pointer text-foreground hover:bg-accent ${idx === activeIndex ? 'bg-accent' : ''}`}
                         onMouseEnter={() => setActiveIndex(idx)}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => selectBank(opt)}
@@ -180,7 +180,7 @@ export default function BankAutocomplete({
                 onKeyDown={onKeyDown}
                 onFocus={() => { if (value.trim()) filterBanks(value); }}
                 autoComplete="off"
-                className={className || 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors'}
+                className={className || 'w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground'}
             />
             {dropdown}
         </div>

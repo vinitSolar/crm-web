@@ -309,7 +309,7 @@ export function Select({
                                 minWidth: containerRef.current ? containerRef.current.getBoundingClientRect().width : 'auto',
                                 zIndex: 9999
                             }}
-                            className="bg-background border border-border rounded-md shadow-lg max-h-60 overflow-hidden"
+                            className="bg-white dark:bg-neutral-900 border border-border rounded-md shadow-lg max-h-60 overflow-hidden"
                         >
 
 
@@ -329,10 +329,10 @@ export function Select({
                                                 key={option.value}
                                                 onClick={() => !option.disabled && handleSelect(option.value)}
                                                 className={cn(
-                                                    "flex items-center gap-2 px-3 py-2 text-sm cursor-pointer",
-                                                    "hover:bg-accent hover:text-accent-foreground",
-                                                    isFocused && "bg-accent text-accent-foreground", // Focus style
-                                                    isSelected && "bg-accent/50",
+                                                    "flex items-center gap-2 px-3 py-2 text-sm cursor-pointer text-gray-900 dark:text-gray-100",
+                                                    "hover:bg-gray-100 dark:hover:bg-neutral-800",
+                                                    isFocused && "bg-gray-100 dark:bg-neutral-800", // Focus style
+                                                    isSelected && "bg-gray-100/50 dark:bg-neutral-700/50",
                                                     option.disabled && "opacity-50 cursor-not-allowed"
                                                 )}
                                             >

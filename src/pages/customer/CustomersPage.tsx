@@ -180,7 +180,7 @@ const ToggleSwitch = ({ checked, onChange }: { checked: boolean, onChange: (chec
             e.stopPropagation();
             onChange(!checked);
         }}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${checked ? 'bg-primary' : 'bg-gray-200'}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${checked ? 'bg-primary' : 'bg-muted'}`}
     >
         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
     </button>
@@ -866,11 +866,13 @@ export function CustomersPage() {
             ),
             width: 'w-[110px]',
             render: (row: Customer) => (
-                <StatusField
-                    type="customer_status"
-                    value={row.status}
-                    mode="badge"
-                />
+                <div className="whitespace-nowrap">
+                    <StatusField
+                        type="customer_status"
+                        value={row.status}
+                        mode="badge"
+                    />
+                </div>
             ),
         },
         {
@@ -899,12 +901,12 @@ export function CustomersPage() {
             render: (row) => (
                 <div className="flex justify-center">
                     {row.vppDetails?.vppConnected === 1 ? (
-                        <div className="rounded-full bg-green-100 p-1">
-                            <CheckIcon className="h-4 w-4 text-green-600" />
+                        <div className="rounded-full bg-green-100 dark:bg-green-900/30 p-1">
+                            <CheckIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
                         </div>
                     ) : (
-                        <div className="rounded-full bg-red-100 p-1">
-                            <XIcon className="h-4 w-4 text-red-600" />
+                        <div className="rounded-full bg-red-100 dark:bg-red-900/30 p-1">
+                            <XIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
                         </div>
                     )}
                 </div>
@@ -930,12 +932,12 @@ export function CustomersPage() {
                 render: (row: Customer) => (
                     <div className="flex justify-center">
                         {row.utilmateStatus === 1 ? (
-                            <div className="rounded-full bg-green-100 p-1">
-                                <CheckIcon className="h-4 w-4 text-green-600" />
+                            <div className="rounded-full bg-green-100 dark:bg-green-900/30 p-1">
+                                <CheckIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
                             </div>
                         ) : (
-                            <div className="rounded-full bg-red-100 p-1">
-                                <XIcon className="h-4 w-4 text-red-600" />
+                            <div className="rounded-full bg-red-100 dark:bg-red-900/30 p-1">
+                                <XIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
                             </div>
                         )}
                     </div>
@@ -960,12 +962,12 @@ export function CustomersPage() {
                 render: (row: Customer) => (
                     <div className="flex justify-center">
                         {row.msatDetails?.msatConnected === 1 ? (
-                            <div className="rounded-full bg-green-100 p-1">
-                                <CheckIcon className="h-4 w-4 text-green-600" />
+                            <div className="rounded-full bg-green-100 dark:bg-green-900/30 p-1">
+                                <CheckIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
                             </div>
                         ) : (
-                            <div className="rounded-full bg-red-100 p-1">
-                                <XIcon className="h-4 w-4 text-red-600" />
+                            <div className="rounded-full bg-red-100 dark:bg-red-900/30 p-1">
+                                <XIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
                             </div>
                         )}
                     </div>
@@ -1007,7 +1009,10 @@ export function CustomersPage() {
                         {canView && (
                             <Tooltip content={row.status === 4 ? "Cannot view frozen customer" : "View Details"}>
                                 <button
-                                    className={`p-2 border border-blue-200 rounded-lg bg-white text-blue-600 transition-colors ${row.status === 4 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-50 hover:text-blue-700'}`}
+                                    className={`p-2 border rounded-lg transition-colors ${row.status === 4
+                                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500'
+                                        : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/40'
+                                        }`}
                                     onClick={() => row.status !== 4 && handleViewDetails(row)}
                                     disabled={row.status === 4}
                                 >
@@ -1018,7 +1023,7 @@ export function CustomersPage() {
                         {canEdit && row.status !== 3 && (
                             <Tooltip content="Edit Customer">
                                 <button
-                                    className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
+                                    className="p-2 border border-border rounded-lg bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                                     onClick={() => handleEdit(row)}
                                 >
                                     <PencilIcon size={16} />
@@ -1203,11 +1208,11 @@ export function CustomersPage() {
                 ) : selectedCustomerDetails ? (
                     <div className="space-y-3">
                         {/* Progress Timeline with Freeze Button */}
-                        <div className="bg-gray-50 rounded-xl p-4">
+                        <div className="bg-muted/50 rounded-xl p-4">
                             <div className="flex items-center justify-between mb-3">
                                 <div>
-                                    <h3 className="text-sm font-medium text-gray-700">Progress timeline</h3>
-                                    <p className="text-xs text-gray-500">Track each milestone and when it happened.</p>
+                                    <h3 className="text-sm font-medium text-foreground">Progress timeline</h3>
+                                    <p className="text-xs text-muted-foreground">Track each milestone and when it happened.</p>
                                 </div>
                                 {selectedCustomerDetails.status === 3 && (
                                     <Button
@@ -1225,7 +1230,7 @@ export function CustomersPage() {
                                 )}
                             </div>
                             <div className="relative flex justify-between items-start">
-                                <div className="absolute top-[18px] left-[10%] right-[10%] h-0.5 bg-gray-300" />
+                                <div className="absolute top-[18px] left-[10%] right-[10%] h-0.5 bg-gray-300 dark:bg-gray-600" />
                                 {[
                                     { step: 1, label: 'Offer sent', date: selectedCustomerDetails.createdAt, completed: true },
                                     { step: 2, label: 'Signed by customer', date: selectedCustomerDetails.signDate, completed: selectedCustomerDetails.status >= 2, showReminder: selectedCustomerDetails.status < 2 },
@@ -1235,13 +1240,13 @@ export function CustomersPage() {
                                 ].map((item, index, arr) => (
                                     <div key={item.step} className="relative flex flex-col items-center" style={{ width: '20%' }}>
                                         {index > 0 && arr[index - 1].completed && (
-                                            <div className={`absolute top-[18px] h-0.5 ${item.completed ? 'bg-green-500' : 'bg-gray-300'}`} style={{ right: '50%', left: '-50%' }} />
+                                            <div className={`absolute top-[18px] h-0.5 ${item.completed ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} style={{ right: '50%', left: '-50%' }} />
                                         )}
-                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold bg-white border-2 z-10 ${item.completed ? 'border-green-500 text-green-500' : 'border-gray-200 text-gray-400'}`}>
+                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold bg-background border-2 z-10 ${item.completed ? 'border-green-500 text-green-500' : 'border-gray-200 dark:border-gray-600 text-gray-400'}`}>
                                             {item.completed ? <CheckIcon size={16} strokeWidth={3} /> : item.step}
                                         </div>
-                                        <span className={`text-xs mt-2 text-center font-medium ${item.completed ? 'text-gray-900' : 'text-gray-500'}`}>{item.label}</span>
-                                        {item.date && <span className="text-[10px] text-gray-400">{formatDateTime(item.date)}</span>}
+                                        <span className={`text-xs mt-2 text-center font-medium ${item.completed ? 'text-foreground' : 'text-muted-foreground'}`}>{item.label}</span>
+                                        {item.date && <span className="text-[10px] text-muted-foreground">{formatDateTime(item.date)}</span>}
                                         {item.showReminder && (
                                             <button
                                                 onClick={() => handleSendReminder(selectedCustomerDetails.uid)}
@@ -1281,12 +1286,12 @@ export function CustomersPage() {
                         {/* Three Column Layout */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                             {/* Customer Info Card */}
-                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
                                 <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                                    <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
                                         <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                                     </div>
-                                    <h3 className="text-sm font-semibold text-gray-800">Customer Info</h3>
+                                    <h3 className="text-sm font-semibold text-foreground">Customer Info</h3>
                                 </div>
                                 <div className="space-y-3">
                                     {[
@@ -1298,21 +1303,21 @@ export function CustomersPage() {
                                         { label: 'DOB', value: selectedCustomerDetails.dob ? formatDate(selectedCustomerDetails.dob) : null },
                                         { label: 'ID Number', value: selectedCustomerDetails.enrollmentDetails?.idnumber },
                                     ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
-                                            <span className="text-xs text-gray-500">{item.label}</span>
-                                            <span className="text-xs font-medium text-gray-800 text-right max-w-[180px] truncate">{item.value || '—'}</span>
+                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-border last:border-0">
+                                            <span className="text-xs text-muted-foreground">{item.label}</span>
+                                            <span className="text-xs font-medium text-foreground text-right max-w-[180px] truncate">{item.value || '—'}</span>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
                             {/* Location Card */}
-                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
                                 <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
+                                    <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
                                         <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                     </div>
-                                    <h3 className="text-sm font-semibold text-gray-800">Location & Meter</h3>
+                                    <h3 className="text-sm font-semibold text-foreground">Location & Meter</h3>
                                 </div>
                                 <div className="space-y-3">
                                     {[
@@ -1322,21 +1327,21 @@ export function CustomersPage() {
                                         { label: 'NMI', value: selectedCustomerDetails.address?.nmi },
                                         { label: 'Tariff Code', value: selectedCustomerDetails.tariffCode },
                                     ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-start py-1.5 border-b border-gray-50 last:border-0">
-                                            <span className="text-xs text-gray-500 shrink-0 w-24">{item.label}</span>
-                                            <span className="text-xs font-medium text-gray-800 text-right flex-1 break-words">{item.value || '—'}</span>
+                                        <div key={i} className="flex justify-between items-start py-1.5 border-b border-border last:border-0">
+                                            <span className="text-xs text-muted-foreground shrink-0 w-24">{item.label}</span>
+                                            <span className="text-xs font-medium text-foreground text-right flex-1 break-words">{item.value || '—'}</span>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
                             {/* Account Settings Card */}
-                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
                                 <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                                    <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
                                         <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                     </div>
-                                    <h3 className="text-sm font-semibold text-gray-800">Account Settings</h3>
+                                    <h3 className="text-sm font-semibold text-foreground">Account Settings</h3>
                                 </div>
                                 <div className="space-y-3">
                                     {[
@@ -1346,9 +1351,9 @@ export function CustomersPage() {
                                         { label: 'Rate Version', value: selectedCustomerDetails.rateVersion ?? '—' },
                                         { label: 'Connection', value: selectedCustomerDetails.enrollmentDetails?.connectiondate ? formatDate(selectedCustomerDetails.enrollmentDetails.connectiondate) : null },
                                     ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
-                                            <span className="text-xs text-gray-500">{item.label}</span>
-                                            <span className="text-xs font-medium text-gray-800">{item.value || '—'}</span>
+                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-border last:border-0">
+                                            <span className="text-xs text-muted-foreground">{item.label}</span>
+                                            <span className="text-xs font-medium text-foreground">{item.value || '—'}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -1358,14 +1363,14 @@ export function CustomersPage() {
                         {/* VPP & Solar Details Row */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             {/* VPP Details Card */}
-                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
                                 <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
                                         <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                     </div>
-                                    <h3 className="text-sm font-semibold text-gray-800">VPP Details</h3>
+                                    <h3 className="text-sm font-semibold text-foreground">VPP Details</h3>
                                     {selectedCustomerDetails.vppDetails?.vpp === 1 && (
-                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">Enrolled</span>
+                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">Enrolled</span>
                                     )}
                                 </div>
                                 <div className="space-y-3">
@@ -1374,23 +1379,23 @@ export function CustomersPage() {
                                         { label: 'VPP Connected', value: selectedCustomerDetails.vppDetails?.vppConnected === 1 ? 'Yes' : 'No' },
                                         { label: 'Signup Bonus', value: selectedCustomerDetails.vppDetails?.vppSignupBonus ? '$50 monthly bill credit for 12 months (total $600)' : '—' },
                                     ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-start py-1.5 border-b border-gray-50 last:border-0">
-                                            <span className="text-xs text-gray-500 shrink-0 w-24 pt-0.5">{item.label}</span>
-                                            <span className={`text-xs font-medium text-gray-800 text-right flex-1 ${item.value && item.value.length > 30 ? 'leading-relaxed' : ''}`}>{item.value}</span>
+                                        <div key={i} className="flex justify-between items-start py-1.5 border-b border-border last:border-0">
+                                            <span className="text-xs text-muted-foreground shrink-0 w-24 pt-0.5">{item.label}</span>
+                                            <span className={`text-xs font-medium text-foreground text-right flex-1 ${item.value && item.value.length > 30 ? 'leading-relaxed' : ''}`}>{item.value}</span>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
                             {/* MSAT Details Card */}
-                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
                                 <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                                    <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
                                         <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                                     </div>
-                                    <h3 className="text-sm font-semibold text-gray-800">MSAT Details</h3>
+                                    <h3 className="text-sm font-semibold text-foreground">MSAT Details</h3>
                                     {selectedCustomerDetails.msatDetails?.msatConnected === 1 && (
-                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">Connected</span>
+                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">Connected</span>
                                     )}
                                 </div>
                                 <div className="space-y-3">
@@ -1399,9 +1404,9 @@ export function CustomersPage() {
                                         { label: 'Connected At', value: selectedCustomerDetails.msatDetails?.msatConnectedAt ? formatDateTime(selectedCustomerDetails.msatDetails.msatConnectedAt) : '—' },
                                         { label: 'Updated At', value: selectedCustomerDetails.msatDetails?.msatUpdatedAt ? formatDateTime(selectedCustomerDetails.msatDetails.msatUpdatedAt) : '—' },
                                     ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-start py-1.5 border-b border-gray-50 last:border-0">
-                                            <span className="text-xs text-gray-500 shrink-0 w-24 pt-0.5">{item.label}</span>
-                                            <span className="text-xs font-medium text-gray-800 text-right flex-1">{item.value}</span>
+                                        <div key={i} className="flex justify-between items-start py-1.5 border-b border-border last:border-0">
+                                            <span className="text-xs text-muted-foreground shrink-0 w-24 pt-0.5">{item.label}</span>
+                                            <span className="text-xs font-medium text-foreground text-right flex-1">{item.value}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -1411,14 +1416,14 @@ export function CustomersPage() {
                         {/* Solar System Row */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             {/* Solar System Card */}
-                            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
                                 <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center">
+                                    <div className="w-8 h-8 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center">
                                         <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
                                     </div>
-                                    <h3 className="text-sm font-semibold text-gray-800">Solar System</h3>
+                                    <h3 className="text-sm font-semibold text-foreground">Solar System</h3>
                                     {selectedCustomerDetails.solarDetails?.hassolar === 1 && (
-                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-full">Has Solar</span>
+                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 rounded-full">Has Solar</span>
                                     )}
                                 </div>
                                 <div className="space-y-3">
@@ -1427,9 +1432,9 @@ export function CustomersPage() {
                                         { label: 'Solar Capacity', value: selectedCustomerDetails.solarDetails?.solarcapacity ? `${selectedCustomerDetails.solarDetails.solarcapacity} kW` : '—' },
                                         { label: 'Inverter Capacity', value: selectedCustomerDetails.solarDetails?.invertercapacity ? `${selectedCustomerDetails.solarDetails.invertercapacity} kW` : '—' },
                                     ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0">
-                                            <span className="text-xs text-gray-500">{item.label}</span>
-                                            <span className="text-xs font-medium text-gray-800">{item.value}</span>
+                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-border last:border-0">
+                                            <span className="text-xs text-muted-foreground">{item.label}</span>
+                                            <span className="text-xs font-medium text-foreground">{item.value}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -1438,16 +1443,16 @@ export function CustomersPage() {
 
                         {/* Rate Plan Section */}
                         {selectedCustomerDetails.ratePlan && (
-                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                                <div className="bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 border-b border-slate-100">
+                            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+                                <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 px-5 py-4 border-b border-border">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
                                                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                             </div>
                                             <div>
-                                                <h3 className="text-sm font-semibold text-gray-800">Rate Plan: {selectedCustomerDetails.tariffCode || selectedCustomerDetails.ratePlan?.tariff}</h3>
-                                                <p className="text-xs text-gray-500">DNSP: {DNSP_LABELS[selectedCustomerDetails.ratePlan?.dnsp ?? -1]} • VPP: {selectedCustomerDetails.vppDetails?.vpp === 1 ? 'Yes' : 'No'}</p>
+                                                <h3 className="text-sm font-semibold text-foreground">Rate Plan: {selectedCustomerDetails.tariffCode || selectedCustomerDetails.ratePlan?.tariff}</h3>
+                                                <p className="text-xs text-muted-foreground">DNSP: {DNSP_LABELS[selectedCustomerDetails.ratePlan?.dnsp ?? -1]} • VPP: {selectedCustomerDetails.vppDetails?.vpp === 1 ? 'Yes' : 'No'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1463,15 +1468,16 @@ export function CustomersPage() {
                                             const renderRate = (label: string, value: number, colorClass: string = 'blue') => {
                                                 const finalRate = calculateDiscountedRate(value, discount);
                                                 const colors = {
-                                                    blue: 'bg-blue-50 border-blue-200 text-blue-600',
-                                                    orange: 'bg-orange-50 border-orange-200 text-orange-600',
+                                                    blue: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400',
+                                                    orange: 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800 text-orange-600 dark:text-orange-400',
                                                 };
                                                 const theme = colors[colorClass as keyof typeof colors] || colors.blue;
+                                                const [bg, darkBg, border, darkBorder, text, darkText] = theme.split(' ');
 
                                                 return (
-                                                    <div className={`${theme.split(' ')[0]} border ${theme.split(' ')[1]} rounded-lg p-3 text-center space-y-0.5`}>
-                                                        <div className={`${theme.split(' ')[2]} font-bold text-base tracking-tight`}>${finalRate.toFixed(4)}/kWh</div>
-                                                        <div className={`text-[10px] font-bold ${theme.split(' ')[2]} uppercase tracking-wider opacity-80`}>{label}</div>
+                                                    <div className={`${bg} ${darkBg} border ${border} ${darkBorder} rounded-lg p-3 text-center space-y-0.5`}>
+                                                        <div className={`${text} ${darkText} font-bold text-base tracking-tight`}>${finalRate.toFixed(4)}/kWh</div>
+                                                        <div className={`text-[10px] font-bold ${text} ${darkText} uppercase tracking-wider opacity-80`}>{label}</div>
                                                     </div>
                                                 );
                                             };
@@ -1479,9 +1485,9 @@ export function CustomersPage() {
                                             const renderCL = (label: string, value: number) => {
                                                 const finalRate = calculateDiscountedRate(value, discount);
                                                 return (
-                                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center space-y-0.5">
-                                                        <div className="text-green-600 font-bold text-base tracking-tight">${finalRate.toFixed(4)}/kWh</div>
-                                                        <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider opacity-80">{label}</div>
+                                                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
+                                                        <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${finalRate.toFixed(4)}/kWh</div>
+                                                        <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">{label}</div>
                                                     </div>
                                                 );
                                             };
@@ -1510,14 +1516,14 @@ export function CustomersPage() {
                                                                 <h4 className="text-sm font-bold uppercase tracking-wide">Supply Charges</h4>
                                                             </div>
                                                             <div className="space-y-3">
-                                                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-purple-600 font-bold text-base tracking-tight">${(offer.supplyCharge ?? 0).toFixed(4)}/day</div>
-                                                                    <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wider opacity-80">Supply</div>
+                                                                <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                    <div className="text-purple-600 dark:text-purple-400 font-bold text-base tracking-tight">${(offer.supplyCharge ?? 0).toFixed(4)}/day</div>
+                                                                    <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">Supply</div>
                                                                 </div>
                                                                 {(offer.vppOrcharge ?? 0) > 0 && (
-                                                                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-center space-y-0.5">
-                                                                        <div className="text-indigo-600 font-bold text-base tracking-tight">${(offer.vppOrcharge ?? 0).toFixed(4)}/day</div>
-                                                                        <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider opacity-80">VPP Charge</div>
+                                                                    <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="text-indigo-600 dark:text-indigo-400 font-bold text-base tracking-tight">${(offer.vppOrcharge ?? 0).toFixed(4)}/day</div>
+                                                                        <div className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider opacity-80">VPP Charge</div>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -1531,9 +1537,9 @@ export function CustomersPage() {
                                                                     <h4 className="text-sm font-bold uppercase tracking-wide">Solar FiT</h4>
                                                                 </div>
                                                                 <div className="space-y-3">
-                                                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center space-y-0.5">
-                                                                        <div className="text-green-600 font-bold text-base tracking-tight">${(offer.fit ?? 0).toFixed(4)}/kWh</div>
-                                                                        <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider opacity-80">Feed-in</div>
+                                                                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${(offer.fit ?? 0).toFixed(4)}/kWh</div>
+                                                                        <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">Feed-in</div>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -1562,7 +1568,7 @@ export function CustomersPage() {
                         )}
                     </div>
                 ) : (
-                    <p className="text-center text-gray-500 py-8">No customer data available</p>
+                    <p className="text-center text-muted-foreground py-8">No customer data available</p>
                 )}
             </Modal>
 
