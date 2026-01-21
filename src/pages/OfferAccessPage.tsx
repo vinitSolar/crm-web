@@ -315,20 +315,20 @@ export const OfferAccessPage = () => {
     // Success Page for Signed Customers
     if (customerData?.signDate) {
         return (
-            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4">
                 <div className="w-full max-w-md">
                     {/* Logo Section */}
                     <div className="text-center mb-8">
                         <img src={MainLogo} alt="GEE Energy" className="h-12 mx-auto" />
                     </div>
 
-                    <div className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
                         {/* Success Header */}
-                        <div className="bg-primary/5 p-8 text-center border-b border-primary/10">
-                            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-                                <CheckIcon className="w-10 h-10 text-primary" />
+                        <div className="bg-primary/5 dark:bg-primary/10 p-8 text-center border-b border-primary/10 dark:border-primary/20">
+                            <div className="w-20 h-20 bg-primary/10 dark:bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                                <CheckIcon className="w-10 h-10 text-primary dark:text-primary" />
                             </div>
-                            <h1 className="text-2xl font-bold text-slate-900 mb-2">
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
                                 Welcome Aboard!
                             </h1>
                             <p className="text-primary font-medium">
@@ -339,31 +339,31 @@ export const OfferAccessPage = () => {
                         {/* Content Body */}
                         <div className="p-8">
                             <div className="text-center space-y-4 mb-8">
-                                <p className="text-slate-600 leading-relaxed">
-                                    Thank you, <span className="font-semibold text-slate-900">{customerData.firstName}</span>.
+                                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    Thank you, <span className="font-semibold text-slate-900 dark:text-white">{customerData.firstName}</span>.
                                     We have received your signed agreement.
                                 </p>
-                                <p className="text-slate-600 leading-relaxed">
-                                    A copy of your agreement and welcome pack has been sent to <span className="font-medium text-slate-900">{customerData.email}</span>.
+                                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    A copy of your agreement and welcome pack has been sent to <span className="font-medium text-slate-900 dark:text-white">{customerData.email}</span>.
                                 </p>
                             </div>
 
                             {/* Details Card */}
-                            <div className="bg-slate-50 rounded-xl p-5 mb-8 border border-slate-200/60">
+                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 mb-8 border border-slate-200/60 dark:border-slate-700">
                                 <div className="space-y-3 text-sm">
-                                    <div className="flex justify-between items-center py-1 border-b border-slate-200/50">
-                                        <span className="text-slate-500">Customer ID</span>
-                                        <span className="font-medium text-slate-700">{customerData.customerId}</span>
+                                    <div className="flex justify-between items-center py-1 border-b border-slate-200/50 dark:border-slate-700/50">
+                                        <span className="text-slate-500 dark:text-slate-400">Customer ID</span>
+                                        <span className="font-medium text-slate-700 dark:text-slate-200">{customerData.customerId}</span>
                                     </div>
-                                    <div className="flex justify-between items-center py-1 border-b border-slate-200/50">
-                                        <span className="text-slate-500">Signed Date</span>
-                                        <span className="font-medium text-slate-700">
+                                    <div className="flex justify-between items-center py-1 border-b border-slate-200/50 dark:border-slate-700/50">
+                                        <span className="text-slate-500 dark:text-slate-400">Signed Date</span>
+                                        <span className="font-medium text-slate-700 dark:text-slate-200">
                                             {formatDate(customerData.signDate)}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center py-1">
-                                        <span className="text-slate-500">Status</span>
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                                        <span className="text-slate-500 dark:text-slate-400">Status</span>
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
                                             active
                                         </span>
                                     </div>
@@ -372,12 +372,12 @@ export const OfferAccessPage = () => {
 
                             {/* Contact/Support */}
                             <div className="text-center pt-2">
-                                <p className="text-slate-500 text-sm mb-4">
+                                <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">
                                     Have questions about your onboarding?
                                 </p>
                                 <a
                                     href="tel:1300707042"
-                                    className="inline-flex items-center justify-center w-full px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
+                                    className="inline-flex items-center justify-center w-full px-4 py-3 bg-slate-900 dark:bg-slate-50 hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900 rounded-xl font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
                                 >
                                     <PhoneIcon className="w-4 h-4 mr-2" />
                                     Call Support 1300 707 042
@@ -389,7 +389,7 @@ export const OfferAccessPage = () => {
                         <div className="h-1.5 bg-gradient-to-r from-primary/40 via-primary to-primary/60"></div>
                     </div>
 
-                    <div className="text-center mt-6 text-slate-400 text-xs">
+                    <div className="text-center mt-6 text-slate-400 dark:text-slate-500 text-xs">
                         &copy; {new Date().getFullYear()} GEE Power & Gas. All rights reserved.
                     </div>
                 </div>
@@ -1276,25 +1276,25 @@ export const OfferAccessPage = () => {
             {
                 showModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-xl w-full max-w-lg shadow-lg">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-lg shadow-lg dark:border dark:border-slate-800">
                             {/* Header */}
-                            <div className="p-4 border-b">
-                                <h2 className="text-lg font-semibold">Sign & Confirm</h2>
+                            <div className="p-4 border-b border-gray-200 dark:border-slate-800">
+                                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Sign & Confirm</h2>
                             </div>
 
                             {/* Body */}
                             <div className="p-4 max-h-[75vh] overflow-y-auto space-y-4">
                                 <div className="space-y-1 text-sm">
-                                    <label className="font-medium text-neutral-800">
+                                    <label className="font-medium text-neutral-800 dark:text-slate-200">
                                         Signatory name
                                     </label>
                                     <input
-                                        className="border rounded px-2 py-1 w-full"
+                                        className="border border-gray-200 dark:border-slate-700 rounded px-2 py-1 w-full bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder:text-slate-400"
                                         value={signatoryName}
                                         onChange={(e) => setSignatoryName(e.target.value)}
                                         placeholder="Full legal name"
                                     />
-                                    <p className="text-xs text-neutral-600">
+                                    <p className="text-xs text-neutral-600 dark:text-slate-400">
                                         We will use this name with your signature across the
                                         agreements.
                                     </p>
@@ -1303,7 +1303,7 @@ export const OfferAccessPage = () => {
                                 {/* Signature mode toggle */}
                                 <div className="flex gap-2 text-sm">
                                     <button
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'pad' ? 'bg-black text-white' : 'bg-neutral-100'
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'pad' ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-neutral-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                                             }`}
                                         onPointerDown={() => {
                                             // Start drawing
@@ -1317,7 +1317,7 @@ export const OfferAccessPage = () => {
                                         Draw
                                     </button>
                                     <button
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'type' ? 'bg-black text-white' : 'bg-neutral-100'
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'type' ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-neutral-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                                             }`}
                                         onClick={() => {
                                             setMode('type')
@@ -1332,19 +1332,19 @@ export const OfferAccessPage = () => {
                                 </div>
 
                                 {/* Signature area */}
-                                <div className="block">
+                                <div className="block bg-white dark:bg-transparent">
                                     <canvas
                                         ref={canvasRef}
                                         width={480}
                                         height={140}
-                                        className="border rounded w-full"
+                                        className="border border-gray-200 rounded w-full bg-white dark:bg-[#e1d6c4] dark:invert"
                                         style={{ display: 'block', touchAction: 'none' }}
                                     />
                                 </div>
 
                                 {mode === 'type' && (
                                     <input
-                                        className="border rounded px-2 py-1 w-full font-cursive text-xl"
+                                        className="border border-gray-200 dark:border-slate-700 rounded px-2 py-1 w-full font-cursive text-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
                                         value={typed}
                                         onChange={(e) => setTyped(e.target.value)}
                                         placeholder="Type your name"
@@ -1353,12 +1353,13 @@ export const OfferAccessPage = () => {
                                 )}
 
                                 {/* Consents */}
-                                <div className="space-y-2 text-sm">
+                                <div className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
                                     <div className="flex items-start gap-2">
                                         <label className="mt-1 cursor-pointer">
                                             <input
                                                 type="checkbox"
                                                 checked={consents.infoConfirm}
+                                                className="rounded border-gray-300 dark:border-slate-600 dark:bg-slate-800 accent-primary"
                                                 onChange={(e) =>
                                                     setConsents((p) => ({
                                                         ...p,
@@ -1371,7 +1372,7 @@ export const OfferAccessPage = () => {
                                             I confirm the above information is correct and have read the{' '}
                                             <a
                                                 href="/onboarding/GEE-TERMS-AND-CONDITIONS.pdf"
-                                                className="underline"
+                                                className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
                                                 style={{ color: '#4B8A10' }}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -1381,7 +1382,7 @@ export const OfferAccessPage = () => {
                                             {', '}
                                             <a
                                                 href="/onboarding/GEE-PDS.pdf"
-                                                className="underline"
+                                                className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
                                                 style={{ color: '#4B8A10' }}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -1393,7 +1394,7 @@ export const OfferAccessPage = () => {
                                                     {', '}
                                                     <a
                                                         href="/onboarding/GEE-VPP-Program-Terms-and-Conditions.pdf"
-                                                        className="underline"
+                                                        className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
                                                         style={{ color: '#4B8A10' }}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
@@ -1405,7 +1406,7 @@ export const OfferAccessPage = () => {
                                             {' and '}
                                             <a
                                                 href="/onboarding/GEE-Privacy-Policy.pdf"
-                                                className="underline"
+                                                className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
                                                 style={{ color: '#4B8A10' }}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
@@ -1419,7 +1420,7 @@ export const OfferAccessPage = () => {
                                                     I will receive{' '}
                                                     <a
                                                         href="/onboarding/GEE Direct Debit Service Agreement.pdf"
-                                                        className="underline font-bold"
+                                                        className="underline font-bold hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
                                                         style={{ color: '#4B8A10' }}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
@@ -1435,7 +1436,7 @@ export const OfferAccessPage = () => {
                                     <label className="flex items-start gap-2 cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            className="mt-1"
+                                            className="mt-1 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-800 accent-primary"
                                             checked={consents.creditCheck}
                                             onChange={(e) =>
                                                 setConsents((p) => ({
@@ -1452,7 +1453,7 @@ export const OfferAccessPage = () => {
                                     <label className="flex items-start gap-2 cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            className="mt-1"
+                                            className="mt-1 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-800 accent-primary"
                                             checked={consents.offerAgree}
                                             onChange={(e) =>
                                                 setConsents((p) => ({
@@ -1470,15 +1471,15 @@ export const OfferAccessPage = () => {
                             </div>
 
                             {/* Footer actions */}
-                            <div className="p-4 border-t space-y-3">
+                            <div className="p-4 border-t border-gray-200 dark:border-slate-800 space-y-3">
                                 {submitError && (
-                                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+                                    <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 px-3 py-2 text-xs text-red-600 dark:text-red-400">
                                         {submitError}
                                     </div>
                                 )}
                                 <div className="flex justify-end gap-2">
                                     <button
-                                        className="px-3 py-1 text-sm bg-white border border-gray-200 rounded hover:bg-gray-50"
+                                        className="px-3 py-1 text-sm bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded hover:bg-gray-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                                         onClick={() => {
                                             if (submitting) return
                                             setSubmitError(null)
@@ -1489,13 +1490,13 @@ export const OfferAccessPage = () => {
                                         Cancel
                                     </button>
                                     <button
-                                        className="px-3 py-1 rounded bg-neutral-900 text-white disabled:opacity-50 text-sm"
+                                        className="px-3 py-1 rounded bg-neutral-900 dark:bg-white text-white dark:text-black disabled:opacity-50 text-sm hover:bg-neutral-800 dark:hover:bg-slate-200 transition-colors"
                                         disabled={!canSubmit || submitting}
                                         onClick={handleModalSave}
                                     >
                                         {submitting ? (
                                             <span className="flex items-center gap-2">
-                                                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white dark:border-black border-t-transparent" />
                                                 Saving…
                                             </span>
                                         ) : (

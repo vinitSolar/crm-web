@@ -16,7 +16,7 @@ import { Select } from '@/components/ui/Select';
 import { StatusField } from '@/components/common';
 import { formatDateTime, formatDate } from '@/lib/date';
 import BulkEmailModal from './BulkEmailModal';
-import { SALE_TYPE_LABELS, BILLING_PREF_LABELS, DNSP_LABELS, DNSP_OPTIONS, DISCOUNT_OPTIONS, CUSTOMER_STATUS_OPTIONS, VPP_OPTIONS, VPP_CONNECTED_OPTIONS, ULTIMATE_STATUS_OPTIONS, MSAT_CONNECTED_OPTIONS } from '@/lib/constants';
+import { SALE_TYPE_LABELS, BILLING_PREF_LABELS, DNSP_LABELS, DNSP_OPTIONS, DISCOUNT_OPTIONS, CUSTOMER_STATUS_OPTIONS, VPP_OPTIONS, VPP_CONNECTED_OPTIONS, ULTIMATE_STATUS_OPTIONS, MSAT_CONNECTED_OPTIONS, ID_TYPE_MAP } from '@/lib/constants';
 import { toast } from 'react-toastify';
 import { useAuthStore } from '@/stores/useAuthStore';
 
@@ -167,6 +167,22 @@ interface CustomerDetails {
     rateVersion?: number;
     createdAt?: string;
     updatedAt?: string;
+    debitDetails?: {
+        id: string | number;
+        customerUid: string;
+        accountType?: number;
+        companyName?: string;
+        abn?: string;
+        firstName?: string;
+        lastName?: string;
+        bankName?: string;
+        bankAddress?: string;
+        bsb?: string;
+        accountNumber?: string;
+        paymentFrequency?: number;
+        firstDebitDate?: string;
+        optIn?: number;
+    };
 }
 
 
@@ -1301,7 +1317,10 @@ export function CustomersPage() {
                                         { label: 'Email', value: selectedCustomerDetails.email },
                                         { label: 'Mobile', value: selectedCustomerDetails.number },
                                         { label: 'DOB', value: selectedCustomerDetails.dob ? formatDate(selectedCustomerDetails.dob) : null },
+                                        { label: 'ID Type', value: ID_TYPE_MAP[selectedCustomerDetails.enrollmentDetails?.idtype ?? -1] },
                                         { label: 'ID Number', value: selectedCustomerDetails.enrollmentDetails?.idnumber },
+                                        { label: 'ID State', value: selectedCustomerDetails.enrollmentDetails?.idstate },
+                                        { label: 'ID Expiry', value: selectedCustomerDetails.enrollmentDetails?.idexpiry ? formatDate(selectedCustomerDetails.enrollmentDetails.idexpiry) : null },
                                     ].map((item, i) => (
                                         <div key={i} className="flex justify-between items-center py-1.5 border-b border-border last:border-0">
                                             <span className="text-xs text-muted-foreground">{item.label}</span>
@@ -1350,6 +1369,8 @@ export function CustomersPage() {
                                         { label: 'Discount', value: selectedCustomerDetails.discount ? `${selectedCustomerDetails.discount}%` : '0%' },
                                         { label: 'Rate Version', value: selectedCustomerDetails.rateVersion ?? '—' },
                                         { label: 'Connection', value: selectedCustomerDetails.enrollmentDetails?.connectiondate ? formatDate(selectedCustomerDetails.enrollmentDetails.connectiondate) : null },
+                                        { label: 'Concession', value: selectedCustomerDetails.enrollmentDetails?.concession === 1 ? 'Yes' : 'No' },
+                                        { label: 'Life Support', value: selectedCustomerDetails.enrollmentDetails?.lifesupport === 1 ? 'Yes' : 'No' },
                                     ].map((item, i) => (
                                         <div key={i} className="flex justify-between items-center py-1.5 border-b border-border last:border-0">
                                             <span className="text-xs text-muted-foreground">{item.label}</span>
@@ -1439,6 +1460,40 @@ export function CustomersPage() {
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Debit Details Card */}
+                            {selectedCustomerDetails.debitDetails?.optIn === 1 && (
+                                <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
+                                            <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                                        </div>
+                                        <h3 className="text-sm font-semibold text-foreground">Debit Details</h3>
+                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-full">Active</span>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {[
+                                            { label: 'Name', value: selectedCustomerDetails.debitDetails.accountType === 0 ? selectedCustomerDetails.debitDetails.companyName : `${selectedCustomerDetails.debitDetails.firstName} ${selectedCustomerDetails.debitDetails.lastName}` },
+                                            { label: 'Type', value: selectedCustomerDetails.debitDetails.accountType === 0 ? 'Business' : 'Personal' },
+                                            ...(selectedCustomerDetails.debitDetails.accountType === 0 ? [{ label: 'ABN', value: selectedCustomerDetails.debitDetails.abn }] : []),
+                                            { label: 'Bank', value: selectedCustomerDetails.debitDetails.bankName },
+                                            { label: 'BSB', value: selectedCustomerDetails.debitDetails.bsb },
+                                            { label: 'Account', value: selectedCustomerDetails.debitDetails.accountNumber },
+                                            {
+                                                label: 'Frequency',
+                                                value: selectedCustomerDetails.debitDetails.paymentFrequency === 0 ? 'Monthly' :
+                                                    selectedCustomerDetails.debitDetails.paymentFrequency === 1 ? 'Fortnightly' : 'Weekly'
+                                            },
+                                            { label: 'Start Date', value: selectedCustomerDetails.debitDetails.firstDebitDate ? formatDate(selectedCustomerDetails.debitDetails.firstDebitDate) : '—' },
+                                        ].map((item, i) => (
+                                            <div key={i} className="flex justify-between items-center py-1.5 border-b border-border last:border-0">
+                                                <span className="text-xs text-muted-foreground">{item.label}</span>
+                                                <span className="text-xs font-medium text-foreground text-right">{item.value || '—'}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Rate Plan Section */}
@@ -1597,15 +1652,15 @@ export function CustomersPage() {
                     </>
                 }
             >
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-600 dark:text-gray-300">
                     <p className="mb-3">
                         Are you sure you want to freeze customer{' '}
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-gray-900 dark:text-white">
                             {customerToFreeze?.firstName} {customerToFreeze?.lastName}
                         </span>{' '}
                         ({customerToFreeze?.customerId || customerToFreeze?.uid})?
                     </p>
-                    <p className="text-gray-500">
+                    <p className="text-gray-500 dark:text-gray-400">
                         This will create a new customer record and mark the current one as Frozen.
                     </p>
                 </div>
