@@ -52,7 +52,7 @@ export const SnapshotDetails = ({ uid }: SnapshotDetailsProps) => {
                                         {Array.isArray(plan.codes) ? plan.codes.join(', ') : plan.codes}
                                     </div>
                                     <div className="text-gray-500 mt-1">
-                                        <span className="font-mono bg-gray-200 px-1 rounded mr-2">{plan.planId}</span>
+                                        <span className="font-mono bg-muted px-1 rounded mr-2">{plan.planId}</span>
                                         <span className="mr-2">{plan.state}</span>
                                         <span className="mr-2">{formatDate(plan.createdAt)}</span>
                                     </div>
@@ -62,7 +62,7 @@ export const SnapshotDetails = ({ uid }: SnapshotDetailsProps) => {
                                         DNSP: {plan.dnsp}
                                     </span>
                                     <span className="block px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] font-semibold">
-                                        Type: {plan.type === 0 ? 'Res' : plan.type === 1 ? 'Bus' : plan.type}
+                                        Type: {plan.type === 0 ? 'Residential' : plan.type === 1 ? 'Business' : plan.type}
                                     </span>
                                 </div>
                             </div>

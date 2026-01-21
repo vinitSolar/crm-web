@@ -12,7 +12,7 @@ import {
 import MainLogo from '@/assets/main-logo-dark-1.png';
 import BankAutocomplete from '@/components/BankAutocomplete';
 import LocationAutocomplete from '@/pages/LocationAutocomplete';
-import { ID_TYPE_MAP, SALE_TYPE_LABELS } from '@/lib/constants';
+import { ID_TYPE_MAP, SALE_TYPE_LABELS, BILLING_PREF_LABELS, RATE_TYPE_MAP } from '@/lib/constants';
 import { calculateDiscountedRate } from '@/lib/rate-utils';
 import { formatDateTime, formatDate } from '@/lib/date';
 
@@ -399,8 +399,8 @@ export const OfferAccessPage = () => {
 
     if (!isAuthorized) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-                <div className="w-full max-w-md bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <div className="min-h-screen flex items-center justify-center bg-background p-4">
+                <div className="w-full max-w-md bg-card rounded-xl shadow-sm border border-border p-8">
                     {/* Logo */}
                     <div className="flex justify-center mb-6">
                         <img src={MainLogo} alt="GEE Energy" className="h-10 w-auto" />
@@ -408,10 +408,10 @@ export const OfferAccessPage = () => {
 
                     {/* Title */}
                     <div className="text-center mb-6">
-                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                        <h2 className="text-xl font-semibold text-foreground mb-2">
                             Enter your access code
                         </h2>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-muted-foreground">
                             Please enter the code from your email to view your offer
                         </p>
                     </div>
@@ -424,7 +424,7 @@ export const OfferAccessPage = () => {
                                 value={accessCode}
                                 onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
                                 placeholder="Access code"
-                                className="w-full h-12 px-4 text-center text-lg font-medium tracking-widest uppercase border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors"
+                                className="w-full h-12 px-4 text-center text-lg font-medium tracking-widest uppercase border border-input rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors bg-background text-foreground placeholder:text-muted-foreground"
                                 maxLength={8}
                                 autoComplete="off"
                             />
@@ -439,7 +439,7 @@ export const OfferAccessPage = () => {
                     </form>
 
                     {/* Help text */}
-                    <p className="text-center text-xs text-gray-400 mt-6">
+                    <p className="text-center text-xs text-muted-foreground mt-6">
                         Can't find your code? Check your email or contact support.
                     </p>
                 </div>
@@ -644,7 +644,7 @@ export const OfferAccessPage = () => {
                 signatureUrl: signatureUrl,
                 pdfAudit: JSON.stringify(pdfAudit),
                 emailSent: 1,
-                status: 2,
+                status: 3,
             };
 
             if (directDebitOptIn) {
@@ -681,52 +681,52 @@ export const OfferAccessPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto space-y-6">
                 {/* Header */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div className="flex justify-between items-start border-b border-gray-100 pb-4 mb-4">
+                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+                    <div className="flex justify-between items-start border-b border-border pb-4 mb-4">
                         <div className="flex items-center gap-3">
                             <img src={MainLogo} alt="GEE Energy" className="h-10 w-auto" />
-                            <h1 className="text-xl font-bold text-gray-900">Offer Summary</h1>
+                            <h1 className="text-xl font-bold text-foreground">Offer Summary</h1>
                         </div>
                         <div className="text-right">
-                            <div className="text-sm text-gray-500">Offer <span className="font-medium text-gray-900">#{customerData.customerId}</span></div>
-                            <div className="text-sm text-gray-400">{formatDate(customerData.createdAt)}</div>
+                            <div className="text-sm text-muted-foreground">Offer <span className="font-medium text-foreground">#{customerData.customerId}</span></div>
+                            <div className="text-sm text-muted-foreground">{formatDate(customerData.createdAt)}</div>
                         </div>
                     </div>
 
                     {/* Customer Info Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                         <div className="flex items-start gap-3">
-                            <UserIcon size={16} className="mt-1 text-gray-400" />
+                            <UserIcon size={16} className="mt-1 text-gray-400 dark:text-gray-500" />
                             <div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Name</div>
-                                <div className="text-sm font-medium text-gray-900">{customerData.firstName} {customerData.lastName}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Name</div>
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">{customerData.firstName} {customerData.lastName}</div>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
-                            <MailIcon size={16} className="mt-1 text-gray-400" />
+                            <MailIcon size={16} className="mt-1 text-gray-400 dark:text-gray-500" />
                             <div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Email</div>
-                                <div className="text-sm font-medium text-gray-900">{customerData.email || '—'}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Email</div>
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">{customerData.email || '—'}</div>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
-                            <MapPinIcon size={16} className="mt-1 text-gray-400" />
+                            <MapPinIcon size={16} className="mt-1 text-gray-400 dark:text-gray-500" />
                             <div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Address</div>
-                                <div className="text-sm font-medium text-gray-900">{customerData.address?.fullAddress || '—'}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Address</div>
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">{customerData.address?.fullAddress || '—'}</div>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
-                            <PhoneIcon size={16} className="mt-1 text-gray-400" />
+                            <PhoneIcon size={16} className="mt-1 text-gray-400 dark:text-gray-500" />
                             <div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">Phone</div>
-                                <div className="text-sm font-medium text-gray-900">
+                                <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Phone</div>
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">
                                     {customerData.number || '—'}
                                     {customerData.phoneVerifiedAt && (
-                                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-400">
                                             Verified
                                         </span>
                                     )}
@@ -734,90 +734,90 @@ export const OfferAccessPage = () => {
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
-                            <HashIcon size={16} className="mt-1 text-gray-400" />
+                            <HashIcon size={16} className="mt-1 text-gray-400 dark:text-gray-500" />
                             <div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">NMI</div>
-                                <div className="text-sm font-medium text-gray-900">{customerData.address?.nmi || '—'}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">NMI</div>
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">{customerData.address?.nmi || '—'}</div>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
-                            <MapPinIcon size={16} className="mt-1 text-gray-400" />
+                            <MapPinIcon size={16} className="mt-1 text-gray-400 dark:text-gray-500" />
                             <div>
-                                <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">State</div>
-                                <div className="text-sm font-medium text-gray-900">{customerData.address?.state || '—'}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">State</div>
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">{customerData.address?.state || '—'}</div>
                             </div>
                         </div>
                     </div>
 
                     {/* Additional Details */}
-                    <div className="mt-6 pt-4 border-t border-gray-100">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Customer Details</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-gray-50 rounded-lg p-4">
+                    <div className="mt-6 pt-4 border-t border-border">
+                        <h3 className="text-sm font-semibold text-foreground mb-3">Customer Details</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-muted/50 rounded-lg p-4">
                             <div>
-                                <div className="text-xs text-gray-500 mb-1">Property Type</div>
-                                <div className="text-sm font-medium">{customerData.propertyType === 1 ? 'Commercial' : 'Residential'}</div>
+                                <div className="text-xs text-muted-foreground mb-1">Property Type</div>
+                                <div className="text-sm font-medium text-foreground">{RATE_TYPE_MAP[customerData.propertyType] || 'Residential'}</div>
                             </div>
                             {customerData.propertyType === 1 && (
                                 <>
                                     <div>
-                                        <div className="text-xs text-gray-500 mb-1">Business Name</div>
-                                        <div className="text-sm font-medium">{customerData.businessName || '—'}</div>
+                                        <div className="text-xs text-muted-foreground mb-1">Business Name</div>
+                                        <div className="text-sm font-medium text-foreground">{customerData.businessName || '—'}</div>
                                     </div>
                                     <div>
-                                        <div className="text-xs text-gray-500 mb-1">ABN</div>
-                                        <div className="text-sm font-medium">{customerData.abn || '—'}</div>
+                                        <div className="text-xs text-muted-foreground mb-1">ABN</div>
+                                        <div className="text-sm font-medium text-foreground">{customerData.abn || '—'}</div>
                                     </div>
                                 </>
                             )}
                             <div>
-                                <div className="text-xs text-gray-500 mb-1">Date of Birth</div>
-                                <div className="text-sm font-medium">{customerData.dob ? formatDate(customerData.dob) : '—'}</div>
+                                <div className="text-xs text-muted-foreground mb-1">Date of Birth</div>
+                                <div className="text-sm font-medium text-foreground">{customerData.dob ? formatDate(customerData.dob) : '—'}</div>
                             </div>
                             <div>
-                                <div className="text-xs text-gray-500 mb-1">Discount</div>
-                                <div className="text-sm font-medium">{customerData.discount ? `${customerData.discount}%` : '0%'}</div>
+                                <div className="text-xs text-muted-foreground mb-1">Discount</div>
+                                <div className="text-sm font-medium text-foreground">{customerData.discount ? `${customerData.discount}%` : '0%'}</div>
                             </div>
                             <div>
-                                <div className="text-xs text-gray-500 mb-1">Rate Version</div>
-                                <div className="text-sm font-medium">{customerData.rateVersion || '—'}</div>
+                                <div className="text-xs text-muted-foreground mb-1">Rate Version</div>
+                                <div className="text-sm font-medium text-foreground">{customerData.rateVersion || '—'}</div>
                             </div>
                             <div>
-                                <div className="text-xs text-gray-500 mb-1">Sale Type</div>
-                                <div className="text-sm font-medium">{SALE_TYPE_LABELS[customerData.enrollmentDetails?.saletype ?? 0] || 'Direct'}</div>
+                                <div className="text-xs text-muted-foreground mb-1">Sale Type</div>
+                                <div className="text-sm font-medium text-foreground">{SALE_TYPE_LABELS[customerData.enrollmentDetails?.saletype ?? 0] || 'Direct'}</div>
                             </div>
                             <div>
-                                <div className="text-xs text-gray-500 mb-1">Connection Date</div>
-                                <div className="text-sm font-medium">{customerData.enrollmentDetails?.connectiondate ? formatDate(customerData.enrollmentDetails.connectiondate) : 'ASAP'}</div>
+                                <div className="text-xs text-muted-foreground mb-1">Connection Date</div>
+                                <div className="text-sm font-medium text-foreground">{customerData.enrollmentDetails?.connectiondate ? formatDate(customerData.enrollmentDetails.connectiondate) : 'ASAP'}</div>
                             </div>
                             <div>
-                                <div className="text-xs text-gray-500 mb-1">Billing Preference</div>
-                                <div className="text-sm font-medium">{customerData.enrollmentDetails?.billingpreference === 1 ? 'Email' : 'Post'}</div>
+                                <div className="text-xs text-muted-foreground mb-1">Billing Preference</div>
+                                <div className="text-sm font-medium text-foreground">{BILLING_PREF_LABELS[customerData.enrollmentDetails?.billingpreference ?? 0] || 'Email'}</div>
                             </div>
                             <div>
-                                <div className="text-xs text-gray-500 mb-1">Concession</div>
-                                <div className="text-sm font-medium">{customerData.enrollmentDetails?.concession === 1 ? 'Yes' : 'No'}</div>
+                                <div className="text-xs text-muted-foreground mb-1">Concession</div>
+                                <div className="text-sm font-medium text-foreground">{customerData.enrollmentDetails?.concession === 1 ? 'Yes' : 'No'}</div>
                             </div>
                             <div>
-                                <div className="text-xs text-gray-500 mb-1">Life Support</div>
-                                <div className="text-sm font-medium">{customerData.enrollmentDetails?.lifesupport === 1 ? 'Yes' : 'No'}</div>
+                                <div className="text-xs text-muted-foreground mb-1">Life Support</div>
+                                <div className="text-sm font-medium text-foreground">{customerData.enrollmentDetails?.lifesupport === 1 ? 'Yes' : 'No'}</div>
                             </div>
                         </div>
 
                         {/* VPP Details */}
                         <div className="mt-4">
-                            <h4 className="text-xs text-gray-500 mb-2 font-medium uppercase">VPP Details</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 rounded-lg p-4">
+                            <h4 className="text-xs text-muted-foreground mb-2 font-medium uppercase">VPP Details</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-muted/50 rounded-lg p-4">
                                 <div>
-                                    <div className="text-xs text-gray-500 mb-1">VPP Active</div>
-                                    <div className="text-sm font-medium">{customerData.vppDetails?.vpp === 1 ? 'Yes' : 'No'}</div>
+                                    <div className="text-xs text-muted-foreground mb-1">VPP Active</div>
+                                    <div className="text-sm font-medium text-foreground">{customerData.vppDetails?.vpp === 1 ? 'Yes' : 'No'}</div>
                                 </div>
                                 <div>
-                                    <div className="text-xs text-gray-500 mb-1">VPP Connected</div>
-                                    <div className="text-sm font-medium">{customerData.vppDetails?.vppConnected === 1 ? 'Yes' : 'No'}</div>
+                                    <div className="text-xs text-muted-foreground mb-1">VPP Connected</div>
+                                    <div className="text-sm font-medium text-foreground">{customerData.vppDetails?.vppConnected === 1 ? 'Yes' : 'No'}</div>
                                 </div>
                                 <div>
-                                    <div className="text-xs text-gray-500 mb-1">Signup Bonus</div>
-                                    <div className="text-sm font-medium">
+                                    <div className="text-xs text-muted-foreground mb-1">Signup Bonus</div>
+                                    <div className="text-sm font-medium text-foreground">
                                         {customerData.vppDetails?.vppSignupBonus
                                             ? '$50 monthly bill credit for 12 months (total $600)'
                                             : '—'}
@@ -828,59 +828,59 @@ export const OfferAccessPage = () => {
 
                         {/* MSAT Details */}
                         <div className="mt-4">
-                            <h4 className="text-xs text-gray-500 mb-2 font-medium uppercase">MSAT Details</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 rounded-lg p-4">
+                            <h4 className="text-xs text-muted-foreground mb-2 font-medium uppercase">MSAT Details</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-muted/50 rounded-lg p-4">
                                 <div>
-                                    <div className="text-xs text-gray-500 mb-1">MSAT Connected</div>
-                                    <div className="text-sm font-medium">{customerData.msatDetails?.msatConnected === 1 ? 'Yes' : 'No'}</div>
+                                    <div className="text-xs text-muted-foreground mb-1">MSAT Connected</div>
+                                    <div className="text-sm font-medium text-foreground">{customerData.msatDetails?.msatConnected === 1 ? 'Yes' : 'No'}</div>
                                 </div>
                                 <div>
-                                    <div className="text-xs text-gray-500 mb-1">Connected At</div>
-                                    <div className="text-sm font-medium">{customerData.msatDetails?.msatConnectedAt ? formatDateTime(customerData.msatDetails.msatConnectedAt) : '—'}</div>
+                                    <div className="text-xs text-muted-foreground mb-1">Connected At</div>
+                                    <div className="text-sm font-medium text-foreground">{customerData.msatDetails?.msatConnectedAt ? formatDateTime(customerData.msatDetails.msatConnectedAt) : '—'}</div>
                                 </div>
                                 <div>
-                                    <div className="text-xs text-gray-500 mb-1">Updated At</div>
-                                    <div className="text-sm font-medium">{customerData.msatDetails?.msatUpdatedAt ? formatDateTime(customerData.msatDetails.msatUpdatedAt) : '—'}</div>
+                                    <div className="text-xs text-muted-foreground mb-1">Updated At</div>
+                                    <div className="text-sm font-medium text-foreground">{customerData.msatDetails?.msatUpdatedAt ? formatDateTime(customerData.msatDetails.msatUpdatedAt) : '—'}</div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Solar System */}
                         <div className="mt-4">
-                            <h4 className="text-xs text-gray-500 mb-2 font-medium uppercase">Solar System</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 rounded-lg p-4">
+                            <h4 className="text-xs text-muted-foreground mb-2 font-medium uppercase">Solar System</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-muted/50 rounded-lg p-4">
                                 <div>
-                                    <div className="text-xs text-gray-500 mb-1">Has Solar</div>
-                                    <div className="text-sm font-medium">{customerData.solarDetails?.hassolar === 1 ? 'Yes' : 'No'}</div>
+                                    <div className="text-xs text-muted-foreground mb-1">Has Solar</div>
+                                    <div className="text-sm font-medium text-foreground">{customerData.solarDetails?.hassolar === 1 ? 'Yes' : 'No'}</div>
                                 </div>
                                 <div>
-                                    <div className="text-xs text-gray-500 mb-1">Solar Capacity</div>
-                                    <div className="text-sm font-medium">{customerData.solarDetails?.solarcapacity ? `${customerData.solarDetails.solarcapacity} kW` : '—'}</div>
+                                    <div className="text-xs text-muted-foreground mb-1">Solar Capacity</div>
+                                    <div className="text-sm font-medium text-foreground">{customerData.solarDetails?.solarcapacity ? `${customerData.solarDetails.solarcapacity} kW` : '—'}</div>
                                 </div>
                                 <div>
-                                    <div className="text-xs text-gray-500 mb-1">Inverter Capacity</div>
-                                    <div className="text-sm font-medium">{customerData.solarDetails?.invertercapacity ? `${customerData.solarDetails.invertercapacity} kW` : '—'}</div>
+                                    <div className="text-xs text-muted-foreground mb-1">Inverter Capacity</div>
+                                    <div className="text-sm font-medium text-foreground">{customerData.solarDetails?.invertercapacity ? `${customerData.solarDetails.invertercapacity} kW` : '—'}</div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Identification */}
                         <div className="mt-4">
-                            <h4 className="text-xs text-gray-500 mb-2 font-medium uppercase">Identification</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 rounded-lg p-4">
+                            <h4 className="text-xs text-muted-foreground mb-2 font-medium uppercase">Identification</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-muted/50 rounded-lg p-4">
                                 <div>
-                                    <div className="text-xs text-gray-500 mb-1">ID Type & Number</div>
-                                    <div className="text-sm font-medium">
+                                    <div className="text-xs text-muted-foreground mb-1">ID Type & Number</div>
+                                    <div className="text-sm font-medium text-foreground">
                                         {ID_TYPE_MAP[customerData.enrollmentDetails?.idtype as number] || 'ID'} {customerData.enrollmentDetails?.idnumber || '—'}
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-xs text-gray-500 mb-1">ID State</div>
-                                    <div className="text-sm font-medium">{customerData.enrollmentDetails?.idstate || '—'}</div>
+                                    <div className="text-xs text-muted-foreground mb-1">ID State</div>
+                                    <div className="text-sm font-medium text-foreground">{customerData.enrollmentDetails?.idstate || '—'}</div>
                                 </div>
                                 <div>
-                                    <div className="text-xs text-gray-500 mb-1">ID Expiry</div>
-                                    <div className="text-sm font-medium">{customerData.enrollmentDetails?.idexpiry ? formatDate(customerData.enrollmentDetails.idexpiry) : '—'}</div>
+                                    <div className="text-xs text-muted-foreground mb-1">ID Expiry</div>
+                                    <div className="text-sm font-medium text-foreground">{customerData.enrollmentDetails?.idexpiry ? formatDate(customerData.enrollmentDetails.idexpiry) : '—'}</div>
                                 </div>
                             </div>
                         </div>
@@ -888,14 +888,14 @@ export const OfferAccessPage = () => {
                 </div>
 
                 {/* Plan & Rates Card - Matching CustomerFormPage.tsx style */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                     <div className="flex justify-between items-start mb-6">
                         <div>
-                            <h3 className="text-base font-bold text-gray-900">Your Energy Rates</h3>
-                            <p className="text-xs text-gray-500">Tariff: {customerData.tariffCode || customerData.ratePlan?.tariff || '—'}</p>
+                            <h3 className="text-base font-bold text-foreground">Your Energy Rates</h3>
+                            <p className="text-xs text-muted-foreground">Tariff: {customerData.tariffCode || customerData.ratePlan?.tariff || '—'}</p>
                         </div>
                         {customerData.discount > 0 && (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400">
                                 {customerData.discount}% Discount Applied
                             </span>
                         )}
@@ -904,33 +904,33 @@ export const OfferAccessPage = () => {
                     <div className={`grid grid-cols-1 ${activeOffer.fit > 0 && (activeOffer.cl1Usage > 0 || activeOffer.cl2Usage > 0) ? 'md:grid-cols-4' : (activeOffer.fit > 0 || activeOffer.cl1Usage > 0 || activeOffer.cl2Usage > 0 ? 'md:grid-cols-3' : 'md:grid-cols-2')} gap-6`}>
                         {/* Energy Rates Column */}
                         <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-blue-600">
+                            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
                                 <RatesIcon size={16} />
                                 <h4 className="text-sm font-bold uppercase tracking-wide">Energy Rates</h4>
                             </div>
                             <div className="space-y-2">
                                 {activeOffer.peak > 0 && (
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                                        <div className="text-blue-600 font-bold text-base">${calculateDiscountedRate(activeOffer.peak, customerData.discount ?? 0).toFixed(4)}/kWh</div>
-                                        <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider opacity-80">Peak</div>
+                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
+                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base">${calculateDiscountedRate(activeOffer.peak, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Peak</div>
                                     </div>
                                 )}
                                 {activeOffer.offPeak > 0 && (
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                                        <div className="text-blue-600 font-bold text-base">${calculateDiscountedRate(activeOffer.offPeak, customerData.discount ?? 0).toFixed(4)}/kWh</div>
-                                        <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider opacity-80">Off-Peak</div>
+                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
+                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base">${calculateDiscountedRate(activeOffer.offPeak, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Off-Peak</div>
                                     </div>
                                 )}
                                 {activeOffer.shoulder > 0 && (
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                                        <div className="text-blue-600 font-bold text-base">${calculateDiscountedRate(activeOffer.shoulder, customerData.discount ?? 0).toFixed(4)}/kWh</div>
-                                        <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider opacity-80">Shoulder</div>
+                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
+                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base">${calculateDiscountedRate(activeOffer.shoulder, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Shoulder</div>
                                     </div>
                                 )}
                                 {activeOffer.anytime > 0 && (
-                                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
-                                        <div className="text-orange-600 font-bold text-base">${calculateDiscountedRate(activeOffer.anytime, customerData.discount ?? 0).toFixed(4)}/kWh</div>
-                                        <div className="text-[10px] font-bold text-orange-600 uppercase tracking-wider opacity-80">Anytime</div>
+                                    <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg p-3 text-center">
+                                        <div className="text-orange-600 dark:text-orange-400 font-bold text-base">${calculateDiscountedRate(activeOffer.anytime, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                        <div className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider opacity-80">Anytime</div>
                                     </div>
                                 )}
                             </div>
@@ -938,27 +938,27 @@ export const OfferAccessPage = () => {
 
                         {/* Supply Charges Column */}
                         <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-purple-600">
+                            <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
                                 <PlugIcon size={16} />
                                 <h4 className="text-sm font-bold uppercase tracking-wide">Supply Charges</h4>
                             </div>
                             <div className="space-y-2">
                                 {activeOffer.supplyCharge > 0 && (
-                                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
-                                        <div className="text-purple-600 font-bold text-base">${activeOffer.supplyCharge.toFixed(4)}/day</div>
-                                        <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wider opacity-80">Supply</div>
+                                    <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center">
+                                        <div className="text-purple-600 dark:text-purple-400 font-bold text-base">${activeOffer.supplyCharge.toFixed(4)}/day</div>
+                                        <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">Supply</div>
                                     </div>
                                 )}
                                 {activeOffer.cl1Supply > 0 && (
-                                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
-                                        <div className="text-purple-600 font-bold text-base">${activeOffer.cl1Supply.toFixed(4)}/day</div>
-                                        <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wider opacity-80">CL1 Supply</div>
+                                    <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center">
+                                        <div className="text-purple-600 dark:text-purple-400 font-bold text-base">${activeOffer.cl1Supply.toFixed(4)}/day</div>
+                                        <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">CL1 Supply</div>
                                     </div>
                                 )}
                                 {activeOffer.cl2Supply > 0 && (
-                                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
-                                        <div className="text-purple-600 font-bold text-base">${activeOffer.cl2Supply.toFixed(4)}/day</div>
-                                        <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wider opacity-80">CL2 Supply</div>
+                                    <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center">
+                                        <div className="text-purple-600 dark:text-purple-400 font-bold text-base">${activeOffer.cl2Supply.toFixed(4)}/day</div>
+                                        <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">CL2 Supply</div>
                                     </div>
                                 )}
                             </div>
@@ -967,14 +967,14 @@ export const OfferAccessPage = () => {
                         {/* Solar FiT Column */}
                         {activeOffer.fit > 0 && (
                             <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-green-600">
+                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                                     <ZapIcon size={16} />
                                     <h4 className="text-sm font-bold uppercase tracking-wide">Solar FiT</h4>
                                 </div>
                                 <div className="space-y-2">
-                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                                        <div className="text-green-600 font-bold text-base">${activeOffer.fit.toFixed(4)}/kWh</div>
-                                        <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider opacity-80">Feed-in</div>
+                                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
+                                        <div className="text-green-600 dark:text-green-400 font-bold text-base">${activeOffer.fit.toFixed(4)}/kWh</div>
+                                        <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">Feed-in</div>
                                     </div>
                                 </div>
                             </div>
@@ -983,21 +983,21 @@ export const OfferAccessPage = () => {
                         {/* Controlled Load Column */}
                         {(activeOffer.cl1Usage > 0 || activeOffer.cl2Usage > 0) && (
                             <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-green-600">
+                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                                     <PlugIcon size={16} />
                                     <h4 className="text-sm font-bold uppercase tracking-wide">Controlled Load</h4>
                                 </div>
                                 <div className="space-y-2">
                                     {activeOffer.cl1Usage > 0 && (
-                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                                            <div className="text-green-600 font-bold text-base">${calculateDiscountedRate(activeOffer.cl1Usage, customerData.discount ?? 0).toFixed(4)}/kWh</div>
-                                            <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider opacity-80">CL1 Usage</div>
+                                        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
+                                            <div className="text-green-600 dark:text-green-400 font-bold text-base">${calculateDiscountedRate(activeOffer.cl1Usage, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                            <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL1 Usage</div>
                                         </div>
                                     )}
                                     {activeOffer.cl2Usage > 0 && (
-                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                                            <div className="text-green-600 font-bold text-base">${calculateDiscountedRate(activeOffer.cl2Usage, customerData.discount ?? 0).toFixed(4)}/kWh</div>
-                                            <div className="text-[10px] font-bold text-green-600 uppercase tracking-wider opacity-80">CL2 Usage</div>
+                                        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
+                                            <div className="text-green-600 dark:text-green-400 font-bold text-base">${calculateDiscountedRate(activeOffer.cl2Usage, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                            <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL2 Usage</div>
                                         </div>
                                     )}
                                 </div>
@@ -1007,23 +1007,23 @@ export const OfferAccessPage = () => {
                 </div>
 
                 {/* Direct Debit Card */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                     <div className="flex items-start gap-4">
-                        <div className="mt-1 text-gray-400"><CreditCardIcon size={20} /></div>
+                        <div className="mt-1 text-muted-foreground"><CreditCardIcon size={20} /></div>
                         <div className="flex-1">
                             <div className="flex justify-between items-start mb-2">
                                 <div>
-                                    <h3 className="text-sm font-semibold text-gray-900">Direct debit details</h3>
-                                    <p className="text-xs text-gray-500 mb-3">Tick to opt-in and securely share your bank details.</p>
+                                    <h3 className="text-sm font-semibold text-foreground">Direct debit details</h3>
+                                    <p className="text-xs text-muted-foreground mb-3">Tick to opt-in and securely share your bank details.</p>
                                 </div>
                                 <label className="flex items-center gap-2 cursor-pointer select-none">
                                     <input
                                         type="checkbox"
                                         checked={directDebitOptIn}
                                         onChange={(e) => setDirectDebitOptIn(e.target.checked)}
-                                        className="rounded border-gray-300 text-neutral-900 focus:ring-neutral-900"
+                                        className="rounded border-input text-neutral-900 focus:ring-neutral-900"
                                     />
-                                    <span className="text-sm font-medium text-gray-700">Opt in</span>
+                                    <span className="text-sm font-medium text-foreground">Opt in</span>
                                 </label>
                             </div>
 
@@ -1032,7 +1032,7 @@ export const OfferAccessPage = () => {
                                 <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-700 mb-1.5">Account type</label>
+                                            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Account type</label>
                                             <div className="flex gap-4">
                                                 <label className="flex items-center gap-2 cursor-pointer">
                                                     <input
@@ -1041,9 +1041,9 @@ export const OfferAccessPage = () => {
                                                         value="business"
                                                         checked={ddDetails.accountType === 'business'}
                                                         onChange={() => setDdDetails({ ...ddDetails, accountType: 'business' })}
-                                                        className="text-neutral-900 focus:ring-neutral-900 border-gray-300"
+                                                        className="text-neutral-900 focus:ring-neutral-900 border-input"
                                                     />
-                                                    <span className="text-sm text-gray-600">Business account</span>
+                                                    <span className="text-sm text-muted-foreground">Business account</span>
                                                 </label>
                                                 <label className="flex items-center gap-2 cursor-pointer">
                                                     <input
@@ -1052,9 +1052,9 @@ export const OfferAccessPage = () => {
                                                         value="personal"
                                                         checked={ddDetails.accountType === 'personal'}
                                                         onChange={() => setDdDetails({ ...ddDetails, accountType: 'personal' })}
-                                                        className="text-neutral-900 focus:ring-neutral-900 border-gray-300"
+                                                        className="text-neutral-900 focus:ring-neutral-900 border-input"
                                                     />
-                                                    <span className="text-sm text-gray-600">Personal account</span>
+                                                    <span className="text-sm text-muted-foreground">Personal account</span>
                                                 </label>
                                             </div>
                                         </div>
@@ -1063,46 +1063,46 @@ export const OfferAccessPage = () => {
                                             {ddDetails.accountType === 'business' ? (
                                                 <>
                                                     <div>
-                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Company name</label>
+                                                        <label className="block text-xs font-medium text-muted-foreground mb-1">Company name</label>
                                                         <input
                                                             type="text"
                                                             placeholder="Business legal name"
                                                             value={ddDetails.companyName}
                                                             onChange={(e) => setDdDetails({ ...ddDetails, companyName: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors"
+                                                            className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-xs font-medium text-gray-700 mb-1">ABN / Contact first name</label>
+                                                        <label className="block text-xs font-medium text-muted-foreground mb-1">ABN / Contact first name</label>
                                                         <input
                                                             type="text"
                                                             placeholder="ABN or contact name"
                                                             value={ddDetails.abnOrContactName}
                                                             onChange={(e) => setDdDetails({ ...ddDetails, abnOrContactName: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors"
+                                                            className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
                                                         />
                                                     </div>
                                                 </>
                                             ) : (
                                                 <>
                                                     <div>
-                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Last name</label>
+                                                        <label className="block text-xs font-medium text-muted-foreground mb-1">Last name</label>
                                                         <input
                                                             type="text"
                                                             placeholder="Surname"
                                                             value={ddDetails.lastName}
                                                             onChange={(e) => setDdDetails({ ...ddDetails, lastName: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors"
+                                                            className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-xs font-medium text-gray-700 mb-1">First name</label>
+                                                        <label className="block text-xs font-medium text-muted-foreground mb-1">First name</label>
                                                         <input
                                                             type="text"
                                                             placeholder="Given name"
                                                             value={ddDetails.firstName}
                                                             onChange={(e) => setDdDetails({ ...ddDetails, firstName: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors"
+                                                            className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
                                                         />
                                                     </div>
                                                 </>
@@ -1111,7 +1111,7 @@ export const OfferAccessPage = () => {
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">Bank name</label>
+                                                <label className="block text-xs font-medium text-muted-foreground mb-1">Bank name</label>
                                                 <BankAutocomplete
                                                     value={ddDetails.bankName}
                                                     onChange={(value) => setDdDetails({ ...ddDetails, bankName: value })}
@@ -1119,7 +1119,7 @@ export const OfferAccessPage = () => {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">Bank address</label>
+                                                <label className="block text-xs font-medium text-muted-foreground mb-1">Bank address</label>
                                                 <LocationAutocomplete
                                                     value={ddDetails.bankAddress}
                                                     onChange={(text) => setDdDetails({ ...ddDetails, bankAddress: text })}
@@ -1131,36 +1131,36 @@ export const OfferAccessPage = () => {
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">BSB</label>
+                                                <label className="block text-xs font-medium text-muted-foreground mb-1">BSB</label>
                                                 <input
                                                     type="text"
                                                     placeholder="063-000"
                                                     value={ddDetails.bsb}
                                                     onChange={(e) => setDdDetails({ ...ddDetails, bsb: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors"
+                                                    className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
                                                 />
-                                                <p className="text-[10px] text-gray-400 mt-1">6 digits, formatted as 123-456.</p>
+                                                <p className="text-[10px] text-muted-foreground mt-1">6 digits, formatted as 123-456.</p>
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">Account number</label>
+                                                <label className="block text-xs font-medium text-muted-foreground mb-1">Account number</label>
                                                 <input
                                                     type="text"
                                                     placeholder="1234 5678 9012"
                                                     value={ddDetails.accountNumber}
                                                     onChange={(e) => setDdDetails({ ...ddDetails, accountNumber: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors"
+                                                    className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
                                                 />
-                                                <p className="text-[10px] text-gray-400 mt-1">3-12 digits allowed.</p>
+                                                <p className="text-[10px] text-muted-foreground mt-1">3-12 digits allowed.</p>
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">Payment frequency</label>
+                                                <label className="block text-xs font-medium text-muted-foreground mb-1">Payment frequency</label>
                                                 <select
                                                     value={ddDetails.paymentFrequency}
                                                     onChange={(e) => setDdDetails({ ...ddDetails, paymentFrequency: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-white"
+                                                    className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground"
                                                 >
                                                     <option>Weekly</option>
                                                     <option>Fortnightly</option>
@@ -1170,12 +1170,12 @@ export const OfferAccessPage = () => {
                                                 </select>
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">First debit date</label>
+                                                <label className="block text-xs font-medium text-muted-foreground mb-1">First debit date</label>
                                                 <input
                                                     type="date"
                                                     value={ddDetails.firstDebitDate}
                                                     onChange={(e) => setDdDetails({ ...ddDetails, firstDebitDate: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors"
+                                                    className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground"
                                                 />
                                             </div>
                                         </div>
@@ -1188,14 +1188,14 @@ export const OfferAccessPage = () => {
 
                 {/* Verification Card - Conditionally Rendered */}
                 {!customerData.phoneVerifiedAt && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                         <div className="flex items-start gap-4">
-                            <div className="mt-1 text-gray-400">
+                            <div className="mt-1 text-muted-foreground">
                                 {mobileVerification.verified ? <CheckIcon size={20} className="text-green-500" /> : <CheckIcon size={20} />}
                             </div>
                             <div className="w-full">
-                                <h3 className="text-sm font-semibold text-gray-900">Verify your mobile number</h3>
-                                <p className="text-xs text-gray-500 mb-4">Verify your mobile number to sign this initial offer.</p>
+                                <h3 className="text-sm font-semibold text-foreground">Verify your mobile number</h3>
+                                <p className="text-xs text-muted-foreground mb-4">Verify your mobile number to sign this initial offer.</p>
 
                                 {!mobileVerification.verified ? (
                                     <>
@@ -1203,7 +1203,10 @@ export const OfferAccessPage = () => {
                                             <Button
                                                 onClick={handleSendCode}
                                                 disabled={mobileVerification.sent && mobileVerification.code.length < 6}
-                                                className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm text-xs h-9"
+                                                className={`px-3 py-2 rounded-xl text-sm border flex items-center gap-2 h-9 ${mobileVerification.sent && mobileVerification.code.length < 6
+                                                        ? 'border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 opacity-60 cursor-not-allowed'
+                                                        : 'border-primary bg-primary/10 dark:bg-primary/20 text-primary hover:bg-primary/20 dark:hover:bg-primary/30'
+                                                    }`}
                                             >
                                                 {mobileVerification.sent ? 'Resend code' : 'Send code'}
                                             </Button>
@@ -1217,7 +1220,7 @@ export const OfferAccessPage = () => {
                                                     onChange={(e) => setMobileVerification({ ...mobileVerification, code: e.target.value })}
                                                     placeholder="Verification code"
                                                     maxLength={6}
-                                                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-neutral-900 transition-colors"
+                                                    className="flex-1 px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
                                                 />
                                                 <Button
                                                     onClick={handleVerifyMobile}
@@ -1228,7 +1231,7 @@ export const OfferAccessPage = () => {
                                                 </Button>
                                             </div>
                                         )}
-                                        <p className="text-[10px] text-gray-400 mt-2">We will send a 6 digit code to {customerData.number}</p>
+                                        <p className="text-[10px] text-muted-foreground mt-2">We will send a 6 digit code to {customerData.number}</p>
                                     </>
                                 ) : (
                                     <div className="mt-2 text-sm text-green-600 font-medium flex items-center gap-2">
@@ -1255,7 +1258,7 @@ export const OfferAccessPage = () => {
                             onClick={() => setShowModal(true)}
                             className={`px-8 transition-all ${canSign
                                 ? 'bg-green-600 hover:bg-green-700 text-white shadow-md cursor-pointer'
-                                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'bg-muted text-muted-foreground cursor-not-allowed'
                                 }`}
                         >
                             Sign

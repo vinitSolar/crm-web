@@ -237,21 +237,21 @@ export default function LocationAutocomplete({
             <ul
                 ref={node => { dropdownRef.current = node; }}
                 role="listbox"
-                className={`${zIndexClass} bg-white border rounded-xl shadow-xl max-h-72 overflow-auto`}
+                className={`${zIndexClass} bg-white dark:bg-neutral-900 text-foreground border border-border rounded-xl shadow-xl max-h-72 overflow-auto`}
                 style={{ position: 'absolute', top: dropdownRect.top, left: dropdownRect.left, width: dropdownRect.width }}
             >
                 {loading && (
-                    <li className="px-3 py-2 text-sm text-neutral-500">Searching…</li>
+                    <li className="px-3 py-2 text-sm text-muted-foreground">Searching…</li>
                 )}
                 {!loading && options.length === 0 && (
-                    <li className="px-3 py-2 text-sm text-neutral-500">No matches</li>
+                    <li className="px-3 py-2 text-sm text-muted-foreground">No matches</li>
                 )}
                 {options.map((opt, idx) => (
                     <li
                         key={opt.place_id}
                         role="option"
                         aria-selected={idx === activeIndex}
-                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-neutral-50 ${idx === activeIndex ? 'bg-neutral-100' : ''}`}
+                        className={`px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground ${idx === activeIndex ? 'bg-accent text-accent-foreground' : ''}`}
                         onMouseEnter={() => setActiveIndex(idx)}
                         onMouseDown={(e) => e.preventDefault()} // prevent input blur before click
                         onClick={() => selectPlaceId(opt)}

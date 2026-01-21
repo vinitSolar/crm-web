@@ -134,8 +134,8 @@ export function EmailSendPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-foreground">Email Configuration</h1>
-                    <p className="text-muted-foreground">Configure automated email triggers and assign templates</p>
+                    <h1 className="text-2xl font-bold text-foreground dark:text-white">Email Configuration</h1>
+                    <p className="text-muted-foreground dark:text-gray-400">Configure automated email triggers and assign templates</p>
                 </div>
                 <Button
                     variant="outline"
@@ -148,7 +148,7 @@ export function EmailSendPage() {
             </div>
 
             {/* Main Content Card */}
-            <div className="p-5 bg-background rounded-lg border border-border shadow-sm">
+            <div className="p-5 bg-background dark:bg-card rounded-lg border border-border dark:border-border shadow-sm">
                 {isLoading ? (
                     <div className="flex items-center justify-center py-12">
                         <div className="flex flex-col items-center gap-3">
@@ -166,7 +166,7 @@ export function EmailSendPage() {
                                 <div
                                     key={event.type}
                                     className={cn(
-                                        index !== automatedEvents.length - 1 && "border-b border-border pb-6"
+                                        index !== automatedEvents.length - 1 && "border-b border-border dark:border-border pb-6"
                                     )}
                                 >
                                     <div className={cn(
@@ -176,23 +176,23 @@ export function EmailSendPage() {
                                         {/* Event Header */}
                                         <div className="flex items-start justify-between">
                                             <div>
-                                                <h3 className="font-semibold text-foreground">{event.label}</h3>
-                                                <p className="text-sm text-muted-foreground">{event.description}</p>
+                                                <h3 className="font-semibold text-foreground dark:text-white">{event.label}</h3>
+                                                <p className="text-sm text-muted-foreground dark:text-gray-400">{event.description}</p>
                                             </div>
                                             <Button
-                                                variant="ghost"
+                                                variant="outline"
                                                 size="sm"
                                                 onClick={() => handleViewTemplate(currentTemplateUid, event.type)}
-                                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                className="h-8 w-8 p-0 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-blue-200 dark:border-blue-900/50"
+                                                title="Preview Template"
                                             >
-                                                <EyeIcon size={14} className="mr-1.5" />
-                                                Preview
+                                                <EyeIcon size={16} />
                                             </Button>
                                         </div>
 
                                         {/* Template Selector Row */}
                                         <div className="flex items-center gap-4">
-                                            <span className="text-sm text-muted-foreground w-20">Template:</span>
+                                            <span className="text-sm text-muted-foreground dark:text-gray-400 w-20">Template:</span>
                                             <div className="w-[300px]">
                                                 <Select
                                                     options={getTemplateOptions()}
@@ -205,8 +205,8 @@ export function EmailSendPage() {
                                             <span className={cn(
                                                 "text-xs px-2 py-1 rounded font-medium",
                                                 currentTemplateUid === 'DEFAULT'
-                                                    ? "bg-gray-100 text-gray-600"
-                                                    : "bg-green-100 text-green-700"
+                                                    ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+                                                    : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
                                             )}>
                                                 {currentTemplateUid === 'DEFAULT' ? 'System Default' : 'Custom Template'}
                                             </span>
@@ -215,12 +215,12 @@ export function EmailSendPage() {
                                         {/* Attachments */}
                                         {event.attachments && event.attachments.length > 0 && (
                                             <div className="flex items-start gap-4">
-                                                <span className="text-sm text-muted-foreground w-20">Attachments:</span>
+                                                <span className="text-sm text-muted-foreground dark:text-gray-400 w-20">Attachments:</span>
                                                 <div className="flex flex-wrap gap-2">
                                                     {event.attachments.map((file, idx) => (
                                                         <span
                                                             key={idx}
-                                                            className="inline-flex items-center px-2 py-1 rounded text-xs bg-slate-100 text-slate-700 border border-slate-200"
+                                                            className="inline-flex items-center px-2 py-1 rounded text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                                                         >
                                                             <FileTextIcon size={12} className="mr-1 text-blue-500" />
                                                             {file}
@@ -250,28 +250,28 @@ export function EmailSendPage() {
                 }
             >
                 {previewTemplate ? (
-                    <div className="flex flex-col rounded-lg overflow-hidden border border-gray-200 bg-white min-h-[400px]">
+                    <div className="flex flex-col rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 min-h-[400px]">
                         {/* Email Header */}
-                        <div className="border-b border-gray-200 bg-gray-50">
+                        <div className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
                             <div className="flex items-center px-4 py-3">
-                                <span className="text-sm text-gray-500 w-20">Subject</span>
-                                <div className="flex-1 text-sm text-gray-800 font-medium">
+                                <span className="text-sm text-gray-500 dark:text-gray-400 w-20">Subject</span>
+                                <div className="flex-1 text-sm text-gray-800 dark:text-gray-200 font-medium">
                                     {previewTemplate.subject || '(No subject)'}
                                 </div>
                             </div>
                         </div>
 
                         {/* Email Body */}
-                        <div className="flex-1 overflow-y-auto p-6 bg-white">
+                        <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-gray-950">
                             {previewTemplate.body ? (
                                 <div
-                                    className="prose prose-sm max-w-none"
+                                    className="prose dark:prose-invert prose-sm max-w-none"
                                     dangerouslySetInnerHTML={{ __html: previewTemplate.body }}
                                 />
                             ) : (
-                                <div className="flex items-center justify-center h-full text-gray-400">
+                                <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
                                     <div className="text-center">
-                                        <MailIcon size={32} className="mx-auto mb-2 text-gray-300" />
+                                        <MailIcon size={32} className="mx-auto mb-2 text-gray-300 dark:text-gray-600" />
                                         <p className="text-sm">No email body available</p>
                                     </div>
                                 </div>

@@ -566,7 +566,7 @@ export function RatesPage() {
                         canDelete && (
                             <Tooltip content="Restore Rate">
                                 <button
-                                    className="p-2 border border-green-200 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 transition-colors"
+                                    className="p-2 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
                                     onClick={() => handleRestoreClick(row)}
                                 >
                                     <RefreshCwIcon size={16} />
@@ -578,7 +578,7 @@ export function RatesPage() {
                             {canEdit && (
                                 <Tooltip content="Edit Rate">
                                     <button
-                                        className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
+                                        className="p-2 border border-border rounded-lg bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                                         onClick={() => handleEditRate(row)}
                                     >
                                         <PencilIcon size={16} />
@@ -588,7 +588,7 @@ export function RatesPage() {
                             {canDelete && (
                                 <Tooltip content="Delete Rate">
                                     <button
-                                        className="p-2 border border-red-200 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 transition-colors"
+                                        className="p-2 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
                                         onClick={() => handleDeleteClick(row)}
                                     >
                                         <TrashIcon size={16} />
@@ -643,7 +643,7 @@ export function RatesPage() {
                     <Tooltip content={codesChanged ? `Old: ${getOldValue(row, 'codes')}` : null}>
                         <div className={`flex flex-wrap gap-1 ${codesChanged ? 'bg-orange-300 dark:bg-orange-700/50 -m-2 p-2 rounded ring-1 ring-orange-400' : ''}`}>
                             {codes.map((code, idx) => (
-                                <span key={idx} className={`text-xs px-2 py-0.5 rounded ${codesChanged ? 'bg-orange-800 text-orange-950 font-bold' : 'bg-gray-100 text-gray-900 dark:bg-zinc-800 dark:text-zinc-300'}`}>
+                                <span key={idx} className={`text-xs px-2 py-0.5 rounded ${codesChanged ? 'bg-orange-800 text-orange-950 dark:bg-orange-500/50 dark:text-orange-100 font-bold' : 'bg-gray-100 text-gray-900 dark:bg-zinc-700 dark:text-zinc-100'}`}>
                                     {code}
                                 </span>
                             )) || '-'}
@@ -1044,7 +1044,7 @@ export function RatesPage() {
                     hasMore={hasMore}
                     isLoadingMore={isLoadingMore}
                     onLoadMore={handleLoadMore}
-                    rowClassName={(row: RatePlan) => changedRatePlanUids.has(row.uid) ? '[&>td]:!bg-orange-100 font-medium' : ''}
+                    rowClassName={(row: RatePlan) => changedRatePlanUids.has(row.uid) ? '[&>td]:!bg-orange-100 dark:[&>td]:!bg-orange-900/30 font-medium' : ''}
                 />
             </div>
 
@@ -1205,10 +1205,10 @@ export function RatesPage() {
                     </div>
 
                     {/* Anytime and Supply Charge */}
-                    <div className="p-4 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-900/10 dark:border-orange-900/30 space-y-4">
+                    <div className="p-4 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-900/50 dark:border-orange-800 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Anytime</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Anytime</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1218,7 +1218,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Supply Charge</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Supply Charge</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1232,7 +1232,7 @@ export function RatesPage() {
 
                     {/* VPP Orchestration */}
                     <div className="p-4 rounded-lg border border-border bg-muted/30 space-y-2">
-                        <label className="text-sm font-medium">VPP Orchestration</label>
+                        <label className="text-sm font-medium text-gray-900 dark:text-gray-100">VPP Orchestration</label>
                         <Input
                             type="number"
                             step="0.01"
@@ -1243,10 +1243,10 @@ export function RatesPage() {
                     </div>
 
                     {/* Peak, Shoulder, Off-Peak */}
-                    <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-900/10 dark:border-blue-900/30 space-y-4">
+                    <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-900/50 dark:border-blue-800 space-y-4">
                         <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Peak</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Peak</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1256,7 +1256,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Shoulder</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Shoulder</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1266,7 +1266,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Off-Peak</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Off-Peak</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1279,10 +1279,10 @@ export function RatesPage() {
                     </div>
 
                     {/* CL1/CL2 Supply/Usage */}
-                    <div className="p-4 rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-900/30 space-y-4">
+                    <div className="p-4 rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/50 dark:border-green-800 space-y-4">
                         <div className="grid grid-cols-4 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">CL1 Supply</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL1 Supply</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1292,7 +1292,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">CL1 Usage</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL1 Usage</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1302,7 +1302,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">CL2 Supply</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL2 Supply</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1312,7 +1312,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">CL2 Usage</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL2 Usage</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1325,10 +1325,10 @@ export function RatesPage() {
                     </div>
 
                     {/* Demand fields */}
-                    <div className="p-4 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-900/30 space-y-4">
+                    <div className="p-4 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/50 dark:border-red-800 space-y-4">
                         <div className="grid grid-cols-4 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Demand</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1338,7 +1338,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Demand (OP)</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand (OP)</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1348,7 +1348,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Demand (P)</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand (P)</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1358,7 +1358,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Demand (S)</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand (S)</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1371,10 +1371,10 @@ export function RatesPage() {
                     </div>
 
                     {/* FIT fields */}
-                    <div className="p-4 rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-900/30 space-y-4">
+                    <div className="p-4 rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/50 dark:border-green-800 space-y-4">
                         <div className="grid grid-cols-4 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">FIT</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1384,7 +1384,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">FIT-VPP</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-VPP</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1394,7 +1394,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">FIT-Peak</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-Peak</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1404,7 +1404,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">FIT-Critical</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-Critical</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1456,7 +1456,7 @@ export function RatesPage() {
                     {/* Row 1: Code, Tariff Code */}
                     <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Code <span className="text-red-500">*</span></label>
+                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Code <span className="text-red-500">*</span></label>
                             <Input
                                 placeholder="E.g. N73"
                                 value={formData.codes}
@@ -1469,7 +1469,7 @@ export function RatesPage() {
                             {formErrors.codes && <p className="text-xs text-red-500">{formErrors.codes}</p>}
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Tariff Code</label>
+                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Tariff Code</label>
                             <Input
                                 placeholder="E.g. General"
                                 value={formData.tariff}
@@ -1481,7 +1481,7 @@ export function RatesPage() {
                     {/* Row 2: Plan ID, State */}
                     <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Plan ID</label>
+                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Plan ID</label>
                             <Input
                                 placeholder="E.g. PLAN-001"
                                 value={formData.planId}
@@ -1489,7 +1489,7 @@ export function RatesPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">State</label>
+                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">State</label>
                             <div className="flex flex-wrap gap-2">
                                 {STATE_OPTIONS.map(option => (
                                     <button
@@ -1510,7 +1510,7 @@ export function RatesPage() {
 
                     {/* DNSP */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">DNSP</label>
+                        <label className="text-sm font-medium text-gray-900 dark:text-gray-100">DNSP</label>
                         <div className="flex flex-wrap gap-2">
                             {DNSP_OPTIONS.map(opt => (
                                 <button
@@ -1531,7 +1531,7 @@ export function RatesPage() {
                     {/* Type and Toggles */}
                     <div className="flex items-start gap-8">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Type</label>
+                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Type</label>
                             <div className="flex gap-2">
                                 <button
                                     type="button"
@@ -1556,11 +1556,11 @@ export function RatesPage() {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">VPP Enabled</label>
+                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">VPP Enabled</label>
                             <br />
                             <button
                                 type="button"
-                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.vpp === 1 ? 'bg-primary' : 'bg-gray-200'
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.vpp === 1 ? 'bg-primary' : 'bg-muted'
                                     }`}
                                 onClick={() => setFormData(prev => ({ ...prev, vpp: prev.vpp === 1 ? 0 : 1 }))}
                             >
@@ -1569,11 +1569,11 @@ export function RatesPage() {
                             </button>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Discount applies</label>
+                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Discount applies</label>
                             <br />
                             <button
                                 type="button"
-                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.discountApplies === 1 ? 'bg-primary' : 'bg-gray-200'
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.discountApplies === 1 ? 'bg-primary' : 'bg-muted'
                                     }`}
                                 onClick={() => setFormData(prev => ({ ...prev, discountApplies: prev.discountApplies === 1 ? 0 : 1 }))}
                             >
@@ -1584,10 +1584,10 @@ export function RatesPage() {
                     </div>
 
                     {/* Anytime and Supply Charge */}
-                    <div className="p-4 rounded-lg border border-orange-200 bg-orange-50 space-y-4">
+                    <div className="p-4 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/30 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Anytime</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Anytime</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1597,7 +1597,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Supply Charge</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Supply Charge</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1610,8 +1610,8 @@ export function RatesPage() {
                     </div>
 
                     {/* VPP Orchestration */}
-                    <div className="p-4 rounded-lg border border-gray-200 bg-gray-50 space-y-2">
-                        <label className="text-sm font-medium">VPP Orchestration</label>
+                    <div className="p-4 rounded-lg border border-border bg-muted/50 space-y-2">
+                        <label className="text-sm font-medium text-gray-900 dark:text-gray-100">VPP Orchestration</label>
                         <Input
                             type="number"
                             step="0.01"
@@ -1622,10 +1622,10 @@ export function RatesPage() {
                     </div>
 
                     {/* Peak, Shoulder, Off-Peak */}
-                    <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 space-y-4">
+                    <div className="p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 space-y-4">
                         <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Peak</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Peak</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1635,7 +1635,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Shoulder</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Shoulder</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1645,7 +1645,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Off-Peak</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Off-Peak</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1658,10 +1658,10 @@ export function RatesPage() {
                     </div>
 
                     {/* CL1/CL2 Supply/Usage */}
-                    <div className="p-4 rounded-lg border border-green-200 bg-green-50 space-y-4">
+                    <div className="p-4 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 space-y-4">
                         <div className="grid grid-cols-4 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">CL1 Supply</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL1 Supply</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1671,7 +1671,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">CL1 Usage</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL1 Usage</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1681,7 +1681,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">CL2 Supply</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL2 Supply</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1691,7 +1691,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">CL2 Usage</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL2 Usage</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1704,10 +1704,10 @@ export function RatesPage() {
                     </div>
 
                     {/* Demand fields */}
-                    <div className="p-4 rounded-lg border border-red-200 bg-red-50 space-y-4">
+                    <div className="p-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 space-y-4">
                         <div className="grid grid-cols-4 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Demand</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1717,7 +1717,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Demand (OP)</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand (OP)</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1727,7 +1727,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Demand (P)</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand (P)</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1737,7 +1737,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Demand (S)</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand (S)</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1750,10 +1750,10 @@ export function RatesPage() {
                     </div>
 
                     {/* FIT fields */}
-                    <div className="p-4 rounded-lg border border-green-200 bg-green-50 space-y-4">
+                    <div className="p-4 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 space-y-4">
                         <div className="grid grid-cols-4 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">FIT</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1763,7 +1763,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">FIT-VPP</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-VPP</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1773,7 +1773,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">FIT-Peak</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-Peak</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1783,7 +1783,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">FIT-Critical</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-Critical</label>
                                 <Input
                                     type="number"
                                     step="0.01"

@@ -13,6 +13,8 @@ const CUSTOMER_FULL_RESPONSE = `
     lastName
     businessName
     abn
+    showAsBusinessName
+    showName
     number
     dob
     phoneVerifiedAt

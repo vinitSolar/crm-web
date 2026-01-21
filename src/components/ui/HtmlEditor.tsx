@@ -979,7 +979,7 @@ ${content}
     };
 
     const renderEditor = () => (
-        <div className="html-editor-preview">
+        <div className="html-editor-preview bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 h-full">
             <style>{`
                 .html-editor-preview h1 { font-size: 2em; font-weight: 700; margin: 0.67em 0; line-height: 1.2; color: #111827; }
                 .html-editor-preview h2 { font-size: 1.5em; font-weight: 600; margin: 0.83em 0; line-height: 1.25; color: #1f2937; }
@@ -995,6 +995,21 @@ ${content}
                 .html-editor-preview a[style*="inline-block"] { all: revert; }
                 .html-editor-preview a[style*="background-color"] { all: revert; }
                 .html-editor-preview td a { all: revert; }
+
+                /* Dark Mode Overrides - Visual Only */
+                .dark .html-editor-preview h1,
+                .dark .html-editor-preview h2,
+                .dark .html-editor-preview h3,
+                .dark .html-editor-preview h4,
+                .dark .html-editor-preview h5,
+                .dark .html-editor-preview h6 { color: #f3f4f6 !important; }
+                
+                .dark .html-editor-preview p,
+                .dark .html-editor-preview ul,
+                .dark .html-editor-preview ol,
+                .dark .html-editor-preview li { color: #e5e7eb !important; }
+                
+                .dark .html-editor-preview a { color: #60a5fa !important; }
             `}</style>
             <div
                 ref={editorRef}

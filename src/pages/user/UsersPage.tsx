@@ -8,7 +8,7 @@ import { Select } from '@/components/ui/Select';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { DataTable, type Column, Modal } from '@/components/common';
 import {
-    PlusIcon, PencilIcon, TrashIcon,
+    PlusIcon, PencilIcon, TrashIcon, ShieldCheckIcon,
     // EyeIcon, EyeOffIcon, CopyIcon,
     RefreshCwIcon
 } from '@/components/icons';
@@ -56,15 +56,15 @@ interface UsersResponse {
 const getRoleBadgeClass = (role: string) => {
     const roleLower = role?.toLowerCase() || '';
     if (roleLower.includes('master') || roleLower.includes('admin')) {
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
     }
     if (roleLower.includes('retention')) {
-        return 'bg-orange-100 text-orange-700';
+        return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
     }
     if (roleLower.includes('manager')) {
-        return 'bg-purple-100 text-purple-700';
+        return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
     }
-    return 'bg-gray-100 text-gray-700';
+    return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
 };
 
 export function UsersPage() {
@@ -440,7 +440,7 @@ export function UsersPage() {
         //             </div>
         //             <Tooltip content={visiblePasswords.has(user.uid) ? 'Hide password' : 'Show password'}>
         //                 <button
-        //                     className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
+        //                     className="p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
         //                     onClick={() => togglePasswordVisibility(user.uid)}
         //                 >
         //                     {visiblePasswords.has(user.uid) ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
@@ -448,12 +448,15 @@ export function UsersPage() {
         //             </Tooltip>
         //             <Tooltip content="Copy password">
         //                 <button
-        //                     className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
+        //                     className="p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
         //                     onClick={() => copyToClipboard(user.password || '')}
         //                 >
         //                     <CopyIcon size={16} />
         //                 </button>
         //             </Tooltip>
+        //         </div> // Close div
+        //     ),
+        // },
         //         </div>
         //     ),
         // },
@@ -490,7 +493,7 @@ export function UsersPage() {
                                     }`}
                             />
                         </button>
-                        <StatusField type="user_status" value={user.status} mode="text" className="text-sm text-gray-700" />
+                        <StatusField type="user_status" value={user.status} mode="text" className="text-sm text-gray-700 dark:text-gray-300" />
                     </div>
                 );
             },
@@ -499,7 +502,7 @@ export function UsersPage() {
             key: 'createdAt',
             header: 'Created on',
             width: 'w-[150px]',
-            render: (user) => <span className="text-muted-foreground">{formatDateTime(user.createdAt)}</span>,
+            render: (user) => <span className="text-muted-foreground dark:text-gray-400">{formatDateTime(user.createdAt)}</span>,
         },
     ];
 
@@ -510,10 +513,11 @@ export function UsersPage() {
             header: 'Manage Access',
             width: 'w-[120px]',
             render: (user) => <button
-                className="px-3 py-1 text-xs border border-gray-200 rounded hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
                 onClick={() => handleManagePermissions(user)}
             >
-                Manage
+                <ShieldCheckIcon size={14} />
+                Manage Access
             </button>
         });
     }
@@ -530,7 +534,7 @@ export function UsersPage() {
                         userPermissions.canDelete && ( // Restore usually considered 'delete' or 'edit', sticking to delete/edit logic or just check delete
                             <Tooltip content="Restore user">
                                 <button
-                                    className="p-2 border border-green-200 rounded-lg bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 transition-colors"
+                                    className="p-2 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
                                     onClick={() => handleRestoreClick(user)}
                                 >
                                     <RefreshCwIcon size={16} />
@@ -542,7 +546,7 @@ export function UsersPage() {
                             {userPermissions.canEdit && (
                                 <Tooltip content="Edit user">
                                     <button
-                                        className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-800 transition-colors"
+                                        className="p-2 border border-border dark:border-gray-700 rounded-lg bg-card dark:bg-gray-800 hover:bg-accent dark:hover:bg-gray-700 text-muted-foreground dark:text-gray-400 hover:text-foreground dark:hover:text-gray-200 transition-colors"
                                         onClick={() => handleEditUser(user)}
                                     >
                                         <PencilIcon size={16} />
@@ -552,7 +556,7 @@ export function UsersPage() {
                             {userPermissions.canDelete && (
                                 <Tooltip content="Delete user">
                                     <button
-                                        className="p-2 border border-red-200 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 transition-colors"
+                                        className="p-2 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
                                         onClick={() => handleDeleteClick(user)}
                                     >
                                         <TrashIcon size={16} />
@@ -584,7 +588,7 @@ export function UsersPage() {
                 )}
             </div>
             {/* Users Table */}
-            <div className="p-5 bg-background rounded-lg border border-border shadow-sm">
+            <div className="p-5 bg-background dark:bg-card rounded-lg border border-border dark:border-border shadow-sm">
                 {/* Filters and Search */}
                 <div className="flex flex-col gap-4 mb-6">
                     <div className="flex items-center gap-4">
