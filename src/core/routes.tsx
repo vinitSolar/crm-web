@@ -19,6 +19,7 @@ const AuditLogsPage = lazy(() => import('@/pages/logs/AuditLogsPage').then(m => 
 const EmailTemplatesPage = lazy(() => import('@/pages/email/EmailTemplatesPage').then(m => ({ default: m.EmailTemplatesPage })));
 const EmailLogsPage = lazy(() => import('@/pages/email/EmailLogsPage').then(m => ({ default: m.EmailLogsPage })));
 const EmailSendPage = lazy(() => import('@/pages/email/EmailSendPage').then(m => ({ default: m.EmailSendPage })));
+const ProfilePage = lazy(() => import('@/pages/user/ProfilePage').then(m => ({ default: m.ProfilePage })));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -74,6 +75,7 @@ const router = createBrowserRouter(
 
                 {/* General authenticated routes */}
                 <Route path="/change-password" element={<ChangePasswordPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />
