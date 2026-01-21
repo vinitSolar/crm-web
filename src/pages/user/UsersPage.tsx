@@ -10,7 +10,7 @@ import { DataTable, type Column, Modal } from '@/components/common';
 import {
     PlusIcon, PencilIcon, TrashIcon, ShieldCheckIcon,
     // EyeIcon, EyeOffIcon, CopyIcon,
-    RefreshCwIcon
+    RefreshCwIcon, ShieldCheckIcon
 } from '@/components/icons';
 import { UserPermissionsModal } from '@/components/users/UserPermissionsModal';
 import { GET_USERS, UPDATE_USER, SOFT_DELETE_USER, RESTORE_USER, GET_ROLES, CREATE_USER } from '@/graphql';

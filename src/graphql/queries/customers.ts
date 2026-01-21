@@ -568,6 +568,8 @@ export const GET_CUSTOMER_BY_CUSTOMER_ID = gql`
             lastName
             businessName
             abn
+            showAsBusinessName
+            showName
             number
             dob
             propertyType

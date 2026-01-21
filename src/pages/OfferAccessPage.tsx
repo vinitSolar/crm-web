@@ -754,21 +754,23 @@ export const OfferAccessPage = () => {
                         <h3 className="text-sm font-semibold text-foreground mb-3">Customer Details</h3>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-muted/50 rounded-lg p-4">
                             <div>
-                                <div className="text-xs text-muted-foreground mb-1">Property Type</div>
-                                <div className="text-sm font-medium text-foreground">{RATE_TYPE_MAP[customerData.propertyType] || 'Residential'}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Property Type</div>
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">{RATE_TYPE_MAP[customerData.propertyType] || 'Residential'}</div>
                             </div>
-                            {customerData.propertyType === 1 && (
-                                <>
-                                    <div>
-                                        <div className="text-xs text-muted-foreground mb-1">Business Name</div>
-                                        <div className="text-sm font-medium text-foreground">{customerData.businessName || '—'}</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-muted-foreground mb-1">ABN</div>
-                                        <div className="text-sm font-medium text-foreground">{customerData.abn || '—'}</div>
-                                    </div>
-                                </>
-                            )}
+                            {
+                                customerData.propertyType === 1 && (
+                                    <>
+                                        <div>
+                                            <div className="text-xs text-muted-foreground mb-1">Business Name</div>
+                                            <div className="text-sm font-medium text-foreground">{customerData.businessName || '—'}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-xs text-muted-foreground mb-1">ABN</div>
+                                            <div className="text-sm font-medium text-foreground">{customerData.abn || '—'}</div>
+                                        </div>
+                                    </>
+                                )
+                            }
                             <div>
                                 <div className="text-xs text-muted-foreground mb-1">Date of Birth</div>
                                 <div className="text-sm font-medium text-foreground">{customerData.dob ? formatDate(customerData.dob) : '—'}</div>
@@ -790,8 +792,8 @@ export const OfferAccessPage = () => {
                                 <div className="text-sm font-medium text-foreground">{customerData.enrollmentDetails?.connectiondate ? formatDate(customerData.enrollmentDetails.connectiondate) : 'ASAP'}</div>
                             </div>
                             <div>
-                                <div className="text-xs text-muted-foreground mb-1">Billing Preference</div>
-                                <div className="text-sm font-medium text-foreground">{BILLING_PREF_LABELS[customerData.enrollmentDetails?.billingpreference ?? 0] || 'Email'}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">Billing Preference</div>
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">{BILLING_PREF_LABELS[customerData.enrollmentDetails?.billingpreference ?? 0] || 'Email'}</div>
                             </div>
                             <div>
                                 <div className="text-xs text-muted-foreground mb-1">Concession</div>
@@ -801,7 +803,7 @@ export const OfferAccessPage = () => {
                                 <div className="text-xs text-muted-foreground mb-1">Life Support</div>
                                 <div className="text-sm font-medium text-foreground">{customerData.enrollmentDetails?.lifesupport === 1 ? 'Yes' : 'No'}</div>
                             </div>
-                        </div>
+                        </div >
 
                         {/* VPP Details */}
                         <div className="mt-4">
@@ -824,7 +826,7 @@ export const OfferAccessPage = () => {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div >
 
                         {/* MSAT Details */}
                         <div className="mt-4">
@@ -843,7 +845,7 @@ export const OfferAccessPage = () => {
                                     <div className="text-sm font-medium text-foreground">{customerData.msatDetails?.msatUpdatedAt ? formatDateTime(customerData.msatDetails.msatUpdatedAt) : '—'}</div>
                                 </div>
                             </div>
-                        </div>
+                        </div >
 
                         {/* Solar System */}
                         <div className="mt-4">
@@ -862,7 +864,7 @@ export const OfferAccessPage = () => {
                                     <div className="text-sm font-medium text-foreground">{customerData.solarDetails?.invertercapacity ? `${customerData.solarDetails.invertercapacity} kW` : '—'}</div>
                                 </div>
                             </div>
-                        </div>
+                        </div >
 
                         {/* Identification */}
                         <div className="mt-4">
@@ -883,9 +885,9 @@ export const OfferAccessPage = () => {
                                     <div className="text-sm font-medium text-foreground">{customerData.enrollmentDetails?.idexpiry ? formatDate(customerData.enrollmentDetails.idexpiry) : '—'}</div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
+                        </div >
+                    </div >
+                </div >
 
                 {/* Plan & Rates Card - Matching CustomerFormPage.tsx style */}
                 <div className="bg-card rounded-xl shadow-sm border border-border p-6">
@@ -1004,10 +1006,10 @@ export const OfferAccessPage = () => {
                             </div>
                         )}
                     </div>
-                </div>
+                </div >
 
                 {/* Direct Debit Card */}
-                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+                < div className="bg-card rounded-xl shadow-sm border border-border p-6" >
                     <div className="flex items-start gap-4">
                         <div className="mt-1 text-muted-foreground"><CreditCardIcon size={20} /></div>
                         <div className="flex-1">
@@ -1184,64 +1186,66 @@ export const OfferAccessPage = () => {
                             )}
                         </div>
                     </div>
-                </div>
+                </div >
 
                 {/* Verification Card - Conditionally Rendered */}
-                {!customerData.phoneVerifiedAt && (
-                    <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-                        <div className="flex items-start gap-4">
-                            <div className="mt-1 text-muted-foreground">
-                                {mobileVerification.verified ? <CheckIcon size={20} className="text-green-500" /> : <CheckIcon size={20} />}
-                            </div>
-                            <div className="w-full">
-                                <h3 className="text-sm font-semibold text-foreground">Verify your mobile number</h3>
-                                <p className="text-xs text-muted-foreground mb-4">Verify your mobile number to sign this initial offer.</p>
+                {
+                    !customerData.phoneVerifiedAt && (
+                        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+                            <div className="flex items-start gap-4">
+                                <div className="mt-1 text-muted-foreground">
+                                    {mobileVerification.verified ? <CheckIcon size={20} className="text-green-500" /> : <CheckIcon size={20} />}
+                                </div>
+                                <div className="w-full">
+                                    <h3 className="text-sm font-semibold text-foreground">Verify your mobile number</h3>
+                                    <p className="text-xs text-muted-foreground mb-4">Verify your mobile number to sign this initial offer.</p>
 
-                                {!mobileVerification.verified ? (
-                                    <>
-                                        <div className="flex gap-2">
-                                            <Button
-                                                onClick={handleSendCode}
-                                                disabled={mobileVerification.sent && mobileVerification.code.length < 6}
-                                                className={`px-3 py-2 rounded-xl text-sm border flex items-center gap-2 h-9 ${mobileVerification.sent && mobileVerification.code.length < 6
+                                    {!mobileVerification.verified ? (
+                                        <>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    onClick={handleSendCode}
+                                                    disabled={mobileVerification.sent && mobileVerification.code.length < 6}
+                                                    className={`px-3 py-2 rounded-xl text-sm border flex items-center gap-2 h-9 ${mobileVerification.sent && mobileVerification.code.length < 6
                                                         ? 'border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 opacity-60 cursor-not-allowed'
                                                         : 'border-primary bg-primary/10 dark:bg-primary/20 text-primary hover:bg-primary/20 dark:hover:bg-primary/30'
-                                                    }`}
-                                            >
-                                                {mobileVerification.sent ? 'Resend code' : 'Send code'}
-                                            </Button>
-                                        </div>
-
-                                        {mobileVerification.sent && (
-                                            <div className="mt-4 flex gap-3 max-w-sm animate-in fade-in slide-in-from-top-1">
-                                                <input
-                                                    type="text"
-                                                    value={mobileVerification.code}
-                                                    onChange={(e) => setMobileVerification({ ...mobileVerification, code: e.target.value })}
-                                                    placeholder="Verification code"
-                                                    maxLength={6}
-                                                    className="flex-1 px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
-                                                />
-                                                <Button
-                                                    onClick={handleVerifyMobile}
-                                                    disabled={mobileVerification.verifying}
-                                                    className="bg-neutral-900 hover:bg-neutral-800 text-white shadow-sm text-xs h-auto px-4"
+                                                        }`}
                                                 >
-                                                    {mobileVerification.verifying ? 'Verifying...' : 'Verify & continue'}
+                                                    {mobileVerification.sent ? 'Resend code' : 'Send code'}
                                                 </Button>
                                             </div>
-                                        )}
-                                        <p className="text-[10px] text-muted-foreground mt-2">We will send a 6 digit code to {customerData.number}</p>
-                                    </>
-                                ) : (
-                                    <div className="mt-2 text-sm text-green-600 font-medium flex items-center gap-2">
-                                        <CheckIcon size={16} /> Mobile number verified
-                                    </div>
-                                )}
+
+                                            {mobileVerification.sent && (
+                                                <div className="mt-4 flex gap-3 max-w-sm animate-in fade-in slide-in-from-top-1">
+                                                    <input
+                                                        type="text"
+                                                        value={mobileVerification.code}
+                                                        onChange={(e) => setMobileVerification({ ...mobileVerification, code: e.target.value })}
+                                                        placeholder="Verification code"
+                                                        maxLength={6}
+                                                        className="flex-1 px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
+                                                    />
+                                                    <Button
+                                                        onClick={handleVerifyMobile}
+                                                        disabled={mobileVerification.verifying}
+                                                        className="bg-neutral-900 hover:bg-neutral-800 text-white shadow-sm text-xs h-auto px-4"
+                                                    >
+                                                        {mobileVerification.verifying ? 'Verifying...' : 'Verify & continue'}
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            <p className="text-[10px] text-muted-foreground mt-2">We will send a 6 digit code to {customerData.number}</p>
+                                        </>
+                                    ) : (
+                                        <div className="mt-2 text-sm text-green-600 font-medium flex items-center gap-2">
+                                            <CheckIcon size={16} /> Mobile number verified
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
 
                 {/* Sign Button Area */}
                 <div className="pt-4 flex justify-end">
@@ -1266,242 +1270,244 @@ export const OfferAccessPage = () => {
                     </div>
                 </div>
 
-            </div>
+            </div >
 
             {/* Signature Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl w-full max-w-lg shadow-lg">
-                        {/* Header */}
-                        <div className="p-4 border-b">
-                            <h2 className="text-lg font-semibold">Sign & Confirm</h2>
-                        </div>
-
-                        {/* Body */}
-                        <div className="p-4 max-h-[75vh] overflow-y-auto space-y-4">
-                            <div className="space-y-1 text-sm">
-                                <label className="font-medium text-neutral-800">
-                                    Signatory name
-                                </label>
-                                <input
-                                    className="border rounded px-2 py-1 w-full"
-                                    value={signatoryName}
-                                    onChange={(e) => setSignatoryName(e.target.value)}
-                                    placeholder="Full legal name"
-                                />
-                                <p className="text-xs text-neutral-600">
-                                    We will use this name with your signature across the
-                                    agreements.
-                                </p>
+            {
+                showModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-xl w-full max-w-lg shadow-lg">
+                            {/* Header */}
+                            <div className="p-4 border-b">
+                                <h2 className="text-lg font-semibold">Sign & Confirm</h2>
                             </div>
 
-                            {/* Signature mode toggle */}
-                            <div className="flex gap-2 text-sm">
-                                <button
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'pad' ? 'bg-black text-white' : 'bg-neutral-100'
-                                        }`}
-                                    onPointerDown={() => {
-                                        // Start drawing
-                                    }}
-                                    onClick={() => {
-                                        setMode('pad')
-                                        setTyped('')
-                                    }}
-                                >
-                                    <PencilIcon size={14} />
-                                    Draw
-                                </button>
-                                <button
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'type' ? 'bg-black text-white' : 'bg-neutral-100'
-                                        }`}
-                                    onClick={() => {
-                                        setMode('type')
-                                        if (sigPadRef.current) {
-                                            sigPadRef.current.clear();
-                                        }
-                                    }}
-                                >
-                                    <TypeIcon size={14} />
-                                    Type
-                                </button>
-                            </div>
+                            {/* Body */}
+                            <div className="p-4 max-h-[75vh] overflow-y-auto space-y-4">
+                                <div className="space-y-1 text-sm">
+                                    <label className="font-medium text-neutral-800">
+                                        Signatory name
+                                    </label>
+                                    <input
+                                        className="border rounded px-2 py-1 w-full"
+                                        value={signatoryName}
+                                        onChange={(e) => setSignatoryName(e.target.value)}
+                                        placeholder="Full legal name"
+                                    />
+                                    <p className="text-xs text-neutral-600">
+                                        We will use this name with your signature across the
+                                        agreements.
+                                    </p>
+                                </div>
 
-                            {/* Signature area */}
-                            <div className="block">
-                                <canvas
-                                    ref={canvasRef}
-                                    width={480}
-                                    height={140}
-                                    className="border rounded w-full"
-                                    style={{ display: 'block', touchAction: 'none' }}
-                                />
-                            </div>
+                                {/* Signature mode toggle */}
+                                <div className="flex gap-2 text-sm">
+                                    <button
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'pad' ? 'bg-black text-white' : 'bg-neutral-100'
+                                            }`}
+                                        onPointerDown={() => {
+                                            // Start drawing
+                                        }}
+                                        onClick={() => {
+                                            setMode('pad')
+                                            setTyped('')
+                                        }}
+                                    >
+                                        <PencilIcon size={14} />
+                                        Draw
+                                    </button>
+                                    <button
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'type' ? 'bg-black text-white' : 'bg-neutral-100'
+                                            }`}
+                                        onClick={() => {
+                                            setMode('type')
+                                            if (sigPadRef.current) {
+                                                sigPadRef.current.clear();
+                                            }
+                                        }}
+                                    >
+                                        <TypeIcon size={14} />
+                                        Type
+                                    </button>
+                                </div>
 
-                            {mode === 'type' && (
-                                <input
-                                    className="border rounded px-2 py-1 w-full font-cursive text-xl"
-                                    value={typed}
-                                    onChange={(e) => setTyped(e.target.value)}
-                                    placeholder="Type your name"
-                                    style={{ fontFamily: 'cursive' }}
-                                />
-                            )}
+                                {/* Signature area */}
+                                <div className="block">
+                                    <canvas
+                                        ref={canvasRef}
+                                        width={480}
+                                        height={140}
+                                        className="border rounded w-full"
+                                        style={{ display: 'block', touchAction: 'none' }}
+                                    />
+                                </div>
 
-                            {/* Consents */}
-                            <div className="space-y-2 text-sm">
-                                <div className="flex items-start gap-2">
-                                    <label className="mt-1 cursor-pointer">
+                                {mode === 'type' && (
+                                    <input
+                                        className="border rounded px-2 py-1 w-full font-cursive text-xl"
+                                        value={typed}
+                                        onChange={(e) => setTyped(e.target.value)}
+                                        placeholder="Type your name"
+                                        style={{ fontFamily: 'cursive' }}
+                                    />
+                                )}
+
+                                {/* Consents */}
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex items-start gap-2">
+                                        <label className="mt-1 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={consents.infoConfirm}
+                                                onChange={(e) =>
+                                                    setConsents((p) => ({
+                                                        ...p,
+                                                        infoConfirm: e.target.checked,
+                                                    }))
+                                                }
+                                            />
+                                        </label>
+                                        <span>
+                                            I confirm the above information is correct and have read the{' '}
+                                            <a
+                                                href="/onboarding/GEE-TERMS-AND-CONDITIONS.pdf"
+                                                className="underline"
+                                                style={{ color: '#4B8A10' }}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                Terms & Conditions
+                                            </a>
+                                            {', '}
+                                            <a
+                                                href="/onboarding/GEE-PDS.pdf"
+                                                className="underline"
+                                                style={{ color: '#4B8A10' }}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                Disclosure Statement
+                                            </a>
+                                            {customerData.vppDetails?.vpp && (
+                                                <>
+                                                    {', '}
+                                                    <a
+                                                        href="/onboarding/GEE-VPP-Program-Terms-and-Conditions.pdf"
+                                                        className="underline"
+                                                        style={{ color: '#4B8A10' }}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        Virtual Power Plant Program Terms and Conditions
+                                                    </a>
+                                                </>
+                                            )}
+                                            {' and '}
+                                            <a
+                                                href="/onboarding/GEE-Privacy-Policy.pdf"
+                                                className="underline"
+                                                style={{ color: '#4B8A10' }}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                Privacy Policy
+                                            </a>
+                                            .
+                                            {directDebitOptIn && (
+                                                <>
+                                                    {' '}
+                                                    I will receive{' '}
+                                                    <a
+                                                        href="/onboarding/GEE Direct Debit Service Agreement.pdf"
+                                                        className="underline font-bold"
+                                                        style={{ color: '#4B8A10' }}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        GEE Direct Debit Service Agreement.pdf
+                                                    </a>{' '}
+                                                    with my signed documents.
+                                                </>
+                                            )}
+                                        </span>
+                                    </div>
+
+                                    <label className="flex items-start gap-2 cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            checked={consents.infoConfirm}
+                                            className="mt-1"
+                                            checked={consents.creditCheck}
                                             onChange={(e) =>
                                                 setConsents((p) => ({
                                                     ...p,
-                                                    infoConfirm: e.target.checked,
+                                                    creditCheck: e.target.checked,
                                                 }))
                                             }
                                         />
-                                    </label>
-                                    <span>
-                                        I confirm the above information is correct and have read the{' '}
-                                        <a
-                                            href="/onboarding/GEE-TERMS-AND-CONDITIONS.pdf"
-                                            className="underline"
-                                            style={{ color: '#4B8A10' }}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                        >
-                                            Terms & Conditions
-                                        </a>
-                                        {', '}
-                                        <a
-                                            href="/onboarding/GEE-PDS.pdf"
-                                            className="underline"
-                                            style={{ color: '#4B8A10' }}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                        >
-                                            Disclosure Statement
-                                        </a>
-                                        {customerData.vppDetails?.vpp && (
-                                            <>
-                                                {', '}
-                                                <a
-                                                    href="/onboarding/GEE-VPP-Program-Terms-and-Conditions.pdf"
-                                                    className="underline"
-                                                    style={{ color: '#4B8A10' }}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                >
-                                                    Virtual Power Plant Program Terms and Conditions
-                                                </a>
-                                            </>
-                                        )}
-                                        {' and '}
-                                        <a
-                                            href="/onboarding/GEE-Privacy-Policy.pdf"
-                                            className="underline"
-                                            style={{ color: '#4B8A10' }}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                        >
-                                            Privacy Policy
-                                        </a>
-                                        .
-                                        {directDebitOptIn && (
-                                            <>
-                                                {' '}
-                                                I will receive{' '}
-                                                <a
-                                                    href="/onboarding/GEE Direct Debit Service Agreement.pdf"
-                                                    className="underline font-bold"
-                                                    style={{ color: '#4B8A10' }}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                >
-                                                    GEE Direct Debit Service Agreement.pdf
-                                                </a>{' '}
-                                                with my signed documents.
-                                            </>
-                                        )}
-                                    </span>
-                                </div>
-
-                                <label className="flex items-start gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        className="mt-1"
-                                        checked={consents.creditCheck}
-                                        onChange={(e) =>
-                                            setConsents((p) => ({
-                                                ...p,
-                                                creditCheck: e.target.checked,
-                                            }))
-                                        }
-                                    />
-                                    <span>
-                                        I consent to a credit check to assess my application.
-                                    </span>
-                                </label>
-
-                                <label className="flex items-start gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        className="mt-1"
-                                        checked={consents.offerAgree}
-                                        onChange={(e) =>
-                                            setConsents((p) => ({
-                                                ...p,
-                                                offerAgree: e.target.checked,
-                                            }))
-                                        }
-                                    />
-                                    <span>
-                                        I agree to the Offer Summary, rates &amp; fees, and the
-                                        cooling-off information.
-                                    </span>
-                                </label>
-                            </div>
-                        </div>
-
-                        {/* Footer actions */}
-                        <div className="p-4 border-t space-y-3">
-                            {submitError && (
-                                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
-                                    {submitError}
-                                </div>
-                            )}
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    className="px-3 py-1 text-sm bg-white border border-gray-200 rounded hover:bg-gray-50"
-                                    onClick={() => {
-                                        if (submitting) return
-                                        setSubmitError(null)
-                                        setShowModal(false)
-                                    }}
-                                    disabled={submitting}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    className="px-3 py-1 rounded bg-neutral-900 text-white disabled:opacity-50 text-sm"
-                                    disabled={!canSubmit || submitting}
-                                    onClick={handleModalSave}
-                                >
-                                    {submitting ? (
-                                        <span className="flex items-center gap-2">
-                                            <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                                            Saving…
+                                        <span>
+                                            I consent to a credit check to assess my application.
                                         </span>
-                                    ) : (
-                                        'Save & Sign'
-                                    )}
-                                </button>
+                                    </label>
+
+                                    <label className="flex items-start gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="mt-1"
+                                            checked={consents.offerAgree}
+                                            onChange={(e) =>
+                                                setConsents((p) => ({
+                                                    ...p,
+                                                    offerAgree: e.target.checked,
+                                                }))
+                                            }
+                                        />
+                                        <span>
+                                            I agree to the Offer Summary, rates &amp; fees, and the
+                                            cooling-off information.
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Footer actions */}
+                            <div className="p-4 border-t space-y-3">
+                                {submitError && (
+                                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+                                        {submitError}
+                                    </div>
+                                )}
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        className="px-3 py-1 text-sm bg-white border border-gray-200 rounded hover:bg-gray-50"
+                                        onClick={() => {
+                                            if (submitting) return
+                                            setSubmitError(null)
+                                            setShowModal(false)
+                                        }}
+                                        disabled={submitting}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        className="px-3 py-1 rounded bg-neutral-900 text-white disabled:opacity-50 text-sm"
+                                        disabled={!canSubmit || submitting}
+                                        onClick={handleModalSave}
+                                    >
+                                        {submitting ? (
+                                            <span className="flex items-center gap-2">
+                                                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                                Saving…
+                                            </span>
+                                        ) : (
+                                            'Save & Sign'
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
