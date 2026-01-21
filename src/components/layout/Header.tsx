@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/main-logo-dark-1.png';
 import { useAccessibleMenus, useUser, useAuthStore } from '@/stores/useAuthStore';
-import { CustomerIcon, RatesIcon, UserSettingIcon, LogOutIcon, MenuIcon, XIcon, ChevronDownIcon, FileTextIcon, ShieldCheckIcon, LockIcon } from '@/components/icons';
+import { CustomerIcon, RatesIcon, UserSettingIcon, LogOutIcon, MenuIcon, XIcon, ChevronDownIcon, FileTextIcon, ShieldCheckIcon, LockIcon, UserIcon } from '@/components/icons';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface HeaderProps {
@@ -195,6 +195,16 @@ export function Header({ className, isSidebarCollapsed }: HeaderProps) {
                                 <p className="text-sm font-medium text-foreground truncate">{user?.name || 'User'}</p>
                                 <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                             </div>
+                            <button
+                                onClick={() => {
+                                    navigate('/profile');
+                                    setUserDropdownOpen(false);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors"
+                            >
+                                <UserIcon size={16} />
+                                <span>My Profile</span>
+                            </button>
                             <button
                                 onClick={() => {
                                     navigate('/change-password');

@@ -86,76 +86,67 @@ export function ChangePasswordPage() {
     };
 
     return (
-        <div className="max-w-2xl space-y-6">
-            <div>
+        <div className="max-w-2xl p-6">
+            <div className="mb-8">
                 <h1 className="text-2xl font-bold text-foreground">Change Password</h1>
                 <p className="text-muted-foreground">Update your account password</p>
             </div>
 
             <div className="bg-background rounded-lg border border-border p-6 shadow-sm">
-                <div className="space-y-4 max-w-md">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                            Current Password <span className="text-red-500 ml-1">*</span>
-                        </label>
-                        <Input
-                            type="password"
-                            placeholder="Enter current password"
-                            value={formData.oldPassword}
-                            onChange={(e) => {
-                                setFormData(prev => ({ ...prev, oldPassword: e.target.value }));
-                                if (errors.oldPassword) setErrors(prev => ({ ...prev, oldPassword: '' }));
-                            }}
-                            error={errors.oldPassword}
-                        />
-                    </div>
+                <div className="space-y-6">
+                    <Input
+                        label="Current Password"
+                        type="password"
+                        placeholder="Enter current password"
+                        value={formData.oldPassword}
+                        onChange={(e) => {
+                            setFormData(prev => ({ ...prev, oldPassword: e.target.value }));
+                            if (errors.oldPassword) setErrors(prev => ({ ...prev, oldPassword: '' }));
+                        }}
+                        error={errors.oldPassword}
+                        required
+                    />
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                            New Password <span className="text-red-500 ml-1">*</span>
-                        </label>
-                        <Input
-                            type="password"
-                            placeholder="Enter new password"
-                            value={formData.newPassword}
-                            onChange={(e) => {
-                                setFormData(prev => ({ ...prev, newPassword: e.target.value }));
-                                if (errors.newPassword) setErrors(prev => ({ ...prev, newPassword: '' }));
-                            }}
-                            error={errors.newPassword}
-                        />
-                    </div>
+                    <Input
+                        label="New Password"
+                        type="password"
+                        placeholder="Enter new password"
+                        value={formData.newPassword}
+                        onChange={(e) => {
+                            setFormData(prev => ({ ...prev, newPassword: e.target.value }));
+                            if (errors.newPassword) setErrors(prev => ({ ...prev, newPassword: '' }));
+                        }}
+                        error={errors.newPassword}
+                        required
+                    />
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                            Confirm New Password <span className="text-red-500 ml-1">*</span>
-                        </label>
-                        <Input
-                            type="password"
-                            placeholder="Confirm new password"
-                            value={formData.confirmNewPassword}
-                            onChange={(e) => {
-                                setFormData(prev => ({ ...prev, confirmNewPassword: e.target.value }));
-                                if (errors.confirmNewPassword) setErrors(prev => ({ ...prev, confirmNewPassword: '' }));
-                            }}
-                            error={errors.confirmNewPassword}
-                        />
-                    </div>
+                    <Input
+                        label="Confirm New Password"
+                        type="password"
+                        placeholder="Confirm new password"
+                        value={formData.confirmNewPassword}
+                        onChange={(e) => {
+                            setFormData(prev => ({ ...prev, confirmNewPassword: e.target.value }));
+                            if (errors.confirmNewPassword) setErrors(prev => ({ ...prev, confirmNewPassword: '' }));
+                        }}
+                        error={errors.confirmNewPassword}
+                        required
+                    />
 
-                    <div className="pt-4 flex gap-3">
-                        <Button
-                            onClick={handleSubmit}
-                            isLoading={loading}
-                            loadingText="Updating..."
-                        >
-                            Update Password
-                        </Button>
+                    <div className="pt-4 flex items-center justify-end gap-3">
                         <Button
                             variant="ghost"
                             onClick={() => navigate(-1)}
                             disabled={loading}
                         >
                             Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSubmit}
+                            isLoading={loading}
+                            loadingText="Updating..."
+                        >
+                            Update Password
                         </Button>
                     </div>
                 </div>

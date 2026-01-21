@@ -59,6 +59,7 @@ interface AuthState {
     canCreateInMenu: (menuCode: string) => boolean;
     canEditInMenu: (menuCode: string) => boolean;
     canDeleteInMenu: (menuCode: string) => boolean;
+    setUser: (user: UserInfo) => void;
 }
 
 export const useAuthStore = create<AuthState>()((set, get) => ({
@@ -169,6 +170,10 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     canDeleteInMenu: (menuCode: string) => {
         const menu = get().accessibleMenus.find(m => m.menuCode === menuCode);
         return menu?.canDelete ?? false;
+    },
+
+    setUser: (user: UserInfo) => {
+        set({ user });
     },
 }));
 
