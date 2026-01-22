@@ -511,12 +511,12 @@ export function UsersPage() {
         columns.push({
             key: 'manageAccess',
             header: 'Manage Access',
-            width: 'w-[120px]',
+            width: 'w-[180px]',
             render: (user) => <button
-                className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+                className="inline-flex items-center gap-2 h-10 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover rounded-md shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 onClick={() => handleManagePermissions(user)}
             >
-                <ShieldCheckIcon size={14} />
+                <ShieldCheckIcon size={16} />
                 Manage Access
             </button>
         });
@@ -524,7 +524,7 @@ export function UsersPage() {
 
     // Add Actions column only if user has create or delete permissions (or edit)
     if (userPermissions.canEdit || userPermissions.canDelete) {
-        columns.unshift({
+        columns.push({
             key: 'actions',
             header: 'Actions',
             width: 'w-[80px]',

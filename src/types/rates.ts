@@ -13,6 +13,9 @@ export interface RateOffer {
     demandP: number;
     demandS: number;
     fit: number;
+    fitPeak: number;
+    fitCritical: number;
+    fitVpp: number;
     offPeak: number;
     peak: number;
     shoulder: number;

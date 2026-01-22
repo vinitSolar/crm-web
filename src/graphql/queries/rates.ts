@@ -41,6 +41,9 @@ export const GET_RATE_PLANS = gql`
                     demandP
                     demandS
                     fit
+                    fitPeak
+                    fitCritical
+                    fitVpp
                     offPeak
                     peak
                     shoulder

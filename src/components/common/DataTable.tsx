@@ -92,6 +92,7 @@ export function DataTable<T>({
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const colSpan = columns.length + (enableSelection ? 1 : 0);
     const [isScrolledHorizontally, setIsScrolledHorizontally] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
 
     // Handle scroll to load more and track horizontal scroll
     const handleScroll = useCallback(() => {
@@ -100,6 +101,11 @@ export function DataTable<T>({
 
         // Track horizontal scroll for sticky column shadow
         setIsScrolledHorizontally(container.scrollLeft > 0);
+
+        // Track if we can scroll right (not at the end)
+        const canScroll = container.scrollWidth > container.clientWidth;
+        const atRightEdge = container.scrollLeft + container.clientWidth >= container.scrollWidth - 1;
+        setCanScrollRight(canScroll && !atRightEdge);
 
         // Infinite scroll logic
         if (!infiniteScroll || !onLoadMore) return;
@@ -113,12 +119,28 @@ export function DataTable<T>({
         }
     }, [infiniteScroll, onLoadMore, loading, isLoadingMore, hasMore]);
 
-    // Attach scroll listener
+    // Attach scroll listener and check initial overflow
     useEffect(() => {
         const container = scrollContainerRef.current;
         if (container) {
             container.addEventListener('scroll', handleScroll, { passive: true });
-            return () => container.removeEventListener('scroll', handleScroll);
+
+            // Check initial overflow state
+            const checkOverflow = () => {
+                const canScroll = container.scrollWidth > container.clientWidth;
+                const atRightEdge = container.scrollLeft + container.clientWidth >= container.scrollWidth - 1;
+                setCanScrollRight(canScroll && !atRightEdge);
+            };
+            checkOverflow();
+
+            // Use ResizeObserver to detect changes in overflow
+            const resizeObserver = new ResizeObserver(checkOverflow);
+            resizeObserver.observe(container);
+
+            return () => {
+                container.removeEventListener('scroll', handleScroll);
+                resizeObserver.disconnect();
+            };
         }
     }, [handleScroll]);
 
@@ -189,6 +211,7 @@ export function DataTable<T>({
                             )}
                             {columns.map((col, colIndex) => {
                                 const isSticky = col.sticky === true || col.sticky === 'left';
+                                const isRightSticky = col.sticky === 'right';
                                 // Find if this is the last sticky column
                                 const isLastSticky = isSticky && !columns.slice(colIndex + 1).some(c => c.sticky === true || c.sticky === 'left');
                                 // sticky offset needs to account for selection column if present
@@ -199,15 +222,20 @@ export function DataTable<T>({
                                     position: 'sticky',
                                     left: stickyLeft,
                                     zIndex: 30,
+                                } : isRightSticky ? {
+                                    position: 'sticky',
+                                    right: 0,
+                                    zIndex: 30,
                                 } : {};
 
                                 return (
                                     <th
                                         key={col.key}
                                         className={cn(
-                                            'px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider bg-background border-b border-border align-top',
+                                            'px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider bg-background border-b border-border align-top whitespace-nowrap',
                                             col.width,
-                                            isLastSticky && isScrolledHorizontally && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
+                                            isLastSticky && isScrolledHorizontally && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]",
+                                            isRightSticky && canScrollRight && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.1)]"
                                         )}
                                         style={stickyStyles}
                                     >
@@ -249,7 +277,7 @@ export function DataTable<T>({
                                         <tr
                                             key={key}
                                             className={cn(
-                                                "bg-background hover:bg-muted/50 group",
+                                                "bg-background hover:bg-muted group",
                                                 isSelected && "bg-muted/30",
                                                 rowClassName?.(row)
                                             )}
@@ -259,7 +287,7 @@ export function DataTable<T>({
                                                     {/* bg-local might not be enough to hide content under sticky, needs background color matching row */}
                                                     <div className={cn(
                                                         "absolute inset-0",
-                                                        isSelected ? "bg-muted/30" : "bg-background group-hover:bg-muted/50"
+                                                        isSelected ? "bg-muted/30" : "bg-background group-hover:bg-muted"
                                                     )} aria-hidden="true" />
                                                     <div className="relative">
                                                         <input
@@ -273,6 +301,7 @@ export function DataTable<T>({
                                             )}
                                             {columns.map((col, colIndex) => {
                                                 const isSticky = col.sticky === true || col.sticky === 'left';
+                                                const isRightSticky = col.sticky === 'right';
                                                 // Find if this is the last sticky column
                                                 const isLastSticky = isSticky && !columns.slice(colIndex + 1).some(c => c.sticky === true || c.sticky === 'left');
                                                 // sticky offset needs to account for selection column if present
@@ -283,6 +312,10 @@ export function DataTable<T>({
                                                     position: 'sticky',
                                                     left: stickyLeft,
                                                     zIndex: 10,
+                                                } : isRightSticky ? {
+                                                    position: 'sticky',
+                                                    right: 0,
+                                                    zIndex: 10,
                                                 } : {};
 
                                                 return (
@@ -290,8 +323,15 @@ export function DataTable<T>({
                                                         key={col.key}
                                                         className={cn(
                                                             "px-3 py-3 text-sm transition-colors",
-                                                            isSticky && "bg-background", // Force bg for sticky
-                                                            isLastSticky && isScrolledHorizontally && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
+                                                            // For sticky columns, we need to manually match the row's background color
+                                                            // to prevent transparency issues when scrolling
+                                                            (isSticky || isRightSticky) && (
+                                                                isSelected
+                                                                    ? "bg-muted/30" // if selected, use selection color
+                                                                    : "bg-background group-hover:bg-muted" // otherwise base bg with group hover support
+                                                            ),
+                                                            isLastSticky && isScrolledHorizontally && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]",
+                                                            isRightSticky && canScrollRight && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.1)]"
                                                         )}
                                                         style={stickyStyles}
                                                     >

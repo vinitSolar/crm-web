@@ -318,51 +318,6 @@ export function RolePage() {
     };
 
     const columns: Column<Role>[] = [
-        // Actions column - only show if user has edit or delete permissions
-        ...((canEdit || canDelete) ? [{
-            key: 'actions',
-            header: 'Actions',
-            width: 'w-[100px]',
-            render: (role: Role) => (
-                <div className="flex items-center gap-2">
-                    {role.isDeleted ? (
-                        canEdit && (
-                            <Tooltip content="Restore Role">
-                                <button
-                                    className="p-2 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
-                                    onClick={() => handleRestoreClick(role)}
-                                >
-                                    <RefreshCwIcon size={16} />
-                                </button>
-                            </Tooltip>
-                        )
-                    ) : (
-                        <>
-                            {canEdit && (
-                                <Tooltip content="Edit Role">
-                                    <button
-                                        className="p-2 border border-border rounded-lg bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                                        onClick={() => handleEditRole(role)}
-                                    >
-                                        <PencilIcon size={16} />
-                                    </button>
-                                </Tooltip>
-                            )}
-                            {canDelete && (
-                                <Tooltip content="Delete Role">
-                                    <button
-                                        className="p-2 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
-                                        onClick={() => handleDeleteClick(role)}
-                                    >
-                                        <TrashIcon size={16} />
-                                    </button>
-                                </Tooltip>
-                            )}
-                        </>
-                    )}
-                </div>
-            )
-        }] : []),
         {
             key: 'name',
             header: 'Role Name',
@@ -412,17 +367,62 @@ export function RolePage() {
         ...(canEdit ? [{
             key: 'permissions',
             header: 'Access Control',
-            width: 'w-[150px]',
+            width: 'w-[180px]',
             render: (role: Role) => (
                 !role.isDeleted && (
                     <button
-                        className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-[#5c8a14] bg-[#5c8a14]/10 border border-[#5c8a14]/20 rounded-md hover:bg-[#5c8a14]/20 transition-colors"
+                        className="inline-flex items-center gap-2 h-10 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary-hover rounded-md shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         onClick={() => handleManagePermissions(role)}
                     >
-                        <ShieldCheckIcon size={14} />
+                        <ShieldCheckIcon size={16} />
                         Manage Access
                     </button>
                 )
+            )
+        }] : []),
+        // Actions column - only show if user has edit or delete permissions
+        ...((canEdit || canDelete) ? [{
+            key: 'actions',
+            header: 'Actions',
+            width: 'w-[100px]',
+            render: (role: Role) => (
+                <div className="flex items-center gap-2">
+                    {role.isDeleted ? (
+                        canEdit && (
+                            <Tooltip content="Restore Role">
+                                <button
+                                    className="p-2 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                                    onClick={() => handleRestoreClick(role)}
+                                >
+                                    <RefreshCwIcon size={16} />
+                                </button>
+                            </Tooltip>
+                        )
+                    ) : (
+                        <>
+                            {canEdit && (
+                                <Tooltip content="Edit Role">
+                                    <button
+                                        className="p-2 border border-border rounded-lg bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                                        onClick={() => handleEditRole(role)}
+                                    >
+                                        <PencilIcon size={16} />
+                                    </button>
+                                </Tooltip>
+                            )}
+                            {canDelete && (
+                                <Tooltip content="Delete Role">
+                                    <button
+                                        className="p-2 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
+                                        onClick={() => handleDeleteClick(role)}
+                                    >
+                                        <TrashIcon size={16} />
+                                    </button>
+                                </Tooltip>
+                            )}
+                        </>
+                    )}
+                </div>
             )
         }] : [])
     ];

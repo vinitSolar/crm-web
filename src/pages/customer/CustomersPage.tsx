@@ -8,7 +8,8 @@ import { DataTable, type Column, Modal } from '@/components/common';
 import {
     PlusIcon, PencilIcon,
     // TrashIcon,
-    CheckIcon, XIcon, MailIcon, SnowflakeIcon, Settings2Icon, PlugIcon, ZapIcon
+    CheckIcon, XIcon, MailIcon, SnowflakeIcon, Settings2Icon, PlugIcon, ZapIcon,
+    ActivityIcon
 } from '@/components/icons';
 import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL, CREATE_CUSTOMER, UPDATE_CUSTOMER, GET_ALL_FILTERED_CUSTOMER_IDS } from '@/graphql';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -124,6 +125,9 @@ interface CustomerDetails {
             offPeak?: number;
             shoulder?: number;
             fit?: number;
+            fitPeak?: number;
+            fitCritical?: number;
+            fitVpp?: number;
             cl1Supply?: number;
             cl1Usage?: number;
             cl2Supply?: number;
@@ -1011,6 +1015,7 @@ export function CustomersPage() {
                 </div>
             ),
             width: 'w-[100px]',
+            sticky: 'right' as const,
             render: (row: Customer) => (
                 <div className="flex items-center gap-3">
                     {/* <div className="flex items-center">
@@ -1518,55 +1523,48 @@ export function CustomersPage() {
                                         {selectedCustomerDetails.ratePlan.offers.map((offer, idx) => {
                                             const discount = selectedCustomerDetails.discount ?? 0;
                                             const hasCL = (offer.cl1Usage || 0) > 0 || (offer.cl2Usage || 0) > 0;
-                                            const hasFiT = (offer.fit || 0) > 0;
-
-                                            const renderRate = (label: string, value: number, colorClass: string = 'blue') => {
-                                                const finalRate = calculateDiscountedRate(value, discount);
-                                                const colors = {
-                                                    blue: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400',
-                                                    orange: 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800 text-orange-600 dark:text-orange-400',
-                                                };
-                                                const theme = colors[colorClass as keyof typeof colors] || colors.blue;
-                                                const [bg, darkBg, border, darkBorder, text, darkText] = theme.split(' ');
-
-                                                return (
-                                                    <div className={`${bg} ${darkBg} border ${border} ${darkBorder} rounded-lg p-3 text-center space-y-0.5`}>
-                                                        <div className={`${text} ${darkText} font-bold text-base tracking-tight`}>${finalRate.toFixed(4)}/kWh</div>
-                                                        <div className={`text-[10px] font-bold ${text} ${darkText} uppercase tracking-wider opacity-80`}>{label}</div>
-                                                    </div>
-                                                );
-                                            };
-
-                                            const renderCL = (label: string, value: number) => {
-                                                const finalRate = calculateDiscountedRate(value, discount);
-                                                return (
-                                                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
-                                                        <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${finalRate.toFixed(4)}/kWh</div>
-                                                        <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">{label}</div>
-                                                    </div>
-                                                );
-                                            };
+                                            const hasFiT = (offer.fit || 0) > 0 || (offer.fitPeak || 0) > 0 || (offer.fitCritical || 0) > 0 || (offer.fitVpp || 0) > 0;
 
                                             return (
                                                 <div key={offer.uid || idx}>
-                                                    <div className={`grid grid-cols-1 ${hasFiT && hasCL ? 'md:grid-cols-4' : (hasFiT || hasCL ? 'md:grid-cols-3' : 'md:grid-cols-2')} gap-8`}>
+                                                    <div className="flex flex-wrap gap-8">
                                                         {/* Column 1: Energy Rates */}
-                                                        <div className="space-y-4">
-                                                            <div className="flex items-center gap-2 text-[#2563EB]">
+                                                        <div className="space-y-4 min-w-[180px] flex-1">
+                                                            <div className="flex items-center gap-2 text-blue-500 dark:text-blue-400">
                                                                 <Settings2Icon size={16} />
                                                                 <h4 className="text-sm font-bold uppercase tracking-wide">Energy Rates</h4>
                                                             </div>
                                                             <div className="space-y-3">
-                                                                {(offer.peak ?? 0) > 0 && renderRate('Peak', offer.peak ?? 0, 'blue')}
-                                                                {(offer.offPeak ?? 0) > 0 && renderRate('Off-Peak', offer.offPeak ?? 0, 'blue')}
-                                                                {(offer.shoulder ?? 0) > 0 && renderRate('Shoulder', offer.shoulder ?? 0, 'blue')}
-                                                                {(offer.anytime ?? 0) > 0 && renderRate('Anytime', offer.anytime ?? 0, 'orange')}
+                                                                {(offer.peak ?? 0) > 0 && (
+                                                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.peak ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Peak</div>
+                                                                    </div>
+                                                                )}
+                                                                {(offer.offPeak ?? 0) > 0 && (
+                                                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.offPeak ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Off-Peak</div>
+                                                                    </div>
+                                                                )}
+                                                                {(offer.shoulder ?? 0) > 0 && (
+                                                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.shoulder ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Shoulder</div>
+                                                                    </div>
+                                                                )}
+                                                                {(offer.anytime ?? 0) > 0 && (
+                                                                    <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="text-orange-600 dark:text-orange-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.anytime ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                        <div className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider opacity-80">Anytime</div>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
 
                                                         {/* Column 2: Supply Charges */}
-                                                        <div className="space-y-4">
-                                                            <div className="flex items-center gap-2 text-purple-600">
+                                                        <div className="space-y-4 min-w-[180px] flex-1">
+                                                            <div className="flex items-center gap-2 text-purple-500 dark:text-purple-400">
                                                                 <PlugIcon size={16} />
                                                                 <h4 className="text-sm font-bold uppercase tracking-wide">Supply Charges</h4>
                                                             </div>
@@ -1576,40 +1574,76 @@ export function CustomersPage() {
                                                                     <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">Supply</div>
                                                                 </div>
                                                                 {(offer.vppOrcharge ?? 0) > 0 && (
-                                                                    <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                        <div className="text-indigo-600 dark:text-indigo-400 font-bold text-base tracking-tight">${(offer.vppOrcharge ?? 0).toFixed(4)}/day</div>
-                                                                        <div className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider opacity-80">VPP Charge</div>
-                                                                    </div>
+                                                                    <>
+                                                                        <div className="flex items-center gap-2 text-amber-500 dark:text-amber-400 mt-4">
+                                                                            <ActivityIcon size={16} />
+                                                                            <h4 className="text-sm font-bold uppercase tracking-wide">VPP Orchestration Charges</h4>
+                                                                        </div>
+                                                                        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-amber-600 dark:text-amber-400 font-bold text-base tracking-tight">${(offer.vppOrcharge ?? 0).toFixed(4)}/day</div>
+                                                                            <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider opacity-80">Orchestration</div>
+                                                                        </div>
+                                                                    </>
                                                                 )}
                                                             </div>
                                                         </div>
 
                                                         {/* Column 3: Solar FiT */}
                                                         {hasFiT && (
-                                                            <div className="space-y-4">
-                                                                <div className="flex items-center gap-2 text-[rgb(22,163,74)]">
+                                                            <div className="space-y-4 min-w-[180px] flex-1">
+                                                                <div className="flex items-center gap-2 text-teal-500 dark:text-teal-400">
                                                                     <ZapIcon size={16} />
                                                                     <h4 className="text-sm font-bold uppercase tracking-wide">Solar FiT</h4>
                                                                 </div>
                                                                 <div className="space-y-3">
-                                                                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                        <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${(offer.fit ?? 0).toFixed(4)}/kWh</div>
-                                                                        <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">Feed-in</div>
-                                                                    </div>
+                                                                    {(offer.fit ?? 0) > 0 && (
+                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fit ?? 0).toFixed(4)}/kWh</div>
+                                                                            <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">Feed-in</div>
+                                                                        </div>
+                                                                    )}
+                                                                    {(offer.fitPeak ?? 0) > 0 && (
+                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitPeak ?? 0).toFixed(4)}/kWh</div>
+                                                                            <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Peak</div>
+                                                                        </div>
+                                                                    )}
+                                                                    {(offer.fitCritical ?? 0) > 0 && (
+                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitCritical ?? 0).toFixed(4)}/kWh</div>
+                                                                            <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Critical</div>
+                                                                        </div>
+                                                                    )}
+                                                                    {(offer.fitVpp ?? 0) > 0 && (
+                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitVpp ?? 0).toFixed(4)}/kWh</div>
+                                                                            <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT VPP</div>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         )}
 
                                                         {/* Column 4: Controlled Load */}
                                                         {hasCL && (
-                                                            <div className="space-y-4">
-                                                                <div className="flex items-center gap-2 text-green-600">
+                                                            <div className="space-y-4 min-w-[180px] flex-1">
+                                                                <div className="flex items-center gap-2 text-green-500 dark:text-green-400">
                                                                     <PlugIcon size={16} />
                                                                     <h4 className="text-sm font-bold uppercase tracking-wide">Controlled Load</h4>
                                                                 </div>
                                                                 <div className="space-y-3">
-                                                                    {(offer.cl1Usage ?? 0) > 0 && renderCL('CL1 Usage', offer.cl1Usage ?? 0)}
-                                                                    {(offer.cl2Usage ?? 0) > 0 && renderCL('CL2 Usage', offer.cl2Usage ?? 0)}
+                                                                    {(offer.cl1Usage ?? 0) > 0 && (
+                                                                        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.cl1Usage ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                            <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL1 Usage</div>
+                                                                        </div>
+                                                                    )}
+                                                                    {(offer.cl2Usage ?? 0) > 0 && (
+                                                                        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.cl2Usage ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                            <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL2 Usage</div>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         )}

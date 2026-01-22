@@ -32,6 +32,7 @@ interface RateOffer {
     fit: number;
     fitPeak?: number;
     fitCritical?: number;
+    fitVpp?: number;
     offPeak: number;
     peak: number;
     shoulder: number;
@@ -121,6 +122,7 @@ export function RatesPage() {
         fit: '',
         fitPeak: '',
         fitCritical: '',
+        fitVpp: '',
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -414,6 +416,7 @@ export function RatesPage() {
             fit: offer?.fit?.toString() || '',
             fitPeak: offer?.fitPeak?.toString() || '',
             fitCritical: offer?.fitCritical?.toString() || '',
+            fitVpp: offer?.fitVpp?.toString() || '',
         });
         setFormErrors({});
         setEditModalOpen(true);
@@ -453,6 +456,9 @@ export function RatesPage() {
                 demandP: parseFloat(formData.demandP) || 0,
                 demandS: parseFloat(formData.demandS) || 0,
                 fit: parseFloat(formData.fit) || 0,
+                fitPeak: parseFloat(formData.fitPeak) || 0,
+                fitCritical: parseFloat(formData.fitCritical) || 0,
+                fitVpp: parseFloat(formData.fitVpp) || 0,
             }] : undefined;
 
             // Single API call to update both rate plan and offers
@@ -550,63 +556,17 @@ export function RatesPage() {
         }
     };
 
-    const showActions = canEdit || canDelete;
+
 
     const columns: Column<RatePlan>[] = useMemo(() => [
 
-        {
-            key: 'actions',
-            header: 'Actions',
-            width: 'w-[100px]',
-            sticky: 'left' as const,
-            stickyOffset: 0,
-            render: (row: RatePlan) => (
-                <div className="flex items-center gap-2">
-                    {row.isDeleted ? (
-                        canDelete && (
-                            <Tooltip content="Restore Rate">
-                                <button
-                                    className="p-2 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
-                                    onClick={() => handleRestoreClick(row)}
-                                >
-                                    <RefreshCwIcon size={16} />
-                                </button>
-                            </Tooltip>
-                        )
-                    ) : (
-                        <>
-                            {canEdit && (
-                                <Tooltip content="Edit Rate">
-                                    <button
-                                        className="p-2 border border-border rounded-lg bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                                        onClick={() => handleEditRate(row)}
-                                    >
-                                        <PencilIcon size={16} />
-                                    </button>
-                                </Tooltip>
-                            )}
-                            {canDelete && (
-                                <Tooltip content="Delete Rate">
-                                    <button
-                                        className="p-2 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
-                                        onClick={() => handleDeleteClick(row)}
-                                    >
-                                        <TrashIcon size={16} />
-                                    </button>
-                                </Tooltip>
-                            )}
-                        </>
-                    )}
-                    {!canEdit && !canDelete && !row.isDeleted && <span className="text-muted-foreground">-</span>}
-                </div>
-            )
-        },
+
         {
             key: 'state',
             header: 'State',
             width: 'w-[60px]',
             sticky: 'left' as const,
-            stickyOffset: showActions ? 100 : 0,
+            stickyOffset: 0,
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'state') ? `Old: ${getOldValue(row, 'state')}` : null}>
                     <span className={isFieldChanged(row, 'state') ? 'bg-orange-800 text-orange-950 font-bold px-2 py-0.5 rounded' : ''}>{row.state || '-'}</span>
@@ -618,7 +578,7 @@ export function RatesPage() {
             header: 'Code',
             width: 'w-[150px]',
             sticky: 'left' as const,
-            stickyOffset: showActions ? 160 : 60,
+            stickyOffset: 60,
             render: (row: RatePlan) => {
                 let codes: string[] = [];
                 if (Array.isArray(row.codes)) {
@@ -832,20 +792,8 @@ export function RatesPage() {
             width: 'w-[80px]',
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'offer_fit') ? `Old: ${getOldValue(row, 'offer_fit')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_fit') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400'}`}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_fit') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-300'}`}>
                         {row.offers?.[0]?.fit ?? '-'}
-                    </span>
-                </Tooltip>
-            ),
-        },
-        {
-            key: 'vppOrcharge',
-            header: 'FIT-VPP',
-            width: 'w-[100px]',
-            render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_vppOrcharge') ? `Old: ${getOldValue(row, 'offer_vppOrcharge')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_vppOrcharge') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400'}`}>
-                        {row.offers?.[0]?.vppOrcharge ?? '-'}
                     </span>
                 </Tooltip>
             ),
@@ -854,19 +802,49 @@ export function RatesPage() {
             key: 'fitPeak',
             header: 'FIT-Peak',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.fitPeak ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_fitPeak') ? `Old: ${getOldValue(row, 'offer_fitPeak')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_fitPeak') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-300'}`}>
+                        {row.offers?.[0]?.fitPeak ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'fitCritical',
             header: 'FIT-Critical',
             width: 'w-[100px]',
-            render: (row: RatePlan) => <span className="bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400 px-2 py-1 rounded font-medium text-xs">{row.offers?.[0]?.fitCritical ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_fitCritical') ? `Old: ${getOldValue(row, 'offer_fitCritical')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_fitCritical') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-300'}`}>
+                        {row.offers?.[0]?.fitCritical ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
-            key: 'vpp',
+            key: 'fitVpp',
+            header: 'FIT-VPP',
+            width: 'w-[100px]',
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_fitVpp') ? `Old: ${getOldValue(row, 'offer_fitVpp')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_fitVpp') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-300'}`}>
+                        {row.offers?.[0]?.fitVpp ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
+        },
+        {
+            key: 'vppOrcharge',
             header: 'VPP Orchestration',
             width: 'w-[140px]',
-            render: (row: RatePlan) => <span className="text-red-600 font-medium text-xs">{row.vpp ?? '-'}</span>,
+            render: (row: RatePlan) => (
+                <Tooltip content={isFieldChanged(row, 'offer_vppOrcharge') ? `Old: ${getOldValue(row, 'offer_vppOrcharge')}` : null}>
+                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_vppOrcharge') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-red-200 text-red-900 dark:bg-red-900/20 dark:text-red-400'}`}>
+                        {row.offers?.[0]?.vppOrcharge ?? '-'}
+                    </span>
+                </Tooltip>
+            ),
         },
         {
             key: 'discount',
@@ -895,8 +873,55 @@ export function RatesPage() {
             header: 'Updated',
             width: 'w-[150px]',
             render: (row: RatePlan) => <span className="text-muted-foreground">{formatDateTime(row.updatedAt)}</span>,
-        }
-    ].filter(col => col.key !== 'actions' || (canEdit || canDelete)), [handleEditRate, handleDeleteClick, handleRestoreClick, canEdit, canDelete, isFieldChanged, getOldValue]);
+        },
+        {
+            key: 'actions',
+            header: 'Actions',
+            width: 'w-[100px]',
+            sticky: 'right' as const,
+            stickyOffset: 0,
+            render: (row: RatePlan) => (
+                <div className="flex items-center gap-2">
+                    {row.isDeleted ? (
+                        canDelete && (
+                            <Tooltip content="Restore Rate">
+                                <button
+                                    className="p-2 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
+                                    onClick={() => handleRestoreClick(row)}
+                                >
+                                    <RefreshCwIcon size={16} />
+                                </button>
+                            </Tooltip>
+                        )
+                    ) : (
+                        <>
+                            {canEdit && (
+                                <Tooltip content="Edit Rate">
+                                    <button
+                                        className="p-2 border border-border rounded-lg bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                                        onClick={() => handleEditRate(row)}
+                                    >
+                                        <PencilIcon size={16} />
+                                    </button>
+                                </Tooltip>
+                            )}
+                            {canDelete && (
+                                <Tooltip content="Delete Rate">
+                                    <button
+                                        className="p-2 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
+                                        onClick={() => handleDeleteClick(row)}
+                                    >
+                                        <TrashIcon size={16} />
+                                    </button>
+                                </Tooltip>
+                            )}
+                        </>
+                    )}
+                    {!canEdit && !canDelete && !row.isDeleted && <span className="text-muted-foreground">-</span>}
+                </div>
+            )
+        },
+    ], [handleEditRate, handleDeleteClick, handleRestoreClick, canEdit, canDelete, isFieldChanged, getOldValue]);
 
     return (
         <div className="space-y-6">
@@ -1044,7 +1069,7 @@ export function RatesPage() {
                     hasMore={hasMore}
                     isLoadingMore={isLoadingMore}
                     onLoadMore={handleLoadMore}
-                    rowClassName={(row: RatePlan) => changedRatePlanUids.has(row.uid) ? '[&>td]:!bg-orange-100 dark:[&>td]:!bg-orange-900/30 font-medium' : ''}
+                    rowClassName={(row: RatePlan) => changedRatePlanUids.has(row.uid) ? '[&>td]:!bg-orange-100 dark:[&>td]:!bg-orange-950 font-medium' : ''}
                 />
             </div>
 
