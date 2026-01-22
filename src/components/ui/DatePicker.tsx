@@ -1,6 +1,12 @@
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
+
+const Portal = ({ children }: { children: React.ReactNode }) => {
+    if (typeof document === 'undefined') return null;
+    return createPortal(children, document.body);
+};
 
 // ============================================================
 // DatePicker Types
@@ -123,10 +129,13 @@ const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
     }, ref) => {
         const inputId = id || React.useId();
         const containerRef = React.useRef<HTMLDivElement>(null);
+        const inputRef = React.useRef<HTMLInputElement>(null);
+        const popupRef = React.useRef<HTMLDivElement>(null);
         const [isOpen, setIsOpen] = React.useState(false);
         const [isYearSelection, setIsYearSelection] = React.useState(false);
         const [inputValue, setInputValue] = React.useState('');
         const [internalError, setInternalError] = React.useState<string>('');
+        const [popupPosition, setPopupPosition] = React.useState<{ top: number; left: number; placement: 'bottom' | 'top' }>({ top: 0, left: 0, placement: 'bottom' });
         const selectedYearRef = React.useRef<HTMLButtonElement>(null);
 
         // Current view (month/year being displayed)
@@ -152,17 +161,81 @@ const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
             }
         }, [isYearSelection]);
 
+        // Calculate popup position when opening
+        React.useEffect(() => {
+            if (isOpen && inputRef.current) {
+                const updatePosition = () => {
+                    if (!inputRef.current) return;
+                    
+                    const inputRect = inputRef.current.getBoundingClientRect();
+                    const popupHeight = 380; // Approximate height of the calendar popup
+                    const popupWidth = 300; // minWidth from style
+                    const viewportHeight = window.innerHeight;
+                    const viewportWidth = window.innerWidth;
+
+                    // Check if there's enough space below
+                    const spaceBelow = viewportHeight - inputRect.bottom;
+                    const spaceAbove = inputRect.top;
+                    
+                    // Determine placement (prefer bottom, but use top if not enough space)
+                    const placement = spaceBelow >= popupHeight || spaceBelow > spaceAbove ? 'bottom' : 'top';
+                    
+                    // Calculate top position (fixed positioning is relative to viewport)
+                    let top: number;
+                    if (placement === 'bottom') {
+                        top = inputRect.bottom + 4; // 4px gap
+                    } else {
+                        top = inputRect.top - popupHeight - 4; // 4px gap above
+                    }
+
+                    // Calculate left position (align with input, but adjust if it would overflow)
+                    let left = inputRect.left;
+                    
+                    // If popup would overflow on the right, align to the right edge of input
+                    if (left + popupWidth > viewportWidth) {
+                        left = inputRect.right - popupWidth;
+                    }
+                    
+                    // If popup would overflow on the left, align to the left edge of viewport
+                    if (left < 0) {
+                        left = 8; // 8px padding from viewport edge
+                    }
+
+                    setPopupPosition({ top, left, placement });
+                };
+
+                updatePosition();
+
+                // Update position on scroll and resize
+                window.addEventListener('scroll', updatePosition, true);
+                window.addEventListener('resize', updatePosition);
+
+                return () => {
+                    window.removeEventListener('scroll', updatePosition, true);
+                    window.removeEventListener('resize', updatePosition);
+                };
+            }
+        }, [isOpen]);
+
         // Close on outside click
         React.useEffect(() => {
             function handleClickOutside(event: MouseEvent) {
-                if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                const target = event.target as Node;
+                if (
+                    containerRef.current && 
+                    !containerRef.current.contains(target) &&
+                    popupRef.current &&
+                    !popupRef.current.contains(target)
+                ) {
                     setIsOpen(false);
                     setIsYearSelection(false);
                 }
             }
-            document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
-        }, []);
+            if (isOpen) {
+                document.addEventListener('mousedown', handleClickOutside);
+                return () => document.removeEventListener('mousedown', handleClickOutside);
+            }
+        }, [isOpen]);
 
         // Close on Escape key
         React.useEffect(() => {
@@ -356,6 +429,7 @@ const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
                 {/* Input Field */}
                 <div className="relative" ref={ref}>
                     <input
+                        ref={inputRef}
                         id={inputId}
                         type="text"
                         value={inputValue}
@@ -420,13 +494,18 @@ const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
                 )}
 
                 {isOpen && !disabled && (
-                    <div
-                        className={cn(
-                            "absolute z-50 mt-2 p-4 bg-background border border-border rounded-xl shadow-lg",
-                            "animate-in fade-in-0 zoom-in-95 duration-200"
-                        )}
-                        style={{ minWidth: '300px' }}
-                    >
+                    <Portal>
+                        <div
+                            ref={popupRef}
+                            className={cn(
+                                "fixed z-[9999] p-4 bg-background border border-border rounded-xl shadow-lg"
+                            )}
+                            style={{ 
+                                minWidth: '300px',
+                                top: `${popupPosition.top}px`,
+                                left: `${popupPosition.left}px`
+                            }}
+                        >
                         {isYearSelection ? (
                             <div className="h-64 overflow-y-auto grid grid-cols-4 gap-2">
                                 {Array.from({ length: 150 }, (_, i) => new Date().getFullYear() - 100 + i).map(year => {
@@ -547,7 +626,8 @@ const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
                                 </div>
                             </>
                         )}
-                    </div>
+                        </div>
+                    </Portal>
                 )}
             </div>
         );

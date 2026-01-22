@@ -681,7 +681,7 @@ export const OfferAccessPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8 pb-24">
             <div className="max-w-4xl mx-auto space-y-6">
                 {/* Header */}
                 <div className="bg-card rounded-xl shadow-sm border border-border p-6">
@@ -889,304 +889,360 @@ export const OfferAccessPage = () => {
                     </div >
                 </div >
 
-                {/* Plan & Rates Card - Matching CustomerFormPage.tsx style */}
-                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-                    <div className="flex justify-between items-start mb-6">
-                        <div>
-                            <h3 className="text-base font-bold text-foreground">Your Energy Rates</h3>
-                            <p className="text-xs text-muted-foreground">Tariff: {customerData.tariffCode || customerData.ratePlan?.tariff || '—'}</p>
-                        </div>
-                        {customerData.discount > 0 && (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400">
-                                {customerData.discount}% Discount Applied
-                            </span>
-                        )}
-                    </div>
-
-                    <div className={`grid grid-cols-1 ${activeOffer.fit > 0 && (activeOffer.cl1Usage > 0 || activeOffer.cl2Usage > 0) ? 'md:grid-cols-4' : (activeOffer.fit > 0 || activeOffer.cl1Usage > 0 || activeOffer.cl2Usage > 0 ? 'md:grid-cols-3' : 'md:grid-cols-2')} gap-6`}>
-                        {/* Energy Rates Column */}
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                                <RatesIcon size={16} />
-                                <h4 className="text-sm font-bold uppercase tracking-wide">Energy Rates</h4>
-                            </div>
-                            <div className="space-y-2">
-                                {activeOffer.peak > 0 && (
-                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
-                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base">${calculateDiscountedRate(activeOffer.peak, customerData.discount ?? 0).toFixed(4)}/kWh</div>
-                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Peak</div>
-                                    </div>
-                                )}
-                                {activeOffer.offPeak > 0 && (
-                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
-                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base">${calculateDiscountedRate(activeOffer.offPeak, customerData.discount ?? 0).toFixed(4)}/kWh</div>
-                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Off-Peak</div>
-                                    </div>
-                                )}
-                                {activeOffer.shoulder > 0 && (
-                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
-                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base">${calculateDiscountedRate(activeOffer.shoulder, customerData.discount ?? 0).toFixed(4)}/kWh</div>
-                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Shoulder</div>
-                                    </div>
-                                )}
-                                {activeOffer.anytime > 0 && (
-                                    <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg p-3 text-center">
-                                        <div className="text-orange-600 dark:text-orange-400 font-bold text-base">${calculateDiscountedRate(activeOffer.anytime, customerData.discount ?? 0).toFixed(4)}/kWh</div>
-                                        <div className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider opacity-80">Anytime</div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Supply Charges Column */}
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
-                                <PlugIcon size={16} />
-                                <h4 className="text-sm font-bold uppercase tracking-wide">Supply Charges</h4>
-                            </div>
-                            <div className="space-y-2">
-                                {activeOffer.supplyCharge > 0 && (
-                                    <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center">
-                                        <div className="text-purple-600 dark:text-purple-400 font-bold text-base">${activeOffer.supplyCharge.toFixed(4)}/day</div>
-                                        <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">Supply</div>
-                                    </div>
-                                )}
-                                {activeOffer.cl1Supply > 0 && (
-                                    <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center">
-                                        <div className="text-purple-600 dark:text-purple-400 font-bold text-base">${activeOffer.cl1Supply.toFixed(4)}/day</div>
-                                        <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">CL1 Supply</div>
-                                    </div>
-                                )}
-                                {activeOffer.cl2Supply > 0 && (
-                                    <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center">
-                                        <div className="text-purple-600 dark:text-purple-400 font-bold text-base">${activeOffer.cl2Supply.toFixed(4)}/day</div>
-                                        <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">CL2 Supply</div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Solar FiT Column */}
-                        {activeOffer.fit > 0 && (
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                                    <ZapIcon size={16} />
-                                    <h4 className="text-sm font-bold uppercase tracking-wide">Solar FiT</h4>
+                {/* Direct Debit Section - Redesigned */}
+                <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                    {/* Header with gradient accent */}
+                    <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-5 border-b border-border">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                    <CreditCardIcon size={20} className="text-primary" />
                                 </div>
-                                <div className="space-y-2">
-                                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
-                                        <div className="text-green-600 dark:text-green-400 font-bold text-base">${activeOffer.fit.toFixed(4)}/kWh</div>
-                                        <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">Feed-in</div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Controlled Load Column */}
-                        {(activeOffer.cl1Usage > 0 || activeOffer.cl2Usage > 0) && (
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                                    <PlugIcon size={16} />
-                                    <h4 className="text-sm font-bold uppercase tracking-wide">Controlled Load</h4>
-                                </div>
-                                <div className="space-y-2">
-                                    {activeOffer.cl1Usage > 0 && (
-                                        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
-                                            <div className="text-green-600 dark:text-green-400 font-bold text-base">${calculateDiscountedRate(activeOffer.cl1Usage, customerData.discount ?? 0).toFixed(4)}/kWh</div>
-                                            <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL1 Usage</div>
-                                        </div>
-                                    )}
-                                    {activeOffer.cl2Usage > 0 && (
-                                        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
-                                            <div className="text-green-600 dark:text-green-400 font-bold text-base">${calculateDiscountedRate(activeOffer.cl2Usage, customerData.discount ?? 0).toFixed(4)}/kWh</div>
-                                            <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL2 Usage</div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div >
-
-                {/* Direct Debit Card */}
-                < div className="bg-card rounded-xl shadow-sm border border-border p-6" >
-                    <div className="flex items-start gap-4">
-                        <div className="mt-1 text-muted-foreground"><CreditCardIcon size={20} /></div>
-                        <div className="flex-1">
-                            <div className="flex justify-between items-start mb-2">
                                 <div>
-                                    <h3 className="text-sm font-semibold text-foreground">Direct debit details</h3>
-                                    <p className="text-xs text-muted-foreground mb-3">Tick to opt-in and securely share your bank details.</p>
+                                    <h3 className="text-base font-semibold text-foreground">Direct Debit Setup</h3>
+                                    <p className="text-xs text-muted-foreground">Securely set up automatic payments</p>
                                 </div>
-                                <label className="flex items-center gap-2 cursor-pointer select-none">
-                                    <input
-                                        type="checkbox"
-                                        checked={directDebitOptIn}
-                                        onChange={(e) => setDirectDebitOptIn(e.target.checked)}
-                                        className="rounded border-input text-neutral-900 focus:ring-neutral-900"
-                                    />
-                                    <span className="text-sm font-medium text-foreground">Opt in</span>
-                                </label>
+                            </div>
+                            <label className="flex items-center gap-3 cursor-pointer select-none bg-background px-4 py-2 rounded-lg border border-border hover:border-primary/50 transition-colors">
+                                <input
+                                    type="checkbox"
+                                    checked={directDebitOptIn}
+                                    onChange={(e) => setDirectDebitOptIn(e.target.checked)}
+                                    className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+                                />
+                                <span className="text-sm font-medium text-foreground">Enable Direct Debit</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* Collapsible Form */}
+                    {directDebitOptIn && (
+                        <div className="p-6 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                            {/* Account Type Selection */}
+                            <div className="bg-muted/30 rounded-lg p-4">
+                                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Account Type</label>
+                                <div className="flex gap-4">
+                                    <label className={`flex-1 flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${ddDetails.accountType === 'business' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}>
+                                        <input
+                                            type="radio"
+                                            name="accountType"
+                                            value="business"
+                                            checked={ddDetails.accountType === 'business'}
+                                            onChange={() => setDdDetails({ ...ddDetails, accountType: 'business' })}
+                                            className="text-primary focus:ring-primary"
+                                        />
+                                        <div>
+                                            <span className="text-sm font-medium text-foreground">Business</span>
+                                            <p className="text-xs text-muted-foreground">Company or organization</p>
+                                        </div>
+                                    </label>
+                                    <label className={`flex-1 flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${ddDetails.accountType === 'personal' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}>
+                                        <input
+                                            type="radio"
+                                            name="accountType"
+                                            value="personal"
+                                            checked={ddDetails.accountType === 'personal'}
+                                            onChange={() => setDdDetails({ ...ddDetails, accountType: 'personal' })}
+                                            className="text-primary focus:ring-primary"
+                                        />
+                                        <div>
+                                            <span className="text-sm font-medium text-foreground">Personal</span>
+                                            <p className="text-xs text-muted-foreground">Individual account</p>
+                                        </div>
+                                    </label>
+                                </div>
                             </div>
 
-                            {/* Collapsible Form */}
-                            {directDebitOptIn && (
-                                <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                    <div className="space-y-4">
+                            {/* Account Holder Details */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {ddDetails.accountType === 'business' ? (
+                                    <>
                                         <div>
-                                            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Account type</label>
-                                            <div className="flex gap-4">
-                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                    <input
-                                                        type="radio"
-                                                        name="accountType"
-                                                        value="business"
-                                                        checked={ddDetails.accountType === 'business'}
-                                                        onChange={() => setDdDetails({ ...ddDetails, accountType: 'business' })}
-                                                        className="text-neutral-900 focus:ring-neutral-900 border-input"
-                                                    />
-                                                    <span className="text-sm text-muted-foreground">Business account</span>
-                                                </label>
-                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                    <input
-                                                        type="radio"
-                                                        name="accountType"
-                                                        value="personal"
-                                                        checked={ddDetails.accountType === 'personal'}
-                                                        onChange={() => setDdDetails({ ...ddDetails, accountType: 'personal' })}
-                                                        className="text-neutral-900 focus:ring-neutral-900 border-input"
-                                                    />
-                                                    <span className="text-sm text-muted-foreground">Personal account</span>
-                                                </label>
-                                            </div>
+                                            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Company Name</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Business legal name"
+                                                value={ddDetails.companyName}
+                                                onChange={(e) => setDdDetails({ ...ddDetails, companyName: e.target.value })}
+                                                className="w-full px-3 py-2.5 border border-input rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-background text-foreground placeholder:text-muted-foreground"
+                                            />
                                         </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">ABN</label>
+                                            <input
+                                                type="text"
+                                                placeholder="ABN"
+                                                value={ddDetails.abnOrContactName}
+                                                onChange={(e) => setDdDetails({ ...ddDetails, abnOrContactName: e.target.value })}
+                                                className="w-full px-3 py-2.5 border border-input rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-background text-foreground placeholder:text-muted-foreground"
+                                            />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">First Name</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Given name"
+                                                value={ddDetails.firstName}
+                                                onChange={(e) => setDdDetails({ ...ddDetails, firstName: e.target.value })}
+                                                className="w-full px-3 py-2.5 border border-input rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-background text-foreground placeholder:text-muted-foreground"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Last Name</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Surname"
+                                                value={ddDetails.lastName}
+                                                onChange={(e) => setDdDetails({ ...ddDetails, lastName: e.target.value })}
+                                                className="w-full px-3 py-2.5 border border-input rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-background text-foreground placeholder:text-muted-foreground"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {ddDetails.accountType === 'business' ? (
-                                                <>
-                                                    <div>
-                                                        <label className="block text-xs font-medium text-muted-foreground mb-1">Company name</label>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Business legal name"
-                                                            value={ddDetails.companyName}
-                                                            onChange={(e) => setDdDetails({ ...ddDetails, companyName: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-xs font-medium text-muted-foreground mb-1">ABN / Contact first name</label>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="ABN or contact name"
-                                                            value={ddDetails.abnOrContactName}
-                                                            onChange={(e) => setDdDetails({ ...ddDetails, abnOrContactName: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
-                                                        />
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div>
-                                                        <label className="block text-xs font-medium text-muted-foreground mb-1">Last name</label>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Surname"
-                                                            value={ddDetails.lastName}
-                                                            onChange={(e) => setDdDetails({ ...ddDetails, lastName: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-xs font-medium text-muted-foreground mb-1">First name</label>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Given name"
-                                                            value={ddDetails.firstName}
-                                                            onChange={(e) => setDdDetails({ ...ddDetails, firstName: e.target.value })}
-                                                            className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
-                                                        />
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-xs font-medium text-muted-foreground mb-1">Bank name</label>
-                                                <BankAutocomplete
-                                                    value={ddDetails.bankName}
-                                                    onChange={(value) => setDdDetails({ ...ddDetails, bankName: value })}
-                                                    placeholder="Choose or type bank"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-muted-foreground mb-1">Bank address</label>
-                                                <LocationAutocomplete
-                                                    value={ddDetails.bankAddress}
-                                                    onChange={(text) => setDdDetails({ ...ddDetails, bankAddress: text })}
-                                                    onSelect={(payload) => setDdDetails({ ...ddDetails, bankAddress: payload.address })}
-                                                    placeholder="Search bank address"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-xs font-medium text-muted-foreground mb-1">BSB</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="063-000"
-                                                    value={ddDetails.bsb}
-                                                    onChange={(e) => setDdDetails({ ...ddDetails, bsb: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
-                                                />
-                                                <p className="text-[10px] text-muted-foreground mt-1">6 digits, formatted as 123-456.</p>
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-muted-foreground mb-1">Account number</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="1234 5678 9012"
-                                                    value={ddDetails.accountNumber}
-                                                    onChange={(e) => setDdDetails({ ...ddDetails, accountNumber: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
-                                                />
-                                                <p className="text-[10px] text-muted-foreground mt-1">3-12 digits allowed.</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-xs font-medium text-muted-foreground mb-1">Payment frequency</label>
-                                                <select
-                                                    value={ddDetails.paymentFrequency}
-                                                    onChange={(e) => setDdDetails({ ...ddDetails, paymentFrequency: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground"
-                                                >
-                                                    <option>Weekly</option>
-                                                    <option>Fortnightly</option>
-                                                    <option>Monthly</option>
-                                                    <option>Quarterly</option>
-                                                    <option>Annually</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-muted-foreground mb-1">First debit date</label>
-                                                <input
-                                                    type="date"
-                                                    value={ddDetails.firstDebitDate}
-                                                    onChange={(e) => setDdDetails({ ...ddDetails, firstDebitDate: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 transition-colors bg-background text-foreground"
-                                                />
-                                            </div>
-                                        </div>
+                            {/* Bank Details */}
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Bank Details</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bank Name</label>
+                                        <BankAutocomplete
+                                            value={ddDetails.bankName}
+                                            onChange={(value) => setDdDetails({ ...ddDetails, bankName: value })}
+                                            placeholder="Select or type bank"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Bank Address</label>
+                                        <LocationAutocomplete
+                                            value={ddDetails.bankAddress}
+                                            onChange={(text) => setDdDetails({ ...ddDetails, bankAddress: text })}
+                                            onSelect={(payload) => setDdDetails({ ...ddDetails, bankAddress: payload.address })}
+                                            placeholder="Search bank address"
+                                        />
                                     </div>
                                 </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-muted-foreground mb-1.5">BSB</label>
+                                        <input
+                                            type="text"
+                                            placeholder="123-456"
+                                            value={ddDetails.bsb}
+                                            onChange={(e) => setDdDetails({ ...ddDetails, bsb: e.target.value })}
+                                            className="w-full px-3 py-2.5 border border-input rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-background text-foreground placeholder:text-muted-foreground"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground mt-1">6 digits (e.g., 123-456)</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Account Number</label>
+                                        <input
+                                            type="text"
+                                            placeholder="12345678"
+                                            value={ddDetails.accountNumber}
+                                            onChange={(e) => setDdDetails({ ...ddDetails, accountNumber: e.target.value })}
+                                            className="w-full px-3 py-2.5 border border-input rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-background text-foreground placeholder:text-muted-foreground"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground mt-1">3-12 digits</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Payment Schedule */}
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Payment Schedule</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Payment Frequency - Hidden, defaults to Monthly */}
+                                    {/* <div>
+                                        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Payment Frequency</label>
+                                        <select
+                                            value={ddDetails.paymentFrequency}
+                                            onChange={(e) => setDdDetails({ ...ddDetails, paymentFrequency: e.target.value })}
+                                            className="w-full px-3 py-2.5 border border-input rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-background text-foreground"
+                                        >
+                                            <option>Weekly</option>
+                                            <option>Fortnightly</option>
+                                            <option>Monthly</option>
+                                            <option>Quarterly</option>
+                                            <option>Annually</option>
+                                        </select>
+                                    </div> */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-muted-foreground mb-1.5">First Debit Date</label>
+                                        <input
+                                            type="date"
+                                            value={ddDetails.firstDebitDate}
+                                            onChange={(e) => setDdDetails({ ...ddDetails, firstDebitDate: e.target.value })}
+                                            className="w-full px-3 py-2.5 border border-input rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-background text-foreground"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Plan & Rates Card - Matching CustomerFormPage.tsx style */}
+                <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                    {/* Gradient Header */}
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 px-5 py-4 border-b border-border">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
+                                    <ZapIcon size={20} className="text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-semibold text-foreground">Your Energy Rates</h3>
+                                    <p className="text-xs text-muted-foreground">Tariff: {customerData.tariffCode || customerData.ratePlan?.tariff || '—'}</p>
+                                </div>
+                            </div>
+                            {customerData.discount > 0 && (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400">
+                                    {customerData.discount}% Discount Applied
+                                </span>
                             )}
                         </div>
                     </div>
-                </div >
+
+                    <div className="p-5">
+                        {(() => {
+                            const hasFiT = (activeOffer.fit ?? 0) > 0 || (activeOffer.fitPeak ?? 0) > 0 || (activeOffer.fitCritical ?? 0) > 0 || (activeOffer.fitVpp ?? 0) > 0;
+                            const hasCL = (activeOffer.cl1Usage ?? 0) > 0 || (activeOffer.cl2Usage ?? 0) > 0;
+
+                            return (
+                                <div className="flex flex-wrap gap-8">
+                                    {/* Energy Rates Column */}
+                                    <div className="space-y-4 min-w-[180px] flex-1">
+                                        <div className="flex items-center gap-2 text-blue-500 dark:text-blue-400">
+                                            <RatesIcon size={16} />
+                                            <h4 className="text-sm font-bold uppercase tracking-wide">Energy Rates</h4>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {(activeOffer.peak ?? 0) > 0 && (
+                                                <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
+                                                    <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(activeOffer.peak ?? 0, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                                    <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Peak</div>
+                                                </div>
+                                            )}
+                                            {(activeOffer.offPeak ?? 0) > 0 && (
+                                                <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
+                                                    <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(activeOffer.offPeak ?? 0, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                                    <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Off-Peak</div>
+                                                </div>
+                                            )}
+                                            {(activeOffer.shoulder ?? 0) > 0 && (
+                                                <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
+                                                    <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(activeOffer.shoulder ?? 0, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                                    <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Shoulder</div>
+                                                </div>
+                                            )}
+                                            {(activeOffer.anytime ?? 0) > 0 && (
+                                                <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg p-3 text-center space-y-0.5">
+                                                    <div className="text-orange-600 dark:text-orange-400 font-bold text-base tracking-tight">${calculateDiscountedRate(activeOffer.anytime ?? 0, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                                    <div className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider opacity-80">Anytime</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Supply Charges Column */}
+                                    <div className="space-y-4 min-w-[180px] flex-1">
+                                        <div className="flex items-center gap-2 text-purple-500 dark:text-purple-400">
+                                            <PlugIcon size={16} />
+                                            <h4 className="text-sm font-bold uppercase tracking-wide">Supply Charges</h4>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center space-y-0.5">
+                                                <div className="text-purple-600 dark:text-purple-400 font-bold text-base tracking-tight">${(activeOffer.supplyCharge ?? 0).toFixed(4)}/day</div>
+                                                <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">Supply</div>
+                                            </div>
+                                        </div>
+
+                                        {/* VPP Orchestration Charges Sub-section */}
+                                        {(activeOffer.vppOrcharge ?? 0) > 0 && (
+                                            <>
+                                                <div className="flex items-center gap-2 text-amber-500 dark:text-amber-400 mt-4">
+                                                    <ZapIcon size={16} />
+                                                    <h4 className="text-sm font-bold uppercase tracking-wide">VPP Orchestration Charges</h4>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-center space-y-0.5">
+                                                        <div className="text-amber-600 dark:text-amber-400 font-bold text-base tracking-tight">${(activeOffer.vppOrcharge ?? 0).toFixed(4)}/day</div>
+                                                        <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider opacity-80">Orchestration</div>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* Solar FiT Column */}
+                                    {hasFiT && (
+                                        <div className="space-y-4 min-w-[180px] flex-1">
+                                            <div className="flex items-center gap-2 text-teal-500 dark:text-teal-400">
+                                                <ZapIcon size={16} />
+                                                <h4 className="text-sm font-bold uppercase tracking-wide">Solar FiT</h4>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {(activeOffer.fit ?? 0) > 0 && (
+                                                    <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                        <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(activeOffer.fit ?? 0).toFixed(4)}/kWh</div>
+                                                        <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">Feed-in</div>
+                                                    </div>
+                                                )}
+                                                {(activeOffer.fitPeak ?? 0) > 0 && (
+                                                    <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                        <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(activeOffer.fitPeak ?? 0).toFixed(4)}/kWh</div>
+                                                        <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Peak</div>
+                                                    </div>
+                                                )}
+                                                {(activeOffer.fitCritical ?? 0) > 0 && (
+                                                    <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                        <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(activeOffer.fitCritical ?? 0).toFixed(4)}/kWh</div>
+                                                        <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Critical</div>
+                                                    </div>
+                                                )}
+                                                {(activeOffer.fitVpp ?? 0) > 0 && (
+                                                    <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                        <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(activeOffer.fitVpp ?? 0).toFixed(4)}/kWh</div>
+                                                        <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT VPP</div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Controlled Load Column */}
+                                    {hasCL && (
+                                        <div className="space-y-4 min-w-[180px] flex-1">
+                                            <div className="flex items-center gap-2 text-green-500 dark:text-green-400">
+                                                <PlugIcon size={16} />
+                                                <h4 className="text-sm font-bold uppercase tracking-wide">Controlled Load</h4>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {(activeOffer.cl1Usage ?? 0) > 0 && (
+                                                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
+                                                        <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${calculateDiscountedRate(activeOffer.cl1Usage ?? 0, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                                        <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL1 Usage</div>
+                                                    </div>
+                                                )}
+                                                {(activeOffer.cl2Usage ?? 0) > 0 && (
+                                                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
+                                                        <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${calculateDiscountedRate(activeOffer.cl2Usage ?? 0, customerData.discount ?? 0).toFixed(4)}/kWh</div>
+                                                        <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL2 Usage</div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
+                    </div>
+                </div>
 
                 {/* Verification Card - Conditionally Rendered */}
                 {
@@ -1247,26 +1303,28 @@ export const OfferAccessPage = () => {
                     )
                 }
 
-                {/* Sign Button Area */}
-                <div className="pt-4 flex justify-end">
-                    <div className="flex items-center gap-4">
-                        {!canSign && (
-                            <span className="text-xs text-gray-400">
-                                {isPhoneVerified
-                                    ? 'Complete direct debit details to sign.'
-                                    : 'Verify your mobile number above to sign this offer.'}
-                            </span>
-                        )}
-                        <Button
-                            disabled={!canSign}
-                            onClick={() => setShowModal(true)}
-                            className={`px-8 transition-all ${canSign
-                                ? 'bg-green-600 hover:bg-green-700 text-white shadow-md cursor-pointer'
-                                : 'bg-muted text-muted-foreground cursor-not-allowed'
-                                }`}
-                        >
-                            Sign
-                        </Button>
+                {/* Sign Button Area - Sticky at bottom */}
+                <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-border shadow-lg py-4 px-4 sm:px-6 lg:px-8 z-40">
+                    <div className="max-w-4xl mx-auto flex justify-end">
+                        <div className="flex items-center gap-4">
+                            {!canSign && (
+                                <span className="text-xs text-gray-400">
+                                    {isPhoneVerified
+                                        ? 'Complete direct debit details to sign.'
+                                        : 'Verify your mobile number above to sign this offer.'}
+                                </span>
+                            )}
+                            <Button
+                                disabled={!canSign}
+                                onClick={() => setShowModal(true)}
+                                className={`px-8 transition-all ${canSign
+                                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-md cursor-pointer'
+                                    : 'bg-muted text-muted-foreground cursor-not-allowed'
+                                    }`}
+                            >
+                                Sign
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
@@ -1336,7 +1394,7 @@ export const OfferAccessPage = () => {
                                     <canvas
                                         ref={canvasRef}
                                         width={480}
-                                        height={140}
+                                        height={180}
                                         className="border border-gray-200 rounded w-full bg-white dark:bg-[#e1d6c4] dark:invert"
                                         style={{ display: 'block', touchAction: 'none' }}
                                     />
@@ -1419,13 +1477,13 @@ export const OfferAccessPage = () => {
                                                     {' '}
                                                     I will receive{' '}
                                                     <a
-                                                        href="/onboarding/GEE Direct Debit Service Agreement.pdf"
-                                                        className="underline font-bold hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
+                                                        href="/onboarding/GEE Direct Debit Service Agreement-2.pdf"
+                                                        className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
                                                         style={{ color: '#4B8A10' }}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                     >
-                                                        GEE Direct Debit Service Agreement.pdf
+                                                        GEE Direct Debit Service Agreement
                                                     </a>{' '}
                                                     with my signed documents.
                                                 </>

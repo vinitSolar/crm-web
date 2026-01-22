@@ -74,6 +74,9 @@ export const GET_CUSTOMERS = gql`
                         demandP
                         demandS
                         fit
+                        fitPeak
+                        fitCritical
+                        fitVpp
                         offPeak
                         peak
                         shoulder
@@ -498,6 +501,9 @@ export const GET_CUSTOMER_BY_ID = gql`
                     demandP
                     demandS
                     fit
+                    fitPeak
+                    fitCritical
+                    fitVpp
                     offPeak
                     peak
                     shoulder
@@ -650,6 +656,9 @@ export const GET_CUSTOMER_BY_CUSTOMER_ID = gql`
                     demandP
                     demandS
                     fit
+                    fitPeak
+                    fitCritical
+                    fitVpp
                     offPeak
                     peak
                     shoulder
