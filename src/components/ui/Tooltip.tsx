@@ -19,6 +19,8 @@ export interface TooltipProps {
     delay?: number;
     /** Custom class for tooltip */
     className?: string;
+    /** Whether the trigger wrapper should be full width */
+    fullWidth?: boolean;
 }
 
 // ============================================================
@@ -31,6 +33,7 @@ export function Tooltip({
     position = 'top',
     delay = 200,
     className,
+    fullWidth,
 }: TooltipProps) {
     // All hooks must be called unconditionally to comply with Rules of Hooks
     const [isVisible, setIsVisible] = useState(false);
@@ -123,7 +126,7 @@ export function Tooltip({
         <>
             <div
                 ref={triggerRef}
-                className="inline-flex"
+                className={cn("inline-flex", fullWidth && "w-full")}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
             >

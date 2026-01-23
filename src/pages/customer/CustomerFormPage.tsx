@@ -959,9 +959,9 @@ export const CustomerFormPage = () => {
                     </div>
 
                     {/* Content Card */}
-                    <div className="bg-background rounded-xl border border-border shadow-sm p-6 lg:p-6 flex flex-col h-[calc(100vh-200px)]">
+                    <div className="bg-background rounded-xl border border-border shadow-sm p-6 lg:p-6 flex flex-col">
                         {/* Form Content - Scrollable */}
-                        <div className="flex-1 overflow-y-auto pr-2">
+                        <div className="flex-1 p-2">
 
                             {/* Step 0: Contact & Property */}
                             {currentStep === 0 && (
@@ -977,25 +977,20 @@ export const CustomerFormPage = () => {
                                             <Field label="Mobile" required error={errors.phone}>
                                                 <div className="flex flex-wrap gap-2 items-center">
                                                     <Input containerClassName="w-full sm:w-64" placeholder="+61 400 000 000" value={formData.phone} onChange={(e) => updateField('phone', e.target.value)} onBlur={() => handleBlur('phone')} />
-                                                    <button
+                                                    <Button
                                                         onClick={handleSendOTP}
                                                         type="button"
-                                                        className={`px-3 py-2 rounded-xl text-sm border flex items-center gap-2 ${otpSending || !formData.phone || phoneVerified
-                                                            ? 'border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 opacity-60 cursor-not-allowed'
-                                                            : 'border-primary bg-primary/10 dark:bg-primary/20 text-primary hover:bg-primary/20 dark:hover:bg-primary/30'
+                                                        variant="outline"
+                                                        className={`gap-2 ${otpSending || !formData.phone || phoneVerified
+                                                            ? 'border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 opacity-60'
+                                                            : 'border-neutral-900 bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200'
                                                             }`}
                                                         disabled={otpSending || !formData.phone || phoneVerified}
+                                                        isLoading={otpSending}
+                                                        loadingText="Sending…"
                                                     >
-                                                        {otpSending && (
-                                                            <span
-                                                                className="h-3 w-3 rounded-full border-2 border-current border-r-transparent animate-spin"
-                                                                aria-hidden="true"
-                                                            ></span>
-                                                        )}
-                                                        <span>
-                                                            {otpSending ? 'Sending…' : otpSent ? 'Resend' : 'Send code'}
-                                                        </span>
-                                                    </button>
+                                                        {otpSent ? 'Resend' : 'Send code'}
+                                                    </Button>
                                                     <div className="relative">
                                                         <input
                                                             className={`w-28 px-3 py-2 rounded-xl border bg-background text-foreground ${phoneVerified
@@ -1019,26 +1014,23 @@ export const CustomerFormPage = () => {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <button
+                                                    <Button
                                                         onClick={handleVerifyOTP}
                                                         type="button"
-                                                        className={`px-3 py-2 rounded-xl text-sm flex items-center gap-2 ${phoneVerified
-                                                            ? 'bg-green-600 text-white'
-                                                            : 'border border-primary bg-primary/10 dark:bg-primary/20 text-primary hover:bg-primary/20 dark:hover:bg-primary/30'
+                                                        variant="outline"
+                                                        className={`gap-2 ${phoneVerified
+                                                            ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
+                                                            : 'border-neutral-900 bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200'
                                                             } ${otpVerifying || phoneVerified || !otpSent || !otpCode
-                                                                ? 'opacity-70 cursor-not-allowed'
+                                                                ? 'opacity-70'
                                                                 : ''
                                                             }`}
                                                         disabled={otpVerifying || phoneVerified || !otpSent || !otpCode}
+                                                        isLoading={otpVerifying}
+                                                        loadingText="Verifying…"
                                                     >
-                                                        {otpVerifying && (
-                                                            <span
-                                                                className="h-3 w-3 rounded-full border-2 border-current border-r-transparent animate-spin"
-                                                                aria-hidden="true"
-                                                            ></span>
-                                                        )}
-                                                        <span>{phoneVerified ? 'Verified ✓' : otpVerifying ? 'Verifying…' : 'Verify'}</span>
-                                                    </button>
+                                                        {phoneVerified ? 'Verified ✓' : 'Verify'}
+                                                    </Button>
                                                     {phoneVerified && phoneVerifiedAt && (
                                                         <span className="text-xs text-muted-foreground ml-2">
                                                             at {formatDateTime(phoneVerifiedAt)}
@@ -1050,14 +1042,15 @@ export const CustomerFormPage = () => {
                                             <Field label="Property Type">
                                                 <div className="flex gap-2">
                                                     {(['residential', 'commercial'] as const).map((type, idx) => (
-                                                        <button
+                                                        <Button
                                                             key={type}
                                                             type="button"
                                                             onClick={() => updateField('propertyType', idx)}
-                                                            className={`px-4 py-2 rounded-full border text-sm capitalize transition-colors ${formData.propertyType === idx ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground border-border hover:bg-accent'}`}
+                                                            variant="outline"
+                                                            className={`capitalize ${formData.propertyType === idx ? 'bg-primary text-white border-primary hover:bg-primary/90 hover:text-white' : 'bg-background text-foreground border-border hover:bg-accent'}`}
                                                         >
                                                             {type}
-                                                        </button>
+                                                        </Button>
                                                     ))}
                                                 </div>
                                             </Field>
@@ -1299,10 +1292,10 @@ export const CustomerFormPage = () => {
                                                     orange: 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800 text-orange-600 dark:text-orange-400',
                                                 };
                                                 const theme = colors[colorClass as keyof typeof colors] || colors.blue;
-                                                const [bg, darkBg, border, darkBorder, text, darkText] = theme.split(' ');
+                                                const [bg, darkBg, text, darkText] = theme.split(' ');
 
                                                 return (
-                                                    <div className={`${bg} ${darkBg} border ${border} ${darkBorder} rounded-lg p-3 text-center space-y-0.5`}>
+                                                    <div className={`${bg} ${darkBg} rounded-lg p-3 text-center space-y-0.5`}>
                                                         <div className={`${text} ${darkText} font-bold text-base tracking-tight`}>${finalRate.toFixed(4)}/kWh</div>
                                                         <div className={`text-[10px] font-bold ${text} ${darkText} uppercase tracking-wider opacity-80`}>{label}</div>
                                                     </div>
@@ -1313,7 +1306,7 @@ export const CustomerFormPage = () => {
                                             const renderCL = (label: string, value: number) => {
                                                 const finalRate = calculateDiscountedRate(value, discount);
                                                 return (
-                                                    <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
+                                                    <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center space-y-0.5">
                                                         <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${finalRate.toFixed(4)}/kWh</div>
                                                         <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">{label}</div>
                                                     </div>
@@ -1350,7 +1343,7 @@ export const CustomerFormPage = () => {
                                                                 <h4 className="text-sm font-bold uppercase tracking-wide">Supply Charges</h4>
                                                             </div>
                                                             <div className="space-y-3">
-                                                                <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-3 text-center space-y-0.5">
                                                                     <div className="text-purple-600 dark:text-purple-400 font-bold text-base tracking-tight">${offer.supplyCharge.toFixed(4)}/day</div>
                                                                 </div>
 
@@ -1360,7 +1353,7 @@ export const CustomerFormPage = () => {
                                                                             <ActivityIcon size={16} />
                                                                             <h4 className="text-sm font-bold uppercase tracking-wide">VPP Orchestration Charges</h4>
                                                                         </div>
-                                                                        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="bg-amber-50 dark:bg-amber-900/30 rounded-lg p-3 text-center space-y-0.5">
                                                                             <div className="text-amber-600 dark:text-amber-400 font-bold text-base tracking-tight">${offer.vppOrcharge.toFixed(4)}/day</div>
                                                                             <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider opacity-80">Orchestration</div>
                                                                         </div>
@@ -1378,25 +1371,25 @@ export const CustomerFormPage = () => {
                                                                 </div>
                                                                 <div className="space-y-3">
                                                                     {(offer.fit || 0) > 0 && (
-                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 rounded-lg p-3 text-center space-y-0.5">
                                                                             <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${offer.fit.toFixed(4)}/kWh</div>
                                                                             <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">Feed-in</div>
                                                                         </div>
                                                                     )}
                                                                     {(offer.fitPeak || 0) > 0 && (
-                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 rounded-lg p-3 text-center space-y-0.5">
                                                                             <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${offer.fitPeak.toFixed(4)}/kWh</div>
                                                                             <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Peak</div>
                                                                         </div>
                                                                     )}
                                                                     {(offer.fitCritical || 0) > 0 && (
-                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 rounded-lg p-3 text-center space-y-0.5">
                                                                             <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${offer.fitCritical.toFixed(4)}/kWh</div>
                                                                             <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Critical</div>
                                                                         </div>
                                                                     )}
                                                                     {(offer.fitVpp || 0) > 0 && (
-                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 rounded-lg p-3 text-center space-y-0.5">
                                                                             <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${offer.fitVpp.toFixed(4)}/kWh</div>
                                                                             <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT VPP</div>
                                                                         </div>
@@ -1678,23 +1671,18 @@ export const CustomerFormPage = () => {
                 </Modal>
 
                 {/* Sidebar: Live Summary */}
-                <aside className="w-full xl:w-[380px] shrink-0 xl:sticky xl:top-6 order-last xl:order-none">
-                    <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+                <aside className="w-full xl:w-[200px] shrink-0 xl:sticky xl:top-6 order-last xl:order-none">
+                    <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
                         <div className="p-4 bg-muted/50 border-b border-border flex items-center justify-between">
                             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                                <ShieldIcon size={16} className="text-blue-600" />
                                 Live summary
                             </h3>
                             <div className="flex items-center gap-1.5">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                </span>
                                 <span className="text-[10px] font-bold text-green-600 uppercase tracking-tight leading-none">Live</span>
                             </div>
                         </div>
                         <div className="p-5">
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-0.5">
+                            <div className="grid grid-cols-1 gap-y-0.5">
                                 <SummaryItem icon={PhoneIcon} label="Mobile" value={formData.phone} />
                                 <SummaryItem icon={MapPinIcon} label="Address" value={`${formData.unitNumber ? `${formData.unitNumber}/` : ''}${formData.streetNumber || ''} ${formData.streetName || ''} ${formData.streetType || ''}${formData.suburb ? `, ${formData.suburb}` : ''} ${formData.state || ''} ${formData.postcode || ''}`} />
                                 <SummaryItem icon={UserIcon} label="Customer type" value={formData.propertyType === 1 ? 'Commercial' : 'Residential'} />

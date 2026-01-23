@@ -635,10 +635,10 @@ export function RatesPage() {
             header: 'Anytime',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_anytime') ? `Old: ${getOldValue(row, 'offer_anytime')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_anytime') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-orange-200 text-orange-900 dark:bg-orange-900/20 dark:text-orange-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_anytime') ? `Old: ${getOldValue(row, 'offer_anytime')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_anytime') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-orange-200 text-orange-950 dark:bg-orange-900/20 dark:text-orange-400'}`}>
                         {row.offers?.[0]?.anytime ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -647,10 +647,10 @@ export function RatesPage() {
             header: 'Peak',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_peak') ? `Old: ${getOldValue(row, 'offer_peak')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_peak') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-200 text-blue-900 dark:bg-blue-900/20 dark:text-blue-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_peak') ? `Old: ${getOldValue(row, 'offer_peak')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_peak') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-blue-200 text-blue-950 dark:bg-blue-900/20 dark:text-blue-400'}`}>
                         {row.offers?.[0]?.peak ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -659,10 +659,10 @@ export function RatesPage() {
             header: 'Shoulder',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_shoulder') ? `Old: ${getOldValue(row, 'offer_shoulder')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_shoulder') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-200 text-blue-900 dark:bg-blue-900/20 dark:text-blue-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_shoulder') ? `Old: ${getOldValue(row, 'offer_shoulder')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_shoulder') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-blue-200 text-blue-950 dark:bg-blue-900/20 dark:text-blue-400'}`}>
                         {row.offers?.[0]?.shoulder ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -671,10 +671,10 @@ export function RatesPage() {
             header: 'Off-Peak',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_offPeak') ? `Old: ${getOldValue(row, 'offer_offPeak')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_offPeak') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-blue-200 text-blue-900 dark:bg-blue-900/20 dark:text-blue-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_offPeak') ? `Old: ${getOldValue(row, 'offer_offPeak')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_offPeak') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-blue-200 text-blue-950 dark:bg-blue-900/20 dark:text-blue-400'}`}>
                         {row.offers?.[0]?.offPeak ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -683,10 +683,10 @@ export function RatesPage() {
             header: 'Supply Charge',
             width: 'w-[120px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_supplyCharge') ? `Old: ${getOldValue(row, 'offer_supplyCharge')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_supplyCharge') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-purple-200 text-purple-900 dark:bg-purple-900/20 dark:text-purple-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_supplyCharge') ? `Old: ${getOldValue(row, 'offer_supplyCharge')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_supplyCharge') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-purple-200 text-purple-950 dark:bg-purple-900/20 dark:text-purple-400'}`}>
                         {row.offers?.[0]?.supplyCharge ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -695,10 +695,10 @@ export function RatesPage() {
             header: 'CL1 Supply',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_cl1Supply') ? `Old: ${getOldValue(row, 'offer_cl1Supply')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl1Supply') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_cl1Supply') ? `Old: ${getOldValue(row, 'offer_cl1Supply')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_cl1Supply') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-green-200 text-green-950 dark:bg-green-900/20 dark:text-green-400'}`}>
                         {row.offers?.[0]?.cl1Supply ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -707,10 +707,10 @@ export function RatesPage() {
             header: 'CL1 Usage', // Assuming 'Usage' in image maps here or CL1 Usage
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_cl1Usage') ? `Old: ${getOldValue(row, 'offer_cl1Usage')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl1Usage') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_cl1Usage') ? `Old: ${getOldValue(row, 'offer_cl1Usage')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_cl1Usage') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-green-200 text-green-950 dark:bg-green-900/20 dark:text-green-400'}`}>
                         {row.offers?.[0]?.cl1Usage ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -719,10 +719,10 @@ export function RatesPage() {
             header: 'CL2 Supply',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_cl2Supply') ? `Old: ${getOldValue(row, 'offer_cl2Supply')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl2Supply') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_cl2Supply') ? `Old: ${getOldValue(row, 'offer_cl2Supply')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_cl2Supply') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-green-200 text-green-950 dark:bg-green-900/20 dark:text-green-400'}`}>
                         {row.offers?.[0]?.cl2Supply ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -731,10 +731,10 @@ export function RatesPage() {
             header: 'CL2 Usage',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_cl2Usage') ? `Old: ${getOldValue(row, 'offer_cl2Usage')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_cl2Usage') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-green-200 text-green-900 dark:bg-green-900/20 dark:text-green-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_cl2Usage') ? `Old: ${getOldValue(row, 'offer_cl2Usage')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_cl2Usage') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-green-200 text-green-950 dark:bg-green-900/20 dark:text-green-400'}`}>
                         {row.offers?.[0]?.cl2Usage ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -743,10 +743,10 @@ export function RatesPage() {
             header: 'Demand',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_demand') ? `Old: ${getOldValue(row, 'offer_demand')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demand') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-red-200 text-red-900 dark:bg-red-900/20 dark:text-red-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_demand') ? `Old: ${getOldValue(row, 'offer_demand')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_demand') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-red-200 text-red-950 dark:bg-red-900/20 dark:text-red-400'}`}>
                         {row.offers?.[0]?.demand ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -755,10 +755,10 @@ export function RatesPage() {
             header: 'Demand(OP)',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_demandOp') ? `Old: ${getOldValue(row, 'offer_demandOp')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandOp') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-red-200 text-red-900 dark:bg-red-900/20 dark:text-red-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_demandOp') ? `Old: ${getOldValue(row, 'offer_demandOp')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_demandOp') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-red-200 text-red-950 dark:bg-red-900/20 dark:text-red-400'}`}>
                         {row.offers?.[0]?.demandOp ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -767,10 +767,10 @@ export function RatesPage() {
             header: 'Demand(P)',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_demandP') ? `Old: ${getOldValue(row, 'offer_demandP')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandP') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-red-200 text-red-900 dark:bg-red-900/20 dark:text-red-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_demandP') ? `Old: ${getOldValue(row, 'offer_demandP')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_demandP') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-red-200 text-red-950 dark:bg-red-900/20 dark:text-red-400'}`}>
                         {row.offers?.[0]?.demandP ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -779,10 +779,10 @@ export function RatesPage() {
             header: 'Demand(S)',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_demandS') ? `Old: ${getOldValue(row, 'offer_demandS')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_demandS') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-red-200 text-red-900 dark:bg-red-900/20 dark:text-red-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_demandS') ? `Old: ${getOldValue(row, 'offer_demandS')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_demandS') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-red-200 text-red-950 dark:bg-red-900/20 dark:text-red-400'}`}>
                         {row.offers?.[0]?.demandS ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -791,10 +791,10 @@ export function RatesPage() {
             header: 'FIT',
             width: 'w-[80px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_fit') ? `Old: ${getOldValue(row, 'offer_fit')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_fit') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-300'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_fit') ? `Old: ${getOldValue(row, 'offer_fit')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_fit') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-teal-100 text-teal-950 dark:bg-teal-900/20 dark:text-teal-300'}`}>
                         {row.offers?.[0]?.fit ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -803,10 +803,10 @@ export function RatesPage() {
             header: 'FIT-Peak',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_fitPeak') ? `Old: ${getOldValue(row, 'offer_fitPeak')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_fitPeak') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-300'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_fitPeak') ? `Old: ${getOldValue(row, 'offer_fitPeak')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_fitPeak') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-teal-100 text-teal-950 dark:bg-teal-900/20 dark:text-teal-300'}`}>
                         {row.offers?.[0]?.fitPeak ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -815,10 +815,10 @@ export function RatesPage() {
             header: 'FIT-Critical',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_fitCritical') ? `Old: ${getOldValue(row, 'offer_fitCritical')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_fitCritical') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-300'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_fitCritical') ? `Old: ${getOldValue(row, 'offer_fitCritical')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_fitCritical') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-teal-100 text-teal-950 dark:bg-teal-900/20 dark:text-teal-300'}`}>
                         {row.offers?.[0]?.fitCritical ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -827,10 +827,10 @@ export function RatesPage() {
             header: 'FIT-VPP',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_fitVpp') ? `Old: ${getOldValue(row, 'offer_fitVpp')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_fitVpp') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-300'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_fitVpp') ? `Old: ${getOldValue(row, 'offer_fitVpp')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_fitVpp') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-teal-100 text-teal-950 dark:bg-teal-900/20 dark:text-teal-300'}`}>
                         {row.offers?.[0]?.fitVpp ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
@@ -839,10 +839,10 @@ export function RatesPage() {
             header: 'VPP Orchestration',
             width: 'w-[140px]',
             render: (row: RatePlan) => (
-                <Tooltip content={isFieldChanged(row, 'offer_vppOrcharge') ? `Old: ${getOldValue(row, 'offer_vppOrcharge')}` : null}>
-                    <span className={`px-2 py-1 rounded font-medium text-xs ${isFieldChanged(row, 'offer_vppOrcharge') ? 'bg-orange-800 text-orange-950 border border-orange-500 font-bold' : 'bg-red-200 text-red-900 dark:bg-red-900/20 dark:text-red-400'}`}>
+                <Tooltip fullWidth content={isFieldChanged(row, 'offer_vppOrcharge') ? `Old: ${getOldValue(row, 'offer_vppOrcharge')}` : null}>
+                    <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_vppOrcharge') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-red-200 text-red-950 dark:bg-red-900/20 dark:text-red-400'}`}>
                         {row.offers?.[0]?.vppOrcharge ?? '-'}
-                    </span>
+                    </div>
                 </Tooltip>
             ),
         },
