@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import logo from '@/assets/main-logo-dark-1.png';
+
 import { useAccessibleMenus, useUser, useAuthStore } from '@/stores/useAuthStore';
 import { CustomerIcon, RatesIcon, UserSettingIcon, LogOutIcon, MenuIcon, XIcon, ChevronDownIcon, FileTextIcon, ShieldCheckIcon, LockIcon, UserIcon } from '@/components/icons';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -9,6 +9,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 interface HeaderProps {
     className?: string;
     isSidebarCollapsed?: boolean;
+    toggleSidebar?: () => void;
 }
 
 // Dashboard icon component
@@ -49,7 +50,7 @@ const pathMap: Record<string, string> = {
     audit_logs: '/audit-logs',
 };
 
-export function Header({ className, isSidebarCollapsed }: HeaderProps) {
+export function Header({ className, toggleSidebar }: HeaderProps) {
     const accessibleMenus = useAccessibleMenus();
     const user = useUser();
     const logout = useAuthStore((state) => state.logout);
@@ -144,7 +145,16 @@ export function Header({ className, isSidebarCollapsed }: HeaderProps) {
             "h-14 border-b border-border bg-background flex items-center px-4",
             className
         )}>
-            {/* Better Implementation of Logo Visibility */}
+            {/* Sidebar Toggle (Hamburger) */}
+            <button
+                onClick={toggleSidebar}
+                className="hidden md:flex p-2 mr-2 -ml-2 rounded-md hover:bg-accent text-muted-foreground transition-colors"
+                title="Toggle Sidebar"
+            >
+                <MenuIcon size={20} />
+            </button>
+
+            {/* Better Implementation of Logo Visibility
             <div className={cn(
                 "items-center mr-4",
                 // Mobile: Always visible
@@ -153,7 +163,7 @@ export function Header({ className, isSidebarCollapsed }: HeaderProps) {
                 isSidebarCollapsed && "md:flex"
             )}>
                 <img src={logo} alt="Logo" className="h-8" />
-            </div>
+            </div> */}
 
 
 

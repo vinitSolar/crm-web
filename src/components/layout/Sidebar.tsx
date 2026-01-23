@@ -4,7 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/main-logo-dark-1.png';
 import { useAccessibleMenus } from '@/stores/useAuthStore';
-import { CustomerIcon, RatesIcon, UserSettingIcon, FileTextIcon, ShieldCheckIcon, ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon, UserIcon, MailIcon, CopyIcon, SendIcon } from '@/components/icons';
+import { CustomerIcon, RatesIcon, UserSettingIcon, FileTextIcon, ShieldCheckIcon, ChevronRightIcon, ChevronDownIcon, UserIcon, MailIcon, CopyIcon, SendIcon } from '@/components/icons';
 import { Tooltip } from '@/components/ui/Tooltip';
 
 // Dashboard icon component (locally defined in Header originally)
@@ -58,7 +58,6 @@ const pathMap: Record<string, string> = {
 interface SidebarProps {
     className?: string;
     isOpen?: boolean;
-    toggle?: () => void;
 }
 
 interface SidebarNavItemProps {
@@ -111,7 +110,7 @@ const Portal = ({ children }: { children: React.ReactNode }) => {
     return createPortal(children, document.body);
 };
 
-export function Sidebar({ className, isOpen = true, toggle }: SidebarProps) {
+export function Sidebar({ className, isOpen = true }: SidebarProps) {
     const accessibleMenus = useAccessibleMenus();
     const location = useLocation();
 
@@ -193,16 +192,11 @@ export function Sidebar({ className, isOpen = true, toggle }: SidebarProps) {
             )}>
                 {isOpen && <img src={logo} alt="Logo" className="h-8 transition-all" />}
 
-                <button
-                    onClick={toggle}
-                    className={cn(
-                        "w-8 h-8 flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
-                        isOpen ? "" : "w-10 h-10" // Larger touch target when collapsed
-                    )}
-                    title={isOpen ? "Collapse Sidebar" : "Expand Sidebar"}
-                >
-                    {isOpen ? <ChevronLeftIcon size={18} /> : <ChevronRightIcon size={20} />}
-                </button>
+                {!isOpen && (
+                    <div className="w-full h-full flex items-center justify-center p-2">
+                        <img src="/favicon.png" alt="GEE" className="w-8 h-8 object-contain" />
+                    </div>
+                )}
             </div>
 
             {/* Navigation */}

@@ -515,8 +515,9 @@ export const AuditLogsPage = () => {
             >
                 {
                     historyLoading ? (
-                        <div className="flex items-center justify-center py-12" >
-                            <div className="animate-spin w-8 h-8 border-2 border-[#5c8a14] border-t-transparent rounded-full" />
+                        <div className="flex flex-col items-center justify-center py-16">
+                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+                            <p className="mt-4 text-sm text-muted-foreground">Loading audit history...</p>
                         </div>
                     ) : historyData?.recordAuditHistory ? (
                         <div className="space-y-4 py-2">

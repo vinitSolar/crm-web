@@ -959,8 +959,8 @@ export function RatesPage() {
             <div className="p-5 bg-background rounded-lg border border-border shadow-sm">
                 {/* Filters */}
                 <div className="flex flex-col gap-4 mb-6">
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
-                        <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-end justify-between gap-4 flex-wrap">
+                        <div className="flex items-end gap-4 flex-wrap">
                             <Input
                                 type="search"
                                 placeholder="Search"
@@ -968,54 +968,63 @@ export function RatesPage() {
                                 onChange={(e) => setSearchCode(e.target.value)}
                                 containerClassName="w-[200px]"
                             />
-                            <StatusField
-                                type="state"
-                                mode="select"
-                                showAllOption
-                                value={stateFilter}
-                                onChange={(val) => {
-                                    setAllRatePlans([]);
-                                    setPage(1);
-                                    setStateFilter(val as string);
-                                }}
-                                placeholder="State"
-                                className="w-[150px]"
-                            />
-                            <StatusField
-                                type="dnsp"
-                                mode="select"
-                                showAllOption
-                                value={dnspFilter}
-                                onChange={(val) => {
-                                    setAllRatePlans([]);
-                                    setPage(1);
-                                    setDnspFilter(val as string);
-                                }}
-                                placeholder="DNSP"
-                                className="w-[150px]"
-                            />
-                            <StatusField
-                                type="rate_type"
-                                mode="select"
-                                showAllOption
-                                value={typeFilter}
-                                onChange={(val) => {
-                                    setAllRatePlans([]);
-                                    setPage(1);
-                                    setTypeFilter(val as string);
-                                }}
-                                placeholder="Type"
-                                className="w-[150px]"
-                            />
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-medium text-muted-foreground">State</label>
+                                <StatusField
+                                    type="state"
+                                    mode="select"
+                                    showAllOption
+                                    value={stateFilter}
+                                    onChange={(val) => {
+                                        setAllRatePlans([]);
+                                        setPage(1);
+                                        setStateFilter(val as string);
+                                    }}
+                                    placeholder="All"
+                                    className="w-[150px]"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-medium text-muted-foreground">DNSP</label>
+                                <StatusField
+                                    type="dnsp"
+                                    mode="select"
+                                    showAllOption
+                                    value={dnspFilter}
+                                    onChange={(val) => {
+                                        setAllRatePlans([]);
+                                        setPage(1);
+                                        setDnspFilter(val as string);
+                                    }}
+                                    placeholder="All"
+                                    className="w-[150px]"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-medium text-muted-foreground">Type</label>
+                                <StatusField
+                                    type="rate_type"
+                                    mode="select"
+                                    showAllOption
+                                    value={typeFilter}
+                                    onChange={(val) => {
+                                        setAllRatePlans([]);
+                                        setPage(1);
+                                        setTypeFilter(val as string);
+                                    }}
+                                    placeholder="All"
+                                    className="w-[150px]"
+                                />
+                            </div>
 
-                            <Button variant="outline" leftIcon={<FilterIcon size={16} />}>
+                            <Button variant="outline" leftIcon={<FilterIcon size={16} />} className="self-end">
                                 Filters
                             </Button>
 
 
                             <button
                                 onClick={handleClearAll}
-                                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors self-end pb-2"
                             >
                                 <RefreshCwIcon size={14} />
                                 Clear all
@@ -1477,349 +1486,356 @@ export function RatesPage() {
                     </>
                 }
             >
-                <div className="space-y-6 py-2">
-                    {/* Row 1: Code, Tariff Code */}
-                    <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Code <span className="text-red-500">*</span></label>
-                            <Input
-                                placeholder="E.g. N73"
-                                value={formData.codes}
-                                onChange={(e) => {
-                                    setFormData(prev => ({ ...prev, codes: e.target.value }));
-                                    if (formErrors.codes) setFormErrors(prev => ({ ...prev, codes: '' }));
-                                }}
-                                className={formErrors.codes ? 'border-red-500' : ''}
-                            />
-                            {formErrors.codes && <p className="text-xs text-red-500">{formErrors.codes}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Tariff Code</label>
-                            <Input
-                                placeholder="E.g. General"
-                                value={formData.tariff}
-                                onChange={(e) => setFormData(prev => ({ ...prev, tariff: e.target.value }))}
-                            />
-                        </div>
+                {!editingRatePlan ? (
+                    <div className="flex flex-col items-center justify-center py-16">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+                        <p className="mt-4 text-sm text-muted-foreground">Loading rate details...</p>
                     </div>
-
-                    {/* Row 2: Plan ID, State */}
-                    <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Plan ID</label>
-                            <Input
-                                placeholder="E.g. PLAN-001"
-                                value={formData.planId}
-                                onChange={(e) => setFormData(prev => ({ ...prev, planId: e.target.value }))}
-                            />
+                ) : (
+                    <div className="space-y-6 py-2">
+                        {/* Row 1: Code, Tariff Code */}
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Code <span className="text-red-500">*</span></label>
+                                <Input
+                                    placeholder="E.g. N73"
+                                    value={formData.codes}
+                                    onChange={(e) => {
+                                        setFormData(prev => ({ ...prev, codes: e.target.value }));
+                                        if (formErrors.codes) setFormErrors(prev => ({ ...prev, codes: '' }));
+                                    }}
+                                    className={formErrors.codes ? 'border-red-500' : ''}
+                                />
+                                {formErrors.codes && <p className="text-xs text-red-500">{formErrors.codes}</p>}
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Tariff Code</label>
+                                <Input
+                                    placeholder="E.g. General"
+                                    value={formData.tariff}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, tariff: e.target.value }))}
+                                />
+                            </div>
                         </div>
+
+                        {/* Row 2: Plan ID, State */}
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Plan ID</label>
+                                <Input
+                                    placeholder="E.g. PLAN-001"
+                                    value={formData.planId}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, planId: e.target.value }))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">State</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {STATE_OPTIONS.map(option => (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${formData.state === option.value
+                                                ? 'bg-primary text-white border-primary'
+                                                : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                                                }`}
+                                            onClick={() => setFormData(prev => ({ ...prev, state: option.value }))}
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* DNSP */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">State</label>
+                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">DNSP</label>
                             <div className="flex flex-wrap gap-2">
-                                {STATE_OPTIONS.map(option => (
+                                {DNSP_OPTIONS.map(opt => (
                                     <button
-                                        key={option.value}
+                                        key={opt.value}
                                         type="button"
-                                        className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${formData.state === option.value
+                                        className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${String(formData.dnsp) === opt.value
                                             ? 'bg-primary text-white border-primary'
                                             : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
                                             }`}
-                                        onClick={() => setFormData(prev => ({ ...prev, state: option.value }))}
+                                        onClick={() => setFormData(prev => ({ ...prev, dnsp: parseInt(opt.value, 10) }))}
                                     >
-                                        {option.label}
+                                        {opt.label}
                                     </button>
                                 ))}
                             </div>
                         </div>
-                    </div>
 
-                    {/* DNSP */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-900 dark:text-gray-100">DNSP</label>
-                        <div className="flex flex-wrap gap-2">
-                            {DNSP_OPTIONS.map(opt => (
-                                <button
-                                    key={opt.value}
-                                    type="button"
-                                    className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${String(formData.dnsp) === opt.value
-                                        ? 'bg-primary text-white border-primary'
-                                        : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
-                                        }`}
-                                    onClick={() => setFormData(prev => ({ ...prev, dnsp: parseInt(opt.value, 10) }))}
-                                >
-                                    {opt.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Type and Toggles */}
-                    <div className="flex items-start gap-8">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Type</label>
-                            <div className="flex gap-2">
-                                <button
-                                    type="button"
-                                    className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${formData.type === 0
-                                        ? 'bg-primary text-white border-primary'
-                                        : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
-                                        }`}
-                                    onClick={() => setFormData(prev => ({ ...prev, type: 0 }))}
-                                >
-                                    Business
-                                </button>
+                        {/* Type and Toggles */}
+                        <div className="flex items-start gap-8">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Type</label>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${formData.type === 0
+                                            ? 'bg-primary text-white border-primary'
+                                            : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                                            }`}
+                                        onClick={() => setFormData(prev => ({ ...prev, type: 0 }))}
+                                    >
+                                        Business
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${formData.type === 1
+                                            ? 'bg-primary text-white border-primary'
+                                            : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                                            }`}
+                                        onClick={() => setFormData(prev => ({ ...prev, type: 1 }))}
+                                    >
+                                        Residential
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">VPP Enabled</label>
+                                <br />
                                 <button
                                     type="button"
-                                    className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${formData.type === 1
-                                        ? 'bg-primary text-white border-primary'
-                                        : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.vpp === 1 ? 'bg-primary' : 'bg-muted'
                                         }`}
-                                    onClick={() => setFormData(prev => ({ ...prev, type: 1 }))}
+                                    onClick={() => setFormData(prev => ({ ...prev, vpp: prev.vpp === 1 ? 0 : 1 }))}
                                 >
-                                    Residential
+                                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${formData.vpp === 1 ? 'translate-x-4' : 'translate-x-0.5'
+                                        }`} />
+                                </button>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Discount applies</label>
+                                <br />
+                                <button
+                                    type="button"
+                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.discountApplies === 1 ? 'bg-primary' : 'bg-muted'
+                                        }`}
+                                    onClick={() => setFormData(prev => ({ ...prev, discountApplies: prev.discountApplies === 1 ? 0 : 1 }))}
+                                >
+                                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${formData.discountApplies === 1 ? 'translate-x-4' : 'translate-x-0.5'
+                                        }`} />
                                 </button>
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">VPP Enabled</label>
-                            <br />
-                            <button
-                                type="button"
-                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.vpp === 1 ? 'bg-primary' : 'bg-muted'
-                                    }`}
-                                onClick={() => setFormData(prev => ({ ...prev, vpp: prev.vpp === 1 ? 0 : 1 }))}
-                            >
-                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${formData.vpp === 1 ? 'translate-x-4' : 'translate-x-0.5'
-                                    }`} />
-                            </button>
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Discount applies</label>
-                            <br />
-                            <button
-                                type="button"
-                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.discountApplies === 1 ? 'bg-primary' : 'bg-muted'
-                                    }`}
-                                onClick={() => setFormData(prev => ({ ...prev, discountApplies: prev.discountApplies === 1 ? 0 : 1 }))}
-                            >
-                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${formData.discountApplies === 1 ? 'translate-x-4' : 'translate-x-0.5'
-                                    }`} />
-                            </button>
-                        </div>
-                    </div>
 
-                    {/* Anytime and Supply Charge */}
-                    <div className="p-4 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/30 space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Anytime</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.anytime}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, anytime: e.target.value }))}
-                                />
+                        {/* Anytime and Supply Charge */}
+                        <div className="p-4 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/30 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Anytime</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.anytime}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, anytime: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Supply Charge</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.supplyCharge}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, supplyCharge: e.target.value }))}
+                                    />
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Supply Charge</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.supplyCharge}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, supplyCharge: e.target.value }))}
-                                />
+                        </div>
+
+                        {/* VPP Orchestration */}
+                        <div className="p-4 rounded-lg border border-border bg-muted/50 space-y-2">
+                            <label className="text-sm font-medium text-gray-900 dark:text-gray-100">VPP Orchestration</label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={formData.vppOrcharge}
+                                onChange={(e) => setFormData(prev => ({ ...prev, vppOrcharge: e.target.value }))}
+                            />
+                        </div>
+
+                        {/* Peak, Shoulder, Off-Peak */}
+                        <div className="p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 space-y-4">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Peak</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.peak}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, peak: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Shoulder</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.shoulder}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, shoulder: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Off-Peak</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.offPeak}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, offPeak: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* CL1/CL2 Supply/Usage */}
+                        <div className="p-4 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 space-y-4">
+                            <div className="grid grid-cols-4 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL1 Supply</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.cl1Supply}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, cl1Supply: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL1 Usage</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.cl1Usage}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, cl1Usage: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL2 Supply</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.cl2Supply}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, cl2Supply: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL2 Usage</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.cl2Usage}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, cl2Usage: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Demand fields */}
+                        <div className="p-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 space-y-4">
+                            <div className="grid grid-cols-4 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.demand}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, demand: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand (OP)</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.demandOp}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, demandOp: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand (P)</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.demandP}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, demandP: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand (S)</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.demandS}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, demandS: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* FIT fields */}
+                        <div className="p-4 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 space-y-4">
+                            <div className="grid grid-cols-4 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.fit}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, fit: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-VPP</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.vppOrcharge}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, vppOrcharge: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-Peak</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.fitPeak}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, fitPeak: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-Critical</label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={formData.fitCritical}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, fitCritical: e.target.value }))}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
-
-                    {/* VPP Orchestration */}
-                    <div className="p-4 rounded-lg border border-border bg-muted/50 space-y-2">
-                        <label className="text-sm font-medium text-gray-900 dark:text-gray-100">VPP Orchestration</label>
-                        <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={formData.vppOrcharge}
-                            onChange={(e) => setFormData(prev => ({ ...prev, vppOrcharge: e.target.value }))}
-                        />
-                    </div>
-
-                    {/* Peak, Shoulder, Off-Peak */}
-                    <div className="p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 space-y-4">
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Peak</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.peak}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, peak: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Shoulder</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.shoulder}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, shoulder: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Off-Peak</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.offPeak}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, offPeak: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* CL1/CL2 Supply/Usage */}
-                    <div className="p-4 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 space-y-4">
-                        <div className="grid grid-cols-4 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL1 Supply</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.cl1Supply}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, cl1Supply: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL1 Usage</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.cl1Usage}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, cl1Usage: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL2 Supply</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.cl2Supply}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, cl2Supply: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CL2 Usage</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.cl2Usage}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, cl2Usage: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Demand fields */}
-                    <div className="p-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 space-y-4">
-                        <div className="grid grid-cols-4 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.demand}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, demand: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand (OP)</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.demandOp}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, demandOp: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand (P)</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.demandP}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, demandP: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Demand (S)</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.demandS}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, demandS: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* FIT fields */}
-                    <div className="p-4 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 space-y-4">
-                        <div className="grid grid-cols-4 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.fit}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, fit: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-VPP</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.vppOrcharge}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, vppOrcharge: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-Peak</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.fitPeak}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, fitPeak: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-Critical</label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    value={formData.fitCritical}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, fitCritical: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                )}
             </Modal>
 
             {/* Delete Confirmation Modal */}
