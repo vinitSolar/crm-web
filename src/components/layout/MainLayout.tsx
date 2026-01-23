@@ -19,7 +19,7 @@ export function MainLayout({ children }: { children?: React.ReactNode }) {
     return (
         <div className="h-screen flex bg-background">
             {/* Sidebar - Desktop */}
-            <Sidebar isOpen={isSidebarOpen} toggle={toggleSidebar} />
+            <Sidebar isOpen={isSidebarOpen} />
 
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Header */}
