@@ -959,8 +959,8 @@ export function RatesPage() {
             <div className="p-5 bg-background rounded-lg border border-border shadow-sm">
                 {/* Filters */}
                 <div className="flex flex-col gap-4 mb-6">
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
-                        <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-end justify-between gap-4 flex-wrap">
+                        <div className="flex items-end gap-4 flex-wrap">
                             <Input
                                 type="search"
                                 placeholder="Search"
@@ -968,54 +968,63 @@ export function RatesPage() {
                                 onChange={(e) => setSearchCode(e.target.value)}
                                 containerClassName="w-[200px]"
                             />
-                            <StatusField
-                                type="state"
-                                mode="select"
-                                showAllOption
-                                value={stateFilter}
-                                onChange={(val) => {
-                                    setAllRatePlans([]);
-                                    setPage(1);
-                                    setStateFilter(val as string);
-                                }}
-                                placeholder="State"
-                                className="w-[150px]"
-                            />
-                            <StatusField
-                                type="dnsp"
-                                mode="select"
-                                showAllOption
-                                value={dnspFilter}
-                                onChange={(val) => {
-                                    setAllRatePlans([]);
-                                    setPage(1);
-                                    setDnspFilter(val as string);
-                                }}
-                                placeholder="DNSP"
-                                className="w-[150px]"
-                            />
-                            <StatusField
-                                type="rate_type"
-                                mode="select"
-                                showAllOption
-                                value={typeFilter}
-                                onChange={(val) => {
-                                    setAllRatePlans([]);
-                                    setPage(1);
-                                    setTypeFilter(val as string);
-                                }}
-                                placeholder="Type"
-                                className="w-[150px]"
-                            />
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-medium text-muted-foreground">State</label>
+                                <StatusField
+                                    type="state"
+                                    mode="select"
+                                    showAllOption
+                                    value={stateFilter}
+                                    onChange={(val) => {
+                                        setAllRatePlans([]);
+                                        setPage(1);
+                                        setStateFilter(val as string);
+                                    }}
+                                    placeholder="All"
+                                    className="w-[150px]"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-medium text-muted-foreground">DNSP</label>
+                                <StatusField
+                                    type="dnsp"
+                                    mode="select"
+                                    showAllOption
+                                    value={dnspFilter}
+                                    onChange={(val) => {
+                                        setAllRatePlans([]);
+                                        setPage(1);
+                                        setDnspFilter(val as string);
+                                    }}
+                                    placeholder="All"
+                                    className="w-[150px]"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-medium text-muted-foreground">Type</label>
+                                <StatusField
+                                    type="rate_type"
+                                    mode="select"
+                                    showAllOption
+                                    value={typeFilter}
+                                    onChange={(val) => {
+                                        setAllRatePlans([]);
+                                        setPage(1);
+                                        setTypeFilter(val as string);
+                                    }}
+                                    placeholder="All"
+                                    className="w-[150px]"
+                                />
+                            </div>
 
-                            <Button variant="outline" leftIcon={<FilterIcon size={16} />}>
+                            <Button variant="outline" leftIcon={<FilterIcon size={16} />} className="self-end">
                                 Filters
                             </Button>
 
 
                             <button
                                 onClick={handleClearAll}
-                                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors self-end pb-2"
                             >
                                 <RefreshCwIcon size={14} />
                                 Clear all
