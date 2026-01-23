@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import logo from '@/assets/main-logo-dark-1.png';
+
 import { useAccessibleMenus, useUser, useAuthStore } from '@/stores/useAuthStore';
 import { CustomerIcon, RatesIcon, UserSettingIcon, LogOutIcon, MenuIcon, XIcon, ChevronDownIcon, FileTextIcon, ShieldCheckIcon, LockIcon, UserIcon } from '@/components/icons';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -50,7 +50,7 @@ const pathMap: Record<string, string> = {
     audit_logs: '/audit-logs',
 };
 
-export function Header({ className, isSidebarCollapsed, toggleSidebar }: HeaderProps) {
+export function Header({ className, toggleSidebar }: HeaderProps) {
     const accessibleMenus = useAccessibleMenus();
     const user = useUser();
     const logout = useAuthStore((state) => state.logout);
