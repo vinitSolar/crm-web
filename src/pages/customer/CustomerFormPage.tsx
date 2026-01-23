@@ -959,7 +959,7 @@ export const CustomerFormPage = () => {
                     </div>
 
                     {/* Content Card */}
-                    <div className="bg-background rounded-xl border border-border shadow-sm p-6 lg:p-6 flex flex-col h-[calc(100vh-180px)]">
+                    <div className="bg-background rounded-xl border border-border shadow-sm p-6 lg:p-6 flex flex-col h-[calc(100vh-200px)]">
                         {/* Form Content - Scrollable */}
                         <div className="flex-1 overflow-y-auto pr-2">
 
