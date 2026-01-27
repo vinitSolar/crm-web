@@ -1242,6 +1242,7 @@ export function CustomersPage() {
                         </Button>
                         {selectedCustomerDetails && (
                             <Button
+                                className="bg-neutral-900 text-white hover:bg-neutral-800"
                                 onClick={() => {
                                     setDetailsModalOpen(false);
                                     navigate(`/customers/${selectedCustomerDetails.uid}`);
@@ -1272,6 +1273,7 @@ export function CustomersPage() {
                                 {selectedCustomerDetails.status === 3 && (
                                     <Button
                                         size="sm"
+                                        className="bg-neutral-900 text-white hover:bg-neutral-800"
                                         onClick={() => handleFreezeClick(selectedCustomerDetails)}
                                         disabled={freezingCustomer}
                                         isLoading={freezingCustomer}
