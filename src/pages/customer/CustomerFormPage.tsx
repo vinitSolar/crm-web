@@ -70,7 +70,7 @@ const ToggleSwitch = ({ checked, onChange }: { checked: boolean, onChange: (chec
             e.stopPropagation();
             onChange(!checked);
         }}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 ${checked ? 'bg-neutral-900' : 'bg-muted'}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 cursor-pointer ${checked ? 'bg-neutral-900' : 'bg-gray-300 dark:bg-gray-600'}`}
     >
         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
     </button>
@@ -829,6 +829,8 @@ export const CustomerFormPage = () => {
         }
     };
 
+    const allStepsValid = useMemo(() => step0Valid && step1Valid && step2Valid, [step0Valid, step1Valid, step2Valid]);
+
     // Submit
     const handleSubmit = async (targetStatus: number = 1) => {
         setSubmittingStatus(targetStatus);
@@ -959,9 +961,9 @@ export const CustomerFormPage = () => {
                     </div>
 
                     {/* Content Card */}
-                    <div className="bg-background rounded-xl border border-border shadow-sm p-6 lg:p-6 flex flex-col">
+                    <div className="bg-background rounded-xl border border-border shadow-sm p-6 lg:p-6 flex flex-col h-[calc(100vh-200px)] min-h-[500px]">
                         {/* Form Content - Scrollable */}
-                        <div className="flex-1 p-2">
+                        <div className="flex-1 p-2 overflow-y-auto scrollbar-thin">
 
                             {/* Step 0: Contact & Property */}
                             {currentStep === 0 && (
@@ -1284,34 +1286,7 @@ export const CustomerFormPage = () => {
                                             // const usageCost = baseRate * typicalKwh;
                                             // const yearlySaving = (usageCost * discount) / 100;
 
-                                            // Helper to render rate with discount logic
-                                            const renderRate = (label: string, value: number, colorClass: string = 'blue') => {
-                                                const finalRate = calculateDiscountedRate(value, discount);
-                                                const colors = {
-                                                    blue: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400',
-                                                    orange: 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800 text-orange-600 dark:text-orange-400',
-                                                };
-                                                const theme = colors[colorClass as keyof typeof colors] || colors.blue;
-                                                const [bg, darkBg, text, darkText] = theme.split(' ');
 
-                                                return (
-                                                    <div className={`${bg} ${darkBg} rounded-lg p-3 text-center space-y-0.5`}>
-                                                        <div className={`${text} ${darkText} font-bold text-base tracking-tight`}>${finalRate.toFixed(4)}/kWh</div>
-                                                        <div className={`text-[10px] font-bold ${text} ${darkText} uppercase tracking-wider opacity-80`}>{label}</div>
-                                                    </div>
-                                                );
-                                            };
-
-                                            // Helper for Controlled Load (Green)
-                                            const renderCL = (label: string, value: number) => {
-                                                const finalRate = calculateDiscountedRate(value, discount);
-                                                return (
-                                                    <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center space-y-0.5">
-                                                        <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${finalRate.toFixed(4)}/kWh</div>
-                                                        <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">{label}</div>
-                                                    </div>
-                                                );
-                                            };
 
                                             return (
                                                 <div key={offer.id} className="p-6 bg-card border border-border rounded-xl shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] relative overflow-hidden group">
@@ -1321,76 +1296,96 @@ export const CustomerFormPage = () => {
                                                         </div>
                                                     </div>
 
-                                                    <div className={`grid grid-cols-1 ${hasFiT && hasCL ? 'md:grid-cols-4' : (hasFiT || hasCL ? 'md:grid-cols-3' : 'md:grid-cols-2')} gap-8`}>
+                                                    <div className="flex flex-wrap gap-8">
                                                         {/* Column 1: Energy Rates */}
-                                                        <div className="space-y-4">
-                                                            <div className="flex items-center gap-2 text-[#2563EB]">
+                                                        <div className="space-y-4 min-w-[180px] flex-1">
+                                                            <div className="flex items-center gap-2 text-blue-500 dark:text-blue-400">
                                                                 <Settings2Icon size={16} />
                                                                 <h4 className="text-sm font-bold uppercase tracking-wide">Energy Rates</h4>
                                                             </div>
                                                             <div className="space-y-3">
-                                                                {offer.peak > 0 && renderRate('Peak', offer.peak, 'blue')}
-                                                                {offer.offPeak > 0 && renderRate('Off-Peak', offer.offPeak, 'blue')}
-                                                                {offer.shoulder > 0 && renderRate('Shoulder', offer.shoulder, 'blue')}
-                                                                {offer.anytime > 0 && renderRate('Anytime', offer.anytime, 'orange')}
+                                                                {(offer.peak ?? 0) > 0 && (
+                                                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.peak ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Peak</div>
+                                                                    </div>
+                                                                )}
+                                                                {(offer.offPeak ?? 0) > 0 && (
+                                                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.offPeak ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Off-Peak</div>
+                                                                    </div>
+                                                                )}
+                                                                {(offer.shoulder ?? 0) > 0 && (
+                                                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.shoulder ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Shoulder</div>
+                                                                    </div>
+                                                                )}
+                                                                {(offer.anytime ?? 0) > 0 && (
+                                                                    <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                        <div className="text-orange-600 dark:text-orange-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.anytime ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                        <div className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider opacity-80">Anytime</div>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
 
                                                         {/* Column 2: Supply Charges */}
-                                                        <div className="space-y-4">
-                                                            <div className="flex items-center gap-2 text-purple-600">
+                                                        <div className="space-y-4 min-w-[180px] flex-1">
+                                                            <div className="flex items-center gap-2 text-purple-500 dark:text-purple-400">
                                                                 <PlugIcon size={16} />
                                                                 <h4 className="text-sm font-bold uppercase tracking-wide">Supply Charges</h4>
                                                             </div>
                                                             <div className="space-y-3">
-                                                                <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-purple-600 dark:text-purple-400 font-bold text-base tracking-tight">${offer.supplyCharge.toFixed(4)}/day</div>
+                                                                <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                    <div className="text-purple-600 dark:text-purple-400 font-bold text-base tracking-tight">${(offer.supplyCharge ?? 0).toFixed(4)}/day</div>
+                                                                    <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">Supply</div>
                                                                 </div>
-
-                                                                {(offer.vppOrcharge || 0) > 0 && (
-                                                                    <div className="space-y-2 pt-2">
-                                                                        <div className="flex items-center gap-2 text-amber-500 dark:text-amber-400">
+                                                                {(offer.vppOrcharge ?? 0) > 0 && (
+                                                                    <>
+                                                                        <div className="flex items-center gap-2 text-amber-500 dark:text-amber-400 mt-4">
                                                                             <ActivityIcon size={16} />
                                                                             <h4 className="text-sm font-bold uppercase tracking-wide">VPP Orchestration Charges</h4>
                                                                         </div>
-                                                                        <div className="bg-amber-50 dark:bg-amber-900/30 rounded-lg p-3 text-center space-y-0.5">
-                                                                            <div className="text-amber-600 dark:text-amber-400 font-bold text-base tracking-tight">${offer.vppOrcharge.toFixed(4)}/day</div>
+                                                                        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-amber-600 dark:text-amber-400 font-bold text-base tracking-tight">${(offer.vppOrcharge ?? 0).toFixed(4)}/day</div>
                                                                             <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider opacity-80">Orchestration</div>
                                                                         </div>
-                                                                    </div>
+                                                                    </>
                                                                 )}
                                                             </div>
                                                         </div>
 
                                                         {/* Column 3: Solar FiT */}
                                                         {hasFiT && (
-                                                            <div className="space-y-4">
+                                                            <div className="space-y-4 min-w-[180px] flex-1">
                                                                 <div className="flex items-center gap-2 text-teal-500 dark:text-teal-400">
                                                                     <ZapIcon size={16} />
                                                                     <h4 className="text-sm font-bold uppercase tracking-wide">Solar FiT</h4>
                                                                 </div>
                                                                 <div className="space-y-3">
-                                                                    {(offer.fit || 0) > 0 && (
-                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 rounded-lg p-3 text-center space-y-0.5">
-                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${offer.fit.toFixed(4)}/kWh</div>
+                                                                    {(offer.fit ?? 0) > 0 && (
+                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fit ?? 0).toFixed(4)}/kWh</div>
                                                                             <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">Feed-in</div>
                                                                         </div>
                                                                     )}
-                                                                    {(offer.fitPeak || 0) > 0 && (
-                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 rounded-lg p-3 text-center space-y-0.5">
-                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${offer.fitPeak.toFixed(4)}/kWh</div>
+                                                                    {(offer.fitPeak ?? 0) > 0 && (
+                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitPeak ?? 0).toFixed(4)}/kWh</div>
                                                                             <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Peak</div>
                                                                         </div>
                                                                     )}
-                                                                    {(offer.fitCritical || 0) > 0 && (
-                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 rounded-lg p-3 text-center space-y-0.5">
-                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${offer.fitCritical.toFixed(4)}/kWh</div>
+                                                                    {(offer.fitCritical ?? 0) > 0 && (
+                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitCritical ?? 0).toFixed(4)}/kWh</div>
                                                                             <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Critical</div>
                                                                         </div>
                                                                     )}
-                                                                    {(offer.fitVpp || 0) > 0 && (
-                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 rounded-lg p-3 text-center space-y-0.5">
-                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${offer.fitVpp.toFixed(4)}/kWh</div>
+                                                                    {(offer.fitVpp ?? 0) > 0 && (
+                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitVpp ?? 0).toFixed(4)}/kWh</div>
                                                                             <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT VPP</div>
                                                                         </div>
                                                                     )}
@@ -1400,14 +1395,24 @@ export const CustomerFormPage = () => {
 
                                                         {/* Column 4: Controlled Load */}
                                                         {hasCL && (
-                                                            <div className="space-y-4">
-                                                                <div className="flex items-center gap-2 text-green-600">
+                                                            <div className="space-y-4 min-w-[180px] flex-1">
+                                                                <div className="flex items-center gap-2 text-green-500 dark:text-green-400">
                                                                     <PlugIcon size={16} />
                                                                     <h4 className="text-sm font-bold uppercase tracking-wide">Controlled Load</h4>
                                                                 </div>
                                                                 <div className="space-y-3">
-                                                                    {offer.cl1Usage > 0 && renderCL('CL1 Usage', offer.cl1Usage)}
-                                                                    {offer.cl2Usage > 0 && renderCL('CL2 Usage', offer.cl2Usage)}
+                                                                    {(offer.cl1Usage ?? 0) > 0 && (
+                                                                        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.cl1Usage ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                            <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL1 Usage</div>
+                                                                        </div>
+                                                                    )}
+                                                                    {(offer.cl2Usage ?? 0) > 0 && (
+                                                                        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.cl2Usage ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                            <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL2 Usage</div>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         )}
@@ -1606,19 +1611,23 @@ export const CustomerFormPage = () => {
                                 {currentStep === 0 ? 'Cancel' : 'Back'}
                             </Button>
                             <div className="flex gap-3">
+
+                                {(allStepsValid) && (
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        onClick={() => handleSubmit(0)}
+                                        isLoading={submittingStatus === 0}
+                                        disabled={submittingStatus !== null}
+                                    // className="mr-2"
+                                    >
+                                        Save as Draft
+                                    </Button>
+                                )}
                                 {currentStep < 3 && <Button type="button" onClick={() => setCurrentStep((currentStep + 1) as any)} disabled={!canProceed()}>Next</Button>}
+
                                 {currentStep === 3 && (
                                     <>
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            onClick={() => handleSubmit(0)}
-                                            isLoading={submittingStatus === 0}
-                                            disabled={submittingStatus !== null}
-                                            className="mr-2"
-                                        >
-                                            Save as Draft
-                                        </Button>
                                         <Button
                                             type="button"
                                             onClick={() => handleSubmit(1)}
@@ -1641,7 +1650,19 @@ export const CustomerFormPage = () => {
                     title={<span className="text-red-600">Unsaved Changes</span>}
                     footer={
                         <div className="flex gap-2">
-                            <Button variant="ghost" onClick={() => blocker.reset && blocker.reset()}>
+                            {allStepsValid && (
+                                <Button
+                                    variant="default"
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                    onClick={() => {
+                                        blocker.reset && blocker.reset();
+                                        handleSubmit(0);
+                                    }}
+                                >
+                                    Save as Draft
+                                </Button>
+                            )}
+                            <Button variant="outline" onClick={() => blocker.reset && blocker.reset()} className="border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800">
                                 Stay
                             </Button>
                             <Button variant="destructive" onClick={() => blocker.proceed && blocker.proceed()}>

@@ -21,6 +21,8 @@ function normalisePhone(to: string) {
     digits = digits.replace(/\D/g, "");
     if (digits.startsWith("0")) return `+61${digits.slice(1)}`;
     if (digits.startsWith("61")) return `+61${digits.slice(2)}`;
+    // Handle 9 digit numbers (missing leading 0, e.g. 412345678)
+    if (digits.length === 9 && digits.startsWith("4")) return `+61${digits}`;
     return `+${digits}`;
 }
 

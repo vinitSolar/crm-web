@@ -12,9 +12,11 @@ import {
 import MainLogo from '@/assets/main-logo-dark-1.png';
 import BankAutocomplete from '@/components/BankAutocomplete';
 import LocationAutocomplete from '@/pages/LocationAutocomplete';
+import { Modal } from '@/components/common/Modal';
 import { ID_TYPE_MAP, SALE_TYPE_LABELS, BILLING_PREF_LABELS, RATE_TYPE_MAP } from '@/lib/constants';
 import { calculateDiscountedRate } from '@/lib/rate-utils';
 import { formatDateTime, formatDate } from '@/lib/date';
+import { sendVerification, checkVerification } from '@/lib/twilio';
 
 
 async function loadSignaturePad(): Promise<void> {
@@ -160,22 +162,48 @@ export const OfferAccessPage = () => {
     useEffect(() => {
         let active = true;
         if (showModal && mode === 'pad') {
-            loadSignaturePad().then(() => {
+            const initPad = async () => {
+                await loadSignaturePad();
                 if (!active) return;
-                if (canvasRef.current && (window as any).SignaturePad) {
-                    const canvas = canvasRef.current;
-                    // Handle retina display scaling
-                    const ratio = Math.max(window.devicePixelRatio || 1, 1);
-                    canvas.width = canvas.offsetWidth * ratio;
-                    canvas.height = canvas.offsetHeight * ratio;
-                    canvas.getContext('2d')?.scale(ratio, ratio);
 
-                    // Always re-init signature pad when modal opens/mode changes
-                    const pad = new (window as any).SignaturePad(canvas);
-                    pad.clear(); // Ensure clean slate
-                    sigPadRef.current = pad;
-                }
-            }).catch(err => {
+                // Small delay to ensure modal animation is complete and layout is stable
+                setTimeout(() => {
+                    if (canvasRef.current && (window as any).SignaturePad) {
+                        const canvas = canvasRef.current;
+                        // Handle retina display scaling
+                        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                        canvas.width = canvas.offsetWidth * ratio;
+                        canvas.height = canvas.offsetHeight * ratio;
+                        canvas.getContext('2d')?.scale(ratio, ratio);
+
+                        // Always re-init signature pad when modal opens/mode changes
+                        const pad = new (window as any).SignaturePad(canvas, {
+                            minWidth: 2,
+                            maxWidth: 4
+                        });
+                        pad.clear(); // Ensure clean slate
+                        sigPadRef.current = pad;
+
+                        // Add resize listener
+                        const handleResize = () => {
+                            if (canvasRef.current) {
+                                const c = canvasRef.current;
+                                c.width = c.offsetWidth * ratio;
+                                c.height = c.offsetHeight * ratio;
+                                c.getContext('2d')?.scale(ratio, ratio);
+                                pad.clear(); // Clearing on resize is standard behavior for signature pad as content doesn't scale well
+                            }
+                        };
+                        window.addEventListener('resize', handleResize);
+
+                        // Store cleanup for this specific instance if needed, 
+                        // but the main effect cleanup handles the pad instance.
+                        // We might want to remove the resize listener in the effect cleanup.
+                        (pad as any)._resizeHandler = handleResize;
+                    }
+                }, 300); // 300ms to be safe after 200ms animation
+            };
+            initPad().catch(err => {
                 console.error("Failed to load signature pad", err);
             });
         }
@@ -184,6 +212,9 @@ export const OfferAccessPage = () => {
             active = false;
             // Proper cleanup to remove event listeners
             if (sigPadRef.current) {
+                if ((sigPadRef.current as any)._resizeHandler) {
+                    window.removeEventListener('resize', (sigPadRef.current as any)._resizeHandler);
+                }
                 sigPadRef.current.off();
                 sigPadRef.current = null;
             }
@@ -361,12 +392,13 @@ export const OfferAccessPage = () => {
                                             {formatDate(customerData.signDate)}
                                         </span>
                                     </div>
-                                    <div className="flex justify-between items-center py-1">
-                                        <span className="text-slate-500 dark:text-slate-400">Status</span>
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground">
-                                            active
+                                    <div className="flex justify-between items-center py-1 border-slate-200/50 dark:border-slate-700/50">
+                                        <span className="text-slate-500 dark:text-slate-400">Connection Date</span>
+                                        <span className="font-medium text-slate-700 dark:text-slate-200">
+                                            {customerData.enrollmentDetails?.connectiondate ? formatDate(customerData.enrollmentDetails.connectiondate) : 'ASAP'}
                                         </span>
                                     </div>
+
                                 </div>
                             </div>
 
@@ -500,21 +532,63 @@ export const OfferAccessPage = () => {
         return !!(firstName && lastName);
     };
 
-    const handleSendCode = () => {
+    const handleSendCode = async () => {
+        if (!customerData?.number) {
+            toast.error('Mobile number not available');
+            return;
+        }
+
         setMobileVerification(prev => ({ ...prev, sent: true }));
-        toast.info(`Code sent to ${customerData.number}`);
+        try {
+            await sendVerification(customerData.number);
+            toast.info(`Code sent to ${customerData.number}`);
+        } catch (error: any) {
+            console.error('Failed to send verification code:', error);
+            toast.error(error.message || 'Failed to send verification code');
+            setMobileVerification(prev => ({ ...prev, sent: false }));
+        }
     };
 
-    const handleVerifyMobile = () => {
-        if (mobileVerification.code.length === 6) {
-            setMobileVerification(prev => ({ ...prev, verifying: true }));
-            // Mock verify
-            setTimeout(() => {
+    const handleVerifyMobile = async () => {
+        if (mobileVerification.code.length !== 6) {
+            toast.error('Please enter a 6-digit code');
+            return;
+        }
+
+        setMobileVerification(prev => ({ ...prev, verifying: true }));
+
+        try {
+            const isValid = await checkVerification(customerData.number, mobileVerification.code);
+
+            if (isValid) {
+                // Update customer record instantly
+                const verifiedAt = new Date().toISOString();
+                await updateCustomer({
+                    variables: {
+                        uid: customerData.uid,
+                        input: {
+                            phoneVerifiedAt: verifiedAt,
+                            number: customerData.number // Save the corrected number if changed
+                        }
+                    }
+                });
+
+                // Update local state
+                setCustomerData((prev: any) => ({
+                    ...prev,
+                    phoneVerifiedAt: verifiedAt
+                }));
+
                 setMobileVerification(prev => ({ ...prev, verifying: false, verified: true }));
                 toast.success('Mobile verified successfully');
-            }, 1000);
-        } else {
-            toast.error('Please enter a 6-digit code');
+            } else {
+                toast.error('Invalid code. Please try again.');
+                setMobileVerification(prev => ({ ...prev, verifying: false }));
+            }
+        } catch (error: any) {
+            console.error('Verification failed:', error);
+            toast.error(error.message || 'Verification failed');
+            setMobileVerification(prev => ({ ...prev, verifying: false }));
         }
     };
 
@@ -1245,328 +1319,317 @@ export const OfferAccessPage = () => {
                 </div>
 
                 {/* Verification Card - Conditionally Rendered */}
-                {
-                    !customerData.phoneVerifiedAt && (
-                        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-                            <div className="flex items-start gap-4">
-                                <div className="mt-1 text-muted-foreground">
-                                    {mobileVerification.verified ? <CheckIcon size={20} className="text-green-500" /> : <CheckIcon size={20} />}
-                                </div>
-                                <div className="w-full">
+                {/* Sign Button Area - Sticky at bottom */}
+                <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-border shadow-lg py-4 px-4 sm:px-6 lg:px-8 z-40">
+                    <div className="max-w-4xl mx-auto">
+                        {!isPhoneVerified ? (
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-bottom-2">
+                                <div className="text-left w-full sm:w-auto">
                                     <h3 className="text-sm font-semibold text-foreground">Verify your mobile number</h3>
-                                    <p className="text-xs text-muted-foreground mb-4">Verify your mobile number to sign this initial offer.</p>
-
-                                    {!mobileVerification.verified ? (
-                                        <>
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    onClick={handleSendCode}
-                                                    disabled={mobileVerification.sent && mobileVerification.code.length < 6}
-                                                    className={`px-3 py-2 rounded-xl text-sm border flex items-center gap-2 h-9 ${mobileVerification.sent && mobileVerification.code.length < 6
-                                                        ? 'border-neutral-300 dark:border-neutral-600 text-neutral-400 dark:text-neutral-500 opacity-60 cursor-not-allowed'
-                                                        : 'border-primary bg-primary/10 dark:bg-primary/20 text-primary hover:bg-primary/20 dark:hover:bg-primary/30'
-                                                        }`}
-                                                >
-                                                    {mobileVerification.sent ? 'Resend code' : 'Send code'}
-                                                </Button>
-                                            </div>
-
-                                            {mobileVerification.sent && (
-                                                <div className="mt-4 flex gap-3 max-w-sm animate-in fade-in slide-in-from-top-1">
-                                                    <input
-                                                        type="text"
-                                                        value={mobileVerification.code}
-                                                        onChange={(e) => setMobileVerification({ ...mobileVerification, code: e.target.value })}
-                                                        placeholder="Verification code"
-                                                        maxLength={6}
-                                                        className="flex-1 px-3 py-2 border border-input rounded-lg text-sm focus:outline-none focus:border-neutral-900 transition-colors bg-background text-foreground placeholder:text-muted-foreground"
-                                                    />
-                                                    <Button
-                                                        onClick={handleVerifyMobile}
-                                                        disabled={mobileVerification.verifying}
-                                                        className="bg-neutral-900 hover:bg-neutral-800 text-white shadow-sm text-xs h-auto px-4"
-                                                    >
-                                                        {mobileVerification.verifying ? 'Verifying...' : 'Verify & continue'}
-                                                    </Button>
-                                                </div>
-                                            )}
-                                            <p className="text-[10px] text-muted-foreground mt-2">We will send a 6 digit code to {customerData.number}</p>
-                                        </>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <p className="text-sm text-muted-foreground">We will send a 6 digit code to {customerData.number}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                                    {!mobileVerification.sent ? (
+                                        <Button
+                                            onClick={handleSendCode}
+                                            disabled={mobileVerification.sent}
+                                        >
+                                            Send code
+                                        </Button>
                                     ) : (
-                                        <div className="mt-2 text-sm text-green-600 font-medium flex items-center gap-2">
-                                            <CheckIcon size={16} /> Mobile number verified
+                                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                                            <input
+                                                type="text"
+                                                value={mobileVerification.code}
+                                                onChange={(e) => setMobileVerification({ ...mobileVerification, code: e.target.value })}
+                                                placeholder="Code"
+                                                maxLength={6}
+                                                className="w-24 px-3 py-2 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground h-10"
+                                            />
+                                            <Button
+                                                onClick={handleVerifyMobile}
+                                                disabled={mobileVerification.verifying}
+                                            >
+                                                {mobileVerification.verifying ? 'Verifying...' : 'Verify'}
+                                            </Button>
+                                            <Button
+                                                onClick={handleSendCode}
+                                                variant="outline"
+                                                size="sm"
+                                            >
+                                                Resend
+                                            </Button>
                                         </div>
                                     )}
                                 </div>
                             </div>
-                        </div>
-                    )
-                }
-
-                {/* Sign Button Area - Sticky at bottom */}
-                <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-border shadow-lg py-4 px-4 sm:px-6 lg:px-8 z-40">
-                    <div className="max-w-4xl mx-auto flex justify-end">
-                        <div className="flex items-center gap-4">
-                            {!canSign && (
-                                <span className="text-xs text-gray-400">
-                                    {isPhoneVerified
-                                        ? 'Complete direct debit details to sign.'
-                                        : 'Verify your mobile number above to sign this offer.'}
-                                </span>
-                            )}
-                            <Button
-                                disabled={!canSign}
-                                onClick={() => setShowModal(true)}
-                                className={`px-8 transition-all ${canSign
-                                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-md cursor-pointer'
-                                    : 'bg-muted text-muted-foreground cursor-not-allowed'
-                                    }`}
-                            >
-                                Sign
-                            </Button>
-                        </div>
+                        ) : (
+                            <div className="flex justify-end animate-in fade-in">
+                                <div className="flex items-center gap-4">
+                                    {!canSign && (
+                                        <span className="text-xs text-gray-400">
+                                            {isPhoneVerified
+                                                ? 'Complete direct debit details to sign.'
+                                                : 'Verify your mobile number to sign.'}
+                                        </span>
+                                    )}
+                                    <Button
+                                        disabled={!canSign}
+                                        onClick={() => setShowModal(true)}
+                                        className={`px-8 transition-all ${canSign
+                                            ? 'bg-green-600 hover:bg-green-700 text-white shadow-md cursor-pointer'
+                                            : 'bg-muted text-muted-foreground cursor-not-allowed'
+                                            }`}
+                                    >
+                                        Sign
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
             </div >
 
             {/* Signature Modal */}
-            {
-                showModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                        <div className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-lg shadow-lg dark:border dark:border-slate-800">
-                            {/* Header */}
-                            <div className="p-4 border-b border-gray-200 dark:border-slate-800">
-                                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Sign & Confirm</h2>
+            <Modal
+                isOpen={showModal}
+                onClose={() => {
+                    if (submitting) return;
+                    setSubmitError(null);
+                    setShowModal(false);
+                }}
+                title="Sign & Confirm"
+                size="full"
+                footer={
+                    <>
+                        {submitError && (
+                            <div className="mr-auto rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 px-3 py-2 text-xs text-red-600 dark:text-red-400">
+                                {submitError}
                             </div>
-
-                            {/* Body */}
-                            <div className="p-4 max-h-[75vh] overflow-y-auto space-y-4">
-                                <div className="space-y-1 text-sm">
-                                    <label className="font-medium text-neutral-800 dark:text-slate-200">
-                                        Signatory name
-                                    </label>
-                                    <input
-                                        className="border border-gray-200 dark:border-slate-700 rounded px-2 py-1 w-full bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder:text-slate-400"
-                                        value={signatoryName}
-                                        onChange={(e) => setSignatoryName(e.target.value)}
-                                        placeholder="Full legal name"
-                                    />
-                                    <p className="text-xs text-neutral-600 dark:text-slate-400">
-                                        We will use this name with your signature across the
-                                        agreements.
-                                    </p>
-                                </div>
-
-                                {/* Signature mode toggle */}
-                                <div className="flex gap-2 text-sm">
-                                    <button
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'pad' ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-neutral-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                                            }`}
-                                        onPointerDown={() => {
-                                            // Start drawing
-                                        }}
-                                        onClick={() => {
-                                            setMode('pad')
-                                            setTyped('')
-                                        }}
-                                    >
-                                        <PencilIcon size={14} />
-                                        Draw
-                                    </button>
-                                    <button
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'type' ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-neutral-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                                            }`}
-                                        onClick={() => {
-                                            setMode('type')
-                                            if (sigPadRef.current) {
-                                                sigPadRef.current.clear();
-                                            }
-                                        }}
-                                    >
-                                        <TypeIcon size={14} />
-                                        Type
-                                    </button>
-                                </div>
-
-                                {/* Signature area */}
-                                <div className="block bg-white dark:bg-transparent">
-                                    <canvas
-                                        ref={canvasRef}
-                                        width={480}
-                                        height={180}
-                                        className="border border-gray-200 rounded w-full bg-white dark:bg-[#e1d6c4] dark:invert"
-                                        style={{ display: 'block', touchAction: 'none' }}
-                                    />
-                                </div>
-
-                                {mode === 'type' && (
-                                    <input
-                                        className="border border-gray-200 dark:border-slate-700 rounded px-2 py-1 w-full font-cursive text-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                                        value={typed}
-                                        onChange={(e) => setTyped(e.target.value)}
-                                        placeholder="Type your name"
-                                        style={{ fontFamily: 'cursive' }}
-                                    />
-                                )}
-
-                                {/* Consents */}
-                                <div className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                                    <div className="flex items-start gap-2">
-                                        <label className="mt-1 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={consents.infoConfirm}
-                                                className="rounded border-gray-300 dark:border-slate-600 dark:bg-slate-800 accent-primary"
-                                                onChange={(e) =>
-                                                    setConsents((p) => ({
-                                                        ...p,
-                                                        infoConfirm: e.target.checked,
-                                                    }))
-                                                }
-                                            />
-                                        </label>
-                                        <span>
-                                            I confirm the above information is correct and have read the{' '}
-                                            <a
-                                                href="/onboarding/GEE-TERMS-AND-CONDITIONS.pdf"
-                                                className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
-                                                style={{ color: '#4B8A10' }}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                Terms & Conditions
-                                            </a>
-                                            {', '}
-                                            <a
-                                                href="/onboarding/GEE-PDS.pdf"
-                                                className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
-                                                style={{ color: '#4B8A10' }}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                Disclosure Statement
-                                            </a>
-                                            {customerData.vppDetails?.vpp && (
-                                                <>
-                                                    {', '}
-                                                    <a
-                                                        href="/onboarding/GEE-VPP-Program-Terms-and-Conditions.pdf"
-                                                        className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
-                                                        style={{ color: '#4B8A10' }}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                    >
-                                                        Virtual Power Plant Program Terms and Conditions
-                                                    </a>
-                                                </>
-                                            )}
-                                            {' and '}
-                                            <a
-                                                href="/onboarding/GEE-Privacy-Policy.pdf"
-                                                className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
-                                                style={{ color: '#4B8A10' }}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                Privacy Policy
-                                            </a>
-                                            .
-                                            {directDebitOptIn && (
-                                                <>
-                                                    {' '}
-                                                    I will receive{' '}
-                                                    <a
-                                                        href="/onboarding/GEE Direct Debit Service Agreement-2.pdf"
-                                                        className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
-                                                        style={{ color: '#4B8A10' }}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                    >
-                                                        GEE Direct Debit Service Agreement
-                                                    </a>{' '}
-                                                    with my signed documents.
-                                                </>
-                                            )}
-                                        </span>
-                                    </div>
-
-                                    <label className="flex items-start gap-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            className="mt-1 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-800 accent-primary"
-                                            checked={consents.creditCheck}
-                                            onChange={(e) =>
-                                                setConsents((p) => ({
-                                                    ...p,
-                                                    creditCheck: e.target.checked,
-                                                }))
-                                            }
-                                        />
-                                        <span>
-                                            I consent to a credit check to assess my application.
-                                        </span>
-                                    </label>
-
-                                    <label className="flex items-start gap-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            className="mt-1 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-800 accent-primary"
-                                            checked={consents.offerAgree}
-                                            onChange={(e) =>
-                                                setConsents((p) => ({
-                                                    ...p,
-                                                    offerAgree: e.target.checked,
-                                                }))
-                                            }
-                                        />
-                                        <span>
-                                            I agree to the Offer Summary, rates &amp; fees, and the
-                                            cooling-off information.
-                                        </span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            {/* Footer actions */}
-                            <div className="p-4 border-t border-gray-200 dark:border-slate-800 space-y-3">
-                                {submitError && (
-                                    <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 px-3 py-2 text-xs text-red-600 dark:text-red-400">
-                                        {submitError}
-                                    </div>
-                                )}
-                                <div className="flex justify-end gap-2">
-                                    <button
-                                        className="px-3 py-1 text-sm bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded hover:bg-gray-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
-                                        onClick={() => {
-                                            if (submitting) return
-                                            setSubmitError(null)
-                                            setShowModal(false)
-                                        }}
-                                        disabled={submitting}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        className="px-3 py-1 rounded bg-neutral-900 dark:bg-white text-white dark:text-black disabled:opacity-50 text-sm hover:bg-neutral-800 dark:hover:bg-slate-200 transition-colors"
-                                        disabled={!canSubmit || submitting}
-                                        onClick={handleModalSave}
-                                    >
-                                        {submitting ? (
-                                            <span className="flex items-center gap-2">
-                                                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white dark:border-black border-t-transparent" />
-                                                Saving…
-                                            </span>
-                                        ) : (
-                                            'Save & Sign'
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        )}
+                        <Button
+                            variant="ghost"
+                            onClick={() => {
+                                if (submitting) return;
+                                setSubmitError(null);
+                                setShowModal(false);
+                            }}
+                            disabled={submitting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleModalSave}
+                            disabled={!canSubmit || submitting}
+                            className="ml-2"
+                        >
+                            {submitting ? 'Saving...' : 'Save & Sign'}
+                        </Button>
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    <div className="space-y-1 text-sm">
+                        <label className="font-medium text-neutral-800 dark:text-slate-200">
+                            Signatory name
+                        </label>
+                        <input
+                            className="border border-gray-200 dark:border-slate-700 rounded px-2 py-1 w-full bg-white dark:bg-slate-950 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                            value={signatoryName}
+                            onChange={(e) => setSignatoryName(e.target.value)}
+                            placeholder="Full legal name"
+                        />
+                        <p className="text-xs text-neutral-600 dark:text-slate-400">
+                            We will use this name with your signature across the
+                            agreements.
+                        </p>
                     </div>
-                )
-            }
+
+                    {/* Signature mode toggle */}
+                    <div className="flex gap-2 text-sm">
+                        <button
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'pad' ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-neutral-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                                }`}
+                            onPointerDown={() => {
+                                // Start drawing
+                            }}
+                            onClick={() => {
+                                setMode('pad')
+                                setTyped('')
+                            }}
+                        >
+                            <PencilIcon size={14} />
+                            Draw
+                        </button>
+                        <button
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mode === 'type' ? 'bg-black text-white dark:bg-white dark:text-black' : 'bg-neutral-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                                }`}
+                            onClick={() => {
+                                setMode('type')
+                                if (sigPadRef.current) {
+                                    sigPadRef.current.clear();
+                                }
+                            }}
+                        >
+                            <TypeIcon size={14} />
+                            Type
+                        </button>
+                        <button
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-neutral-200 dark:hover:bg-slate-700 ml-auto"
+                            onClick={() => {
+                                if (mode === 'pad') {
+                                    sigPadRef.current?.clear();
+                                } else {
+                                    setTyped('');
+                                }
+                            }}
+                        >
+                            Reset
+                        </button>
+                    </div>
+
+                    {/* Signature area */}
+                    <div className="block bg-white dark:bg-transparent">
+                        <canvas
+                            ref={canvasRef}
+                            width={480}
+                            height={180}
+                            className="border border-gray-200 rounded w-full bg-white dark:bg-[#e1d6c4] dark:invert cursor-crosshair h-64"
+                            style={{ display: 'block', touchAction: 'none' }}
+                        />
+                    </div>
+
+                    {mode === 'type' && (
+                        <input
+                            className="border border-gray-200 dark:border-slate-700 rounded px-2 py-1 w-full font-cursive text-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                            value={typed}
+                            onChange={(e) => setTyped(e.target.value)}
+                            placeholder="Type your name"
+                            style={{ fontFamily: 'cursive' }}
+                        />
+                    )}
+
+                    {/* Consents */}
+                    <div className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                        <div className="flex items-start gap-2">
+                            <label className="mt-1 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={consents.infoConfirm}
+                                    className="rounded border-gray-300 dark:border-slate-600 dark:bg-slate-800 accent-primary"
+                                    onChange={(e) =>
+                                        setConsents((p) => ({
+                                            ...p,
+                                            infoConfirm: e.target.checked,
+                                        }))
+                                    }
+                                />
+                            </label>
+                            <span>
+                                I confirm the above information is correct and have read the{' '}
+                                <a
+                                    href="/onboarding/GEE-TERMS-AND-CONDITIONS.pdf"
+                                    className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
+                                    style={{ color: '#4B8A10' }}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Terms & Conditions
+                                </a>
+                                {', '}
+                                <a
+                                    href="/onboarding/GEE-PDS.pdf"
+                                    className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
+                                    style={{ color: '#4B8A10' }}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Disclosure Statement
+                                </a>
+                                {customerData.vppDetails?.vpp === 1 && (
+                                    <>
+                                        {', '}
+                                        <a
+                                            href="/onboarding/GEE-VPP-Program-Terms-and-Conditions.pdf"
+                                            className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
+                                            style={{ color: '#4B8A10' }}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            Virtual Power Plant Program Terms and Conditions
+                                        </a>
+                                    </>
+                                )}
+                                {' and '}
+                                <a
+                                    href="/onboarding/GEE-Privacy-Policy.pdf"
+                                    className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
+                                    style={{ color: '#4B8A10' }}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Privacy Policy
+                                </a>
+                                .
+                                {directDebitOptIn && (
+                                    <>
+                                        {' '}
+                                        I will receive{' '}
+                                        <a
+                                            href="/onboarding/GEE Direct Debit Service Agreement-2.pdf"
+                                            className="underline hover:text-green-600 dark:text-green-400 dark:hover:text-green-300"
+                                            style={{ color: '#4B8A10' }}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            GEE Direct Debit Service Agreement
+                                        </a>{' '}
+                                        with my signed documents.
+                                    </>
+                                )}
+                            </span>
+                        </div>
+
+                        <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="mt-1 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-800 accent-primary"
+                                checked={consents.creditCheck}
+                                onChange={(e) =>
+                                    setConsents((p) => ({
+                                        ...p,
+                                        creditCheck: e.target.checked,
+                                    }))
+                                }
+                            />
+                            <span>
+                                I consent to a credit check to assess my application.
+                            </span>
+                        </label>
+
+                        <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="mt-1 rounded border-gray-300 dark:border-slate-600 dark:bg-slate-800 accent-primary"
+                                checked={consents.offerAgree}
+                                onChange={(e) =>
+                                    setConsents((p) => ({
+                                        ...p,
+                                        offerAgree: e.target.checked,
+                                    }))
+                                }
+                            />
+                            <span>
+                                I agree to the Offer Summary, rates &amp; fees, and the
+                                cooling-off information.
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </Modal>
         </div >
     );
 };

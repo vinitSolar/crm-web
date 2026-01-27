@@ -9,7 +9,7 @@ import {
     PlusIcon, PencilIcon,
     // TrashIcon,
     CheckIcon, XIcon, MailIcon, SnowflakeIcon, Settings2Icon, PlugIcon, ZapIcon,
-    ActivityIcon
+    ActivityIcon, ChevronRightIcon
 } from '@/components/icons';
 import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL, CREATE_CUSTOMER, UPDATE_CUSTOMER, GET_ALL_FILTERED_CUSTOMER_IDS } from '@/graphql';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -191,20 +191,52 @@ interface CustomerDetails {
 
 
 
-const ToggleSwitch = ({ checked, onChange }: { checked: boolean, onChange: (checked: boolean) => void }) => (
+const ToggleSwitch = ({ checked, onChange, disabled }: { checked: boolean, onChange: (checked: boolean) => void, disabled?: boolean }) => (
     <button
         type="button"
         role="switch"
         aria-checked={checked}
+        disabled={disabled}
         onClick={(e) => {
             e.stopPropagation();
-            onChange(!checked);
+            if (!disabled) {
+                onChange(!checked);
+            }
         }}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${checked ? 'bg-primary' : 'bg-muted'}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${checked ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     >
         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
     </button>
 );
+
+const AccordionCard = ({ title, icon, children, badge }: { title: string, icon: React.ReactNode, children: React.ReactNode, badge?: React.ReactNode }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    return (
+        <div className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow group">
+            <div
+                className="flex items-center justify-between p-5 cursor-pointer select-none"
+                onClick={(e) => {
+                    e.preventDefault();
+                    setIsOpen(!isOpen);
+                }}
+            >
+                <div className="flex items-center gap-2">
+                    {icon}
+                    <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+                    {badge}
+                </div>
+                <div className={`transform transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}>
+                    <ChevronRightIcon size={16} />
+                </div>
+            </div>
+            {isOpen && (
+                <div className="px-5 pb-5 animate-in slide-in-from-top-2 duration-200">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+};
 
 interface SearchFilters {
     id: string;
@@ -1239,9 +1271,7 @@ export function CustomersPage() {
                                 </div>
                                 {selectedCustomerDetails.status === 3 && (
                                     <Button
-                                        variant="outline"
                                         size="sm"
-                                        className="border-cyan-200 text-cyan-600 hover:bg-cyan-50 hover:text-cyan-700"
                                         onClick={() => handleFreezeClick(selectedCustomerDetails)}
                                         disabled={freezingCustomer}
                                         isLoading={freezingCustomer}
@@ -1257,8 +1287,8 @@ export function CustomersPage() {
                                 {[
                                     { step: 1, label: 'Offer sent', date: selectedCustomerDetails.createdAt, completed: true },
                                     { step: 2, label: 'Signed by customer', date: selectedCustomerDetails.signDate, completed: selectedCustomerDetails.status >= 2, showReminder: selectedCustomerDetails.status < 2 },
-                                    { step: 3, label: 'VPP connect', date: null, completed: selectedCustomerDetails.vppDetails?.vppConnected === 1, showToggle: true },
-                                    { step: 4, label: 'Connected to MSAT', date: null, completed: selectedCustomerDetails.msatDetails?.msatConnected === 1, showToggle: true },
+                                    { step: 3, label: 'VPP connect', date: null, completed: selectedCustomerDetails.vppDetails?.vppConnected === 1, showToggle: true, disabled: selectedCustomerDetails.status < 2 },
+                                    { step: 4, label: 'Connected to MSAT', date: null, completed: selectedCustomerDetails.msatDetails?.msatConnected === 1, showToggle: true, disabled: selectedCustomerDetails.vppDetails?.vppConnected !== 1 },
                                     { step: 5, label: 'Utilmate Connect', date: null, completed: !!selectedCustomerDetails.utilmateStatus, showToggle: true },
                                 ].map((item, index, arr) => (
                                     <div key={item.step} className="relative flex flex-col items-center" style={{ width: '20%' }}>
@@ -1289,6 +1319,7 @@ export function CustomersPage() {
                                             <div className="mt-1">
                                                 <ToggleSwitch
                                                     checked={item.completed}
+                                                    disabled={item.disabled}
                                                     onChange={(val) => {
                                                         if (item.step === 3) {
                                                             handleVppToggle(selectedCustomerDetails.uid, val);
@@ -1307,15 +1338,16 @@ export function CustomersPage() {
                         </div>
 
                         {/* Three Column Layout */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
                             {/* Customer Info Card */}
-                            <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-2 mb-4">
+                            <AccordionCard
+                                title="Customer Info"
+                                icon={
                                     <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
                                         <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                                     </div>
-                                    <h3 className="text-sm font-semibold text-foreground">Customer Info</h3>
-                                </div>
+                                }
+                            >
                                 <div className="space-y-3">
                                     {[
                                         { label: 'Customer Id', value: selectedCustomerDetails.customerId },
@@ -1335,16 +1367,18 @@ export function CustomersPage() {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
+                            </AccordionCard>
 
                             {/* Location Card */}
-                            <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-2 mb-4">
+                            {/* Location Card */}
+                            <AccordionCard
+                                title="Location & Meter"
+                                icon={
                                     <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
                                         <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                     </div>
-                                    <h3 className="text-sm font-semibold text-foreground">Location & Meter</h3>
-                                </div>
+                                }
+                            >
                                 <div className="space-y-3">
                                     {[
                                         { label: 'Address', value: selectedCustomerDetails.address?.fullAddress || [selectedCustomerDetails.address?.streetNumber, selectedCustomerDetails.address?.streetName, selectedCustomerDetails.address?.suburb].filter(Boolean).join(' ') },
@@ -1359,23 +1393,24 @@ export function CustomersPage() {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
+                            </AccordionCard>
 
                             {/* Account Settings Card */}
-                            <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-2 mb-4">
+                            <AccordionCard
+                                title="Account Settings"
+                                icon={
                                     <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
                                         <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                     </div>
-                                    <h3 className="text-sm font-semibold text-foreground">Account Settings</h3>
-                                </div>
+                                }
+                            >
                                 <div className="space-y-3">
                                     {[
                                         { label: 'Sale Type', value: SALE_TYPE_LABELS[selectedCustomerDetails.enrollmentDetails?.saletype ?? 0] || 'Direct' },
                                         { label: 'Billing', value: BILLING_PREF_LABELS[selectedCustomerDetails.enrollmentDetails?.billingpreference ?? 0] || 'eBill' },
                                         { label: 'Discount', value: selectedCustomerDetails.discount ? `${selectedCustomerDetails.discount}%` : '0%' },
                                         { label: 'Rate Version', value: selectedCustomerDetails.rateVersion ?? '—' },
-                                        { label: 'Connection', value: selectedCustomerDetails.enrollmentDetails?.connectiondate ? formatDate(selectedCustomerDetails.enrollmentDetails.connectiondate) : null },
+                                        { label: 'Connection Date', value: selectedCustomerDetails.enrollmentDetails?.connectiondate ? formatDate(selectedCustomerDetails.enrollmentDetails.connectiondate) : null },
                                         { label: 'Concession', value: selectedCustomerDetails.enrollmentDetails?.concession === 1 ? 'Yes' : 'No' },
                                         { label: 'Life Support', value: selectedCustomerDetails.enrollmentDetails?.lifesupport === 1 ? 'Yes' : 'No' },
                                     ].map((item, i) => (
@@ -1385,22 +1420,25 @@ export function CustomersPage() {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
+                            </AccordionCard>
                         </div>
 
-                        {/* VPP & Solar Details Row */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* VPP, MSAT, Solar & Debit Details Row */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
                             {/* VPP Details Card */}
-                            <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-2 mb-4">
+                            <AccordionCard
+                                title="VPP Details"
+                                icon={
                                     <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
                                         <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                     </div>
-                                    <h3 className="text-sm font-semibold text-foreground">VPP Details</h3>
-                                    {selectedCustomerDetails.vppDetails?.vpp === 1 && (
+                                }
+                                badge={
+                                    selectedCustomerDetails.vppDetails?.vpp === 1 ? (
                                         <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">Enrolled</span>
-                                    )}
-                                </div>
+                                    ) : null
+                                }
+                            >
                                 <div className="space-y-3">
                                     {[
                                         { label: 'VPP Enrolled', value: selectedCustomerDetails.vppDetails?.vpp === 1 ? 'Yes' : 'No' },
@@ -1413,19 +1451,22 @@ export function CustomersPage() {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
+                            </AccordionCard>
 
                             {/* MSAT Details Card */}
-                            <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-2 mb-4">
+                            <AccordionCard
+                                title="MSAT Details"
+                                icon={
                                     <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
                                         <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                                     </div>
-                                    <h3 className="text-sm font-semibold text-foreground">MSAT Details</h3>
-                                    {selectedCustomerDetails.msatDetails?.msatConnected === 1 && (
+                                }
+                                badge={
+                                    selectedCustomerDetails.msatDetails?.msatConnected === 1 ? (
                                         <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">Connected</span>
-                                    )}
-                                </div>
+                                    ) : null
+                                }
+                            >
                                 <div className="space-y-3">
                                     {[
                                         { label: 'MSAT Connected', value: selectedCustomerDetails.msatDetails?.msatConnected === 1 ? 'Yes' : 'No' },
@@ -1438,22 +1479,22 @@ export function CustomersPage() {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
-                        </div>
+                            </AccordionCard>
 
-                        {/* Solar System Row */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             {/* Solar System Card */}
-                            <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-2 mb-4">
+                            <AccordionCard
+                                title="Solar System"
+                                icon={
                                     <div className="w-8 h-8 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center">
                                         <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
                                     </div>
-                                    <h3 className="text-sm font-semibold text-foreground">Solar System</h3>
-                                    {selectedCustomerDetails.solarDetails?.hassolar === 1 && (
+                                }
+                                badge={
+                                    selectedCustomerDetails.solarDetails?.hassolar === 1 ? (
                                         <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 rounded-full">Has Solar</span>
-                                    )}
-                                </div>
+                                    ) : null
+                                }
+                            >
                                 <div className="space-y-3">
                                     {[
                                         { label: 'Has Solar', value: selectedCustomerDetails.solarDetails?.hassolar === 1 ? 'Yes' : 'No' },
@@ -1466,18 +1507,21 @@ export function CustomersPage() {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
+                            </AccordionCard>
 
                             {/* Debit Details Card */}
                             {selectedCustomerDetails.debitDetails?.optIn === 1 && (
-                                <div className="bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="flex items-center gap-2 mb-4">
+                                <AccordionCard
+                                    title="Debit Details"
+                                    icon={
                                         <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
                                             <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                                         </div>
-                                        <h3 className="text-sm font-semibold text-foreground">Debit Details</h3>
+                                    }
+                                    badge={
                                         <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-full">Active</span>
-                                    </div>
+                                    }
+                                >
                                     <div className="space-y-3">
                                         {[
                                             { label: 'Name', value: selectedCustomerDetails.debitDetails.accountType === 0 ? selectedCustomerDetails.debitDetails.companyName : `${selectedCustomerDetails.debitDetails.firstName} ${selectedCustomerDetails.debitDetails.lastName}` },
@@ -1499,14 +1543,14 @@ export function CustomersPage() {
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                </AccordionCard>
                             )}
                         </div>
 
                         {/* Rate Plan Section */}
                         {selectedCustomerDetails.ratePlan && (
-                            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-                                <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 px-5 py-4 border-b border-border">
+                            <details className="bg-card rounded-xl border border-border shadow-sm overflow-hidden group">
+                                <summary className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 px-5 py-4 border-b border-border list-none cursor-pointer [&::-webkit-details-marker]:hidden">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
@@ -1517,11 +1561,14 @@ export function CustomersPage() {
                                                 <p className="text-xs text-muted-foreground">DNSP: {DNSP_LABELS[selectedCustomerDetails.ratePlan?.dnsp ?? -1]} • VPP: {selectedCustomerDetails.vppDetails?.vpp === 1 ? 'Yes' : 'No'}</p>
                                             </div>
                                         </div>
+                                        <div className="transform transition-transform duration-200 group-open:rotate-90">
+                                            <ChevronRightIcon size={16} />
+                                        </div>
                                     </div>
-                                </div>
+                                </summary>
 
                                 {selectedCustomerDetails.ratePlan.offers && selectedCustomerDetails.ratePlan.offers.length > 0 && (
-                                    <div className="p-5">
+                                    <div className="p-5 animate-in slide-in-from-top-2 duration-200">
                                         {selectedCustomerDetails.ratePlan.offers.map((offer, idx) => {
                                             const discount = selectedCustomerDetails.discount ?? 0;
                                             const hasCL = (offer.cl1Usage || 0) > 0 || (offer.cl2Usage || 0) > 0;
@@ -1655,7 +1702,7 @@ export function CustomersPage() {
                                         })}
                                     </div>
                                 )}
-                            </div>
+                            </details>
                         )}
                     </div>
                 ) : (
