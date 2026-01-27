@@ -6,7 +6,7 @@ function App() {
     return (
         <Providers>
             <AppRoutes />
-            <ToastContainer />
+            <ToastContainer style={{ zIndex: 10000 }} />
         </Providers>
     );
 }
