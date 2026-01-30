@@ -1523,32 +1523,32 @@ export function CustomersPage() {
 
 
                             {/* Solar System Card */}
-                            <AccordionCard
-                                title="Solar System"
-                                icon={
-                                    <div className="w-8 h-8 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center">
-                                        <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
-                                    </div>
-                                }
-                                badge={
-                                    selectedCustomerDetails.solarDetails?.hassolar === 1 ? (
-                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 rounded-full">Has Solar</span>
-                                    ) : null
-                                }
-                            >
-                                <div className="space-y-3">
-                                    {[
-                                        { label: 'Has Solar', value: selectedCustomerDetails.solarDetails?.hassolar === 1 ? 'Yes' : 'No' },
-                                        { label: 'Solar Capacity', value: selectedCustomerDetails.solarDetails?.solarcapacity ? `${selectedCustomerDetails.solarDetails.solarcapacity} kW` : '—' },
-                                        { label: 'Inverter Capacity', value: selectedCustomerDetails.solarDetails?.invertercapacity ? `${selectedCustomerDetails.solarDetails.invertercapacity} kW` : '—' },
-                                    ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-border last:border-0">
-                                            <span className="text-xs text-muted-foreground">{item.label}</span>
-                                            <span className="text-xs font-medium text-foreground">{item.value}</span>
+                            {selectedCustomerDetails.solarDetails?.hassolar === 1 && (
+                                <AccordionCard
+                                    title="Solar System"
+                                    icon={
+                                        <div className="w-8 h-8 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center">
+                                            <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
                                         </div>
-                                    ))}
-                                </div>
-                            </AccordionCard>
+                                    }
+                                    badge={
+                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 rounded-full">Has Solar</span>
+                                    }
+                                >
+                                    <div className="space-y-3">
+                                        {[
+                                            { label: 'Has Solar', value: 'Yes' },
+                                            { label: 'Solar Capacity', value: selectedCustomerDetails.solarDetails?.solarcapacity ? `${selectedCustomerDetails.solarDetails.solarcapacity} kW` : '—' },
+                                            { label: 'Inverter Capacity', value: selectedCustomerDetails.solarDetails?.invertercapacity ? `${selectedCustomerDetails.solarDetails.invertercapacity} kW` : '—' },
+                                        ].map((item, i) => (
+                                            <div key={i} className="flex justify-between items-center py-1.5 border-b border-border last:border-0">
+                                                <span className="text-xs text-muted-foreground">{item.label}</span>
+                                                <span className="text-xs font-medium text-foreground">{item.value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </AccordionCard>
+                            )}
 
                             {/* Debit Details Card */}
                             {selectedCustomerDetails.debitDetails?.optIn === 1 && (
