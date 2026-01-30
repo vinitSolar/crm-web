@@ -28,6 +28,12 @@ export const GET_ME = gql`
                 canEdit
                 canDelete
             }
+            accessibleFeatures {
+                featureUid
+                featureCode
+                featureName
+                isEnabled
+            }
         }
     }
 `;

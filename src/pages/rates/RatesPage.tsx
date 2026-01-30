@@ -637,7 +637,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_anytime') ? `Old: ${getOldValue(row, 'offer_anytime')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_anytime') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-orange-200 text-orange-950 dark:bg-orange-900/20 dark:text-orange-400'}`}>
-                        {row.offers?.[0]?.anytime ?? '-'}
+                        {row.offers?.[0]?.anytime || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -649,7 +649,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_peak') ? `Old: ${getOldValue(row, 'offer_peak')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_peak') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-blue-200 text-blue-950 dark:bg-blue-900/20 dark:text-blue-400'}`}>
-                        {row.offers?.[0]?.peak ?? '-'}
+                        {row.offers?.[0]?.peak || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -661,7 +661,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_shoulder') ? `Old: ${getOldValue(row, 'offer_shoulder')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_shoulder') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-blue-200 text-blue-950 dark:bg-blue-900/20 dark:text-blue-400'}`}>
-                        {row.offers?.[0]?.shoulder ?? '-'}
+                        {row.offers?.[0]?.shoulder || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -673,7 +673,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_offPeak') ? `Old: ${getOldValue(row, 'offer_offPeak')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_offPeak') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-blue-200 text-blue-950 dark:bg-blue-900/20 dark:text-blue-400'}`}>
-                        {row.offers?.[0]?.offPeak ?? '-'}
+                        {row.offers?.[0]?.offPeak || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -685,7 +685,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_supplyCharge') ? `Old: ${getOldValue(row, 'offer_supplyCharge')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_supplyCharge') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-purple-200 text-purple-950 dark:bg-purple-900/20 dark:text-purple-400'}`}>
-                        {row.offers?.[0]?.supplyCharge ?? '-'}
+                        {row.offers?.[0]?.supplyCharge || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -697,7 +697,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_cl1Supply') ? `Old: ${getOldValue(row, 'offer_cl1Supply')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_cl1Supply') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-green-200 text-green-950 dark:bg-green-900/20 dark:text-green-400'}`}>
-                        {row.offers?.[0]?.cl1Supply ?? '-'}
+                        {row.offers?.[0]?.cl1Supply || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -709,7 +709,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_cl1Usage') ? `Old: ${getOldValue(row, 'offer_cl1Usage')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_cl1Usage') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-green-200 text-green-950 dark:bg-green-900/20 dark:text-green-400'}`}>
-                        {row.offers?.[0]?.cl1Usage ?? '-'}
+                        {row.offers?.[0]?.cl1Usage || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -721,7 +721,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_cl2Supply') ? `Old: ${getOldValue(row, 'offer_cl2Supply')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_cl2Supply') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-green-200 text-green-950 dark:bg-green-900/20 dark:text-green-400'}`}>
-                        {row.offers?.[0]?.cl2Supply ?? '-'}
+                        {row.offers?.[0]?.cl2Supply || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -733,7 +733,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_cl2Usage') ? `Old: ${getOldValue(row, 'offer_cl2Usage')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_cl2Usage') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-green-200 text-green-950 dark:bg-green-900/20 dark:text-green-400'}`}>
-                        {row.offers?.[0]?.cl2Usage ?? '-'}
+                        {row.offers?.[0]?.cl2Usage || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -745,7 +745,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_demand') ? `Old: ${getOldValue(row, 'offer_demand')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_demand') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-red-200 text-red-950 dark:bg-red-900/20 dark:text-red-400'}`}>
-                        {row.offers?.[0]?.demand ?? '-'}
+                        {row.offers?.[0]?.demand || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -757,7 +757,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_demandOp') ? `Old: ${getOldValue(row, 'offer_demandOp')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_demandOp') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-red-200 text-red-950 dark:bg-red-900/20 dark:text-red-400'}`}>
-                        {row.offers?.[0]?.demandOp ?? '-'}
+                        {row.offers?.[0]?.demandOp || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -769,7 +769,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_demandP') ? `Old: ${getOldValue(row, 'offer_demandP')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_demandP') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-red-200 text-red-950 dark:bg-red-900/20 dark:text-red-400'}`}>
-                        {row.offers?.[0]?.demandP ?? '-'}
+                        {row.offers?.[0]?.demandP || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -781,7 +781,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_demandS') ? `Old: ${getOldValue(row, 'offer_demandS')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_demandS') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-red-200 text-red-950 dark:bg-red-900/20 dark:text-red-400'}`}>
-                        {row.offers?.[0]?.demandS ?? '-'}
+                        {row.offers?.[0]?.demandS || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -793,7 +793,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_fit') ? `Old: ${getOldValue(row, 'offer_fit')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_fit') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-teal-100 text-teal-950 dark:bg-teal-900/20 dark:text-teal-300'}`}>
-                        {row.offers?.[0]?.fit ?? '-'}
+                        {row.offers?.[0]?.fit || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -805,7 +805,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_fitPeak') ? `Old: ${getOldValue(row, 'offer_fitPeak')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_fitPeak') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-teal-100 text-teal-950 dark:bg-teal-900/20 dark:text-teal-300'}`}>
-                        {row.offers?.[0]?.fitPeak ?? '-'}
+                        {row.offers?.[0]?.fitPeak || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -817,7 +817,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_fitCritical') ? `Old: ${getOldValue(row, 'offer_fitCritical')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_fitCritical') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-teal-100 text-teal-950 dark:bg-teal-900/20 dark:text-teal-300'}`}>
-                        {row.offers?.[0]?.fitCritical ?? '-'}
+                        {row.offers?.[0]?.fitCritical || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -829,7 +829,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_fitVpp') ? `Old: ${getOldValue(row, 'offer_fitVpp')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_fitVpp') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-teal-100 text-teal-950 dark:bg-teal-900/20 dark:text-teal-300'}`}>
-                        {row.offers?.[0]?.fitVpp ?? '-'}
+                        {row.offers?.[0]?.fitVpp || '-'}
                     </div>
                 </Tooltip>
             ),
@@ -841,7 +841,7 @@ export function RatesPage() {
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_vppOrcharge') ? `Old: ${getOldValue(row, 'offer_vppOrcharge')}` : null}>
                     <div className={`px-2 py-1 rounded font-bold text-xs w-full text-center ${isFieldChanged(row, 'offer_vppOrcharge') ? 'bg-orange-800 text-white border border-orange-500 font-bold' : 'bg-red-200 text-red-950 dark:bg-red-900/20 dark:text-red-400'}`}>
-                        {row.offers?.[0]?.vppOrcharge ?? '-'}
+                        {row.offers?.[0]?.vppOrcharge || '-'}
                     </div>
                 </Tooltip>
             ),

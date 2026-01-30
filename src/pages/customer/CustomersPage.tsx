@@ -8,8 +8,8 @@ import { DataTable, type Column, Modal } from '@/components/common';
 import {
     PlusIcon, PencilIcon,
     // TrashIcon,
-    CheckIcon, XIcon, MailIcon, SnowflakeIcon, Settings2Icon, PlugIcon, ZapIcon,
-    ActivityIcon, ChevronRightIcon
+    CheckIcon, XIcon, MailIcon, Settings2Icon, PlugIcon, ZapIcon,
+    ActivityIcon, ChevronRightIcon, InfoIcon
 } from '@/components/icons';
 import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL, CREATE_CUSTOMER, UPDATE_CUSTOMER, GET_ALL_FILTERED_CUSTOMER_IDS } from '@/graphql';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -67,6 +67,7 @@ interface PageInfo {
     hasPreviousPage: boolean;
     startCursor: string | null;
     endCursor: string | null;
+    totalCount?: number;
 }
 
 interface CustomersCursorResponse {
@@ -166,6 +167,12 @@ interface CustomerDetails {
         hassolar?: number;
         solarcapacity?: number;
         invertercapacity?: number;
+    };
+    batteryDetails?: {
+        batterybrand?: string;
+        snnumber?: string;
+        batterycapacity?: number;
+        exportlimit?: number;
     };
     utilmateStatus?: string | number;
     rateVersion?: number;
@@ -277,6 +284,7 @@ export function CustomersPage() {
     const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
     const [endCursor, setEndCursor] = useState<string | null>(null);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasNextPage, setHasNextPage] = useState(false);
 
     // Delete modal state
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -344,7 +352,7 @@ export function CustomersPage() {
     });
 
     const pageInfo = data?.customersCursor?.pageInfo;
-    const hasMore = pageInfo?.hasNextPage ?? false;
+    const hasMore = hasNextPage; // Use local state instead of derived prop which might be stale
 
     // Refetch when search changes
     useEffect(() => {
@@ -376,6 +384,10 @@ export function CustomersPage() {
             }
             if (data.customersCursor.pageInfo.endCursor) {
                 setEndCursor(data.customersCursor.pageInfo.endCursor);
+            }
+            // Initialize hasNextPage from initial data
+            if (data.customersCursor.pageInfo) {
+                setHasNextPage(data.customersCursor.pageInfo.hasNextPage);
             }
             setIsLoadingMore(false);
         }
@@ -413,6 +425,10 @@ export function CustomersPage() {
                 });
                 if (result.data.customersCursor.pageInfo.endCursor) {
                     setEndCursor(result.data.customersCursor.pageInfo.endCursor);
+                }
+                // Update hasNextPage from fetchMore result
+                if (result.data.customersCursor.pageInfo) {
+                    setHasNextPage(result.data.customersCursor.pageInfo.hasNextPage);
                 }
             }
         } catch (err) {
@@ -1141,8 +1157,8 @@ export function CustomersPage() {
                 <div className="flex flex-col gap-4 mb-6">
                     <p className="text-sm text-muted-foreground">
                         {Object.values(debouncedFilters).some(v => v)
-                            ? `Showing ${filteredCustomers.length} matching results (filtered from ${allCustomers.length} loaded)`
-                            : `Loaded ${allCustomers.length} customers${hasMore ? ' (scroll for more)' : ''}`
+                            ? `Showing ${filteredCustomers.length} matching results${pageInfo?.totalCount ? ` (filtered from ${pageInfo.totalCount} total matching)` : ` (filtered from ${allCustomers.length} loaded)`}`
+                            : `Loaded ${allCustomers.length}${pageInfo?.totalCount ? ` of ${pageInfo.totalCount}` : ''} customers${hasMore ? ' (scroll for more)' : ''}`
                         }
                     </p>
                 </div>
@@ -1279,34 +1295,73 @@ export function CustomersPage() {
                                         isLoading={freezingCustomer}
                                         loadingText="Freezing..."
                                     >
-                                        <SnowflakeIcon size={16} className="mr-1" />
+                                        {/* <SnowflakeIcon size={16} className="mr-1" /> */}
                                         Freeze
                                     </Button>
                                 )}
                             </div>
                             <div className="relative flex justify-between items-start">
-                                <div className="absolute top-[18px] left-[10%] right-[10%] h-0.5 bg-gray-300 dark:bg-gray-600" />
                                 {[
-                                    { step: 1, label: 'Offer sent', date: selectedCustomerDetails.createdAt, completed: true },
-                                    { step: 2, label: 'Signed by customer', date: selectedCustomerDetails.signDate, completed: selectedCustomerDetails.status >= 2, showReminder: selectedCustomerDetails.status < 2 },
-                                    { step: 3, label: 'VPP connect', date: null, completed: selectedCustomerDetails.vppDetails?.vppConnected === 1, showToggle: true, disabled: selectedCustomerDetails.status < 2 },
-                                    { step: 4, label: 'Connected to MSAT', date: null, completed: selectedCustomerDetails.msatDetails?.msatConnected === 1, showToggle: true, disabled: selectedCustomerDetails.vppDetails?.vppConnected !== 1 },
-                                    { step: 5, label: 'Utilmate Connect', date: null, completed: !!selectedCustomerDetails.utilmateStatus, showToggle: true },
+                                    { label: 'Offer sent', date: selectedCustomerDetails.createdAt, completed: true, step: 1 },
+                                    { label: 'Signed by customer', date: selectedCustomerDetails.signDate, completed: selectedCustomerDetails.status >= 2, showReminder: selectedCustomerDetails.status < 2, step: 2 },
+                                    ...(selectedCustomerDetails.vppDetails?.vpp === 1 ? [
+                                        { label: 'VPP connect', date: null, completed: selectedCustomerDetails.vppDetails?.vppConnected === 1, showToggle: true, disabled: selectedCustomerDetails.status < 2, step: 3 },
+                                    ] : []),
+                                    { label: 'Connected to MSAT', date: null, completed: selectedCustomerDetails.msatDetails?.msatConnected === 1, showToggle: true, disabled: selectedCustomerDetails.vppDetails?.vpp === 1 && selectedCustomerDetails.vppDetails?.vppConnected !== 1, step: 4 },
+                                    { label: 'Utilmate Connect', date: null, completed: !!selectedCustomerDetails.utilmateStatus, showToggle: true, step: 5 },
                                 ].map((item, index, arr) => (
-                                    <div key={item.step} className="relative flex flex-col items-center" style={{ width: '20%' }}>
-                                        {index > 0 && arr[index - 1].completed && (
+                                    <div key={index} className="relative flex flex-col items-center" style={{ width: `${100 / arr.length}%` }}>
+                                        {index > 0 && (
                                             <div className={`absolute top-[18px] h-0.5 ${item.completed ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} style={{ right: '50%', left: '-50%' }} />
                                         )}
                                         <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold bg-background border-2 z-10 ${item.completed ? 'border-green-500 text-green-500' : 'border-gray-200 dark:border-gray-600 text-gray-400'}`}>
-                                            {item.completed ? <CheckIcon size={16} strokeWidth={3} /> : item.step}
+                                            {item.completed ? <CheckIcon size={16} strokeWidth={3} /> : index + 1}
                                         </div>
-                                        <span className={`text-xs mt-2 text-center font-medium ${item.completed ? 'text-foreground' : 'text-muted-foreground'}`}>{item.label}</span>
+                                        <div className="flex items-center gap-1 mt-2 justify-center z-30 relative">
+                                            <span className={`text-xs font-medium ${item.completed ? 'text-foreground' : 'text-muted-foreground'}`}>{item.label}</span>
+                                            {item.step === 4 && (
+                                                <Tooltip
+                                                    position="bottom"
+                                                    className="whitespace-normal min-w-[220px] p-0 overflow-hidden bg-white dark:bg-neutral-900 border border-border shadow-xl text-foreground"
+                                                    content={
+                                                        <div className="flex flex-col text-xs">
+                                                            <div className="px-3 py-2 bg-muted/50 border-b border-border flex items-center gap-2">
+                                                                <div className="w-5 h-5 rounded bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                                                </div>
+                                                                <span className="font-semibold">MSAT Details</span>
+                                                            </div>
+                                                            <div className="p-2 space-y-1">
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-muted-foreground">Status:</span>
+                                                                    <span className={selectedCustomerDetails.msatDetails?.msatConnected === 1 ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                                                                        {selectedCustomerDetails.msatDetails?.msatConnected === 1 ? 'Connected' : 'Not Connected'}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-muted-foreground">Connected:</span>
+                                                                    <span>{selectedCustomerDetails.msatDetails?.msatConnectedAt ? formatDateTime(selectedCustomerDetails.msatDetails.msatConnectedAt) : '—'}</span>
+                                                                </div>
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-muted-foreground">Updated:</span>
+                                                                    <span>{selectedCustomerDetails.msatDetails?.msatUpdatedAt ? formatDateTime(selectedCustomerDetails.msatDetails.msatUpdatedAt) : '—'}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                >
+                                                    <div className="cursor-help text-muted-foreground hover:text-foreground transition-colors p-1">
+                                                        <InfoIcon size={14} />
+                                                    </div>
+                                                </Tooltip>
+                                            )}
+                                        </div>
                                         {item.date && <span className="text-[10px] text-muted-foreground">{formatDateTime(item.date)}</span>}
                                         {item.showReminder && (
                                             <button
                                                 onClick={() => handleSendReminder(selectedCustomerDetails.uid)}
                                                 disabled={sendingReminder || reminderSent}
-                                                className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg mt-1 ${reminderSent ? 'bg-green-500 text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'} ${sendingReminder ? 'opacity-70' : ''}`}
+                                                className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg mt-1 relative z-30 ${reminderSent ? 'bg-green-500 text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'} ${sendingReminder ? 'opacity-70' : ''}`}
                                             >
                                                 {sendingReminder ? (
                                                     <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Sending...</>
@@ -1317,8 +1372,10 @@ export function CustomersPage() {
                                                 )}
                                             </button>
                                         )}
+
+
                                         {item.showToggle && (
-                                            <div className="mt-1">
+                                            <div className="mt-1 relative z-30">
                                                 <ToggleSwitch
                                                     checked={item.completed}
                                                     disabled={item.disabled}
@@ -1372,7 +1429,6 @@ export function CustomersPage() {
                             </AccordionCard>
 
                             {/* Location Card */}
-                            {/* Location Card */}
                             <AccordionCard
                                 title="Location & Meter"
                                 icon={
@@ -1410,7 +1466,7 @@ export function CustomersPage() {
                                     {[
                                         { label: 'Sale Type', value: SALE_TYPE_LABELS[selectedCustomerDetails.enrollmentDetails?.saletype ?? 0] || 'Direct' },
                                         { label: 'Billing', value: BILLING_PREF_LABELS[selectedCustomerDetails.enrollmentDetails?.billingpreference ?? 0] || 'eBill' },
-                                        { label: 'Discount', value: selectedCustomerDetails.discount ? `${selectedCustomerDetails.discount}%` : '0%' },
+                                        { label: 'Discount', value: selectedCustomerDetails.discount ? `${selectedCustomerDetails.discount}%` : '-' },
                                         { label: 'Rate Version', value: selectedCustomerDetails.rateVersion ?? '—' },
                                         { label: 'Connection Date', value: selectedCustomerDetails.enrollmentDetails?.connectiondate ? formatDate(selectedCustomerDetails.enrollmentDetails.connectiondate) : null },
                                         { label: 'Concession', value: selectedCustomerDetails.enrollmentDetails?.concession === 1 ? 'Yes' : 'No' },
@@ -1427,61 +1483,44 @@ export function CustomersPage() {
 
                         {/* VPP, MSAT, Solar & Debit Details Row */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-                            {/* VPP Details Card */}
-                            <AccordionCard
-                                title="VPP Details"
-                                icon={
-                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
-                                        <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                                    </div>
-                                }
-                                badge={
-                                    selectedCustomerDetails.vppDetails?.vpp === 1 ? (
+                            {/* VPP Participant Card */}
+                            {selectedCustomerDetails.vppDetails?.vpp === 1 && (
+                                <AccordionCard
+                                    title="VPP Participant"
+                                    icon={
+                                        <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                                            <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                        </div>
+                                    }
+                                    badge={
                                         <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">Enrolled</span>
-                                    ) : null
-                                }
-                            >
-                                <div className="space-y-3">
-                                    {[
-                                        { label: 'VPP Enrolled', value: selectedCustomerDetails.vppDetails?.vpp === 1 ? 'Yes' : 'No' },
-                                        { label: 'VPP Connected', value: selectedCustomerDetails.vppDetails?.vppConnected === 1 ? 'Yes' : 'No' },
-                                        { label: 'Signup Bonus', value: selectedCustomerDetails.vppDetails?.vppSignupBonus ? '$50 monthly bill credit for 12 months (total $600)' : '—' },
-                                    ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-start py-1.5 border-b border-border last:border-0">
-                                            <span className="text-xs text-muted-foreground shrink-0 w-24 pt-0.5">{item.label}</span>
-                                            <span className={`text-xs font-medium text-foreground text-right flex-1 ${item.value && item.value.length > 30 ? 'leading-relaxed' : ''}`}>{item.value}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </AccordionCard>
-
-                            {/* MSAT Details Card */}
-                            <AccordionCard
-                                title="MSAT Details"
-                                icon={
-                                    <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
-                                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                                    }
+                                >
+                                    <div className="space-y-3">
+                                        {[
+                                            { label: 'VPP Enrolled', value: 'Yes' },
+                                            { label: 'VPP Connected', value: selectedCustomerDetails.vppDetails?.vppConnected === 1 ? 'Yes' : 'No' },
+                                            { label: 'Signup Bonus', value: selectedCustomerDetails.vppDetails?.vppSignupBonus ? '$50 monthly bill credit for 12 months (total $600)' : '—' },
+                                            // VPP Participant / Battery Details
+                                            ...(selectedCustomerDetails.batteryDetails ? [
+                                                { label: 'Battery Brand', value: selectedCustomerDetails.batteryDetails.batterybrand },
+                                                { label: 'SN Number', value: selectedCustomerDetails.batteryDetails.snnumber },
+                                                { label: 'Battery Capacity', value: selectedCustomerDetails.batteryDetails.batterycapacity ? `${selectedCustomerDetails.batteryDetails.batterycapacity} kW` : null },
+                                                { label: 'Export Limit', value: selectedCustomerDetails.batteryDetails.exportlimit ? `${selectedCustomerDetails.batteryDetails.exportlimit} kW` : null },
+                                            ] : [])
+                                        ].map((item, i) => (
+                                            item.value ? ( // Only show if value exists (for battery props) or keep existing logic
+                                                <div key={i} className="flex justify-between items-start py-1.5 border-b border-border last:border-0">
+                                                    <span className="text-xs text-muted-foreground shrink-0 w-24 pt-0.5">{item.label}</span>
+                                                    <span className={`text-xs font-medium text-foreground text-right flex-1 ${item.value.toString().length > 30 ? 'leading-relaxed' : ''}`}>{item.value}</span>
+                                                </div>
+                                            ) : null
+                                        ))}
                                     </div>
-                                }
-                                badge={
-                                    selectedCustomerDetails.msatDetails?.msatConnected === 1 ? (
-                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">Connected</span>
-                                    ) : null
-                                }
-                            >
-                                <div className="space-y-3">
-                                    {[
-                                        { label: 'MSAT Connected', value: selectedCustomerDetails.msatDetails?.msatConnected === 1 ? 'Yes' : 'No' },
-                                        { label: 'Connected At', value: selectedCustomerDetails.msatDetails?.msatConnectedAt ? formatDateTime(selectedCustomerDetails.msatDetails.msatConnectedAt) : '—' },
-                                        { label: 'Updated At', value: selectedCustomerDetails.msatDetails?.msatUpdatedAt ? formatDateTime(selectedCustomerDetails.msatDetails.msatUpdatedAt) : '—' },
-                                    ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-start py-1.5 border-b border-border last:border-0">
-                                            <span className="text-xs text-muted-foreground shrink-0 w-24 pt-0.5">{item.label}</span>
-                                            <span className="text-xs font-medium text-foreground text-right flex-1">{item.value}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </AccordionCard>
+                                </AccordionCard>
+                            )}
+
+
 
                             {/* Solar System Card */}
                             <AccordionCard

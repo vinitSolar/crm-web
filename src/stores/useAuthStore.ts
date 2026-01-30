@@ -15,6 +15,13 @@ export interface AccessibleMenu {
     canDelete: boolean;
 }
 
+export interface AccessibleFeature {
+    featureUid: string;
+    featureCode: string;
+    featureName: string;
+    isEnabled: boolean;
+}
+
 // Full user info from API
 export interface UserInfo {
     id: string;
@@ -30,12 +37,15 @@ export interface UserInfo {
     isDeleted: boolean;
     createdAt: string;
     accessibleMenus: AccessibleMenu[];
+    accessibleFeatures: AccessibleFeature[];
 }
 
 interface AuthState {
     // User data
     user: UserInfo | null;
     accessibleMenus: AccessibleMenu[];
+    accessibleFeatures: AccessibleFeature[];
+
 
     // Tokens
     token: string | null;
@@ -59,12 +69,15 @@ interface AuthState {
     canCreateInMenu: (menuCode: string) => boolean;
     canEditInMenu: (menuCode: string) => boolean;
     canDeleteInMenu: (menuCode: string) => boolean;
+    hasFeatureAccess: (featureCode: string) => boolean;
     setUser: (user: UserInfo) => void;
 }
 
 export const useAuthStore = create<AuthState>()((set, get) => ({
     user: null,
     accessibleMenus: [],
+    accessibleFeatures: [],
+
     token: null,
     refreshToken: null,
     isAuthenticated: false,
@@ -85,6 +98,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         set({
             user: null,
             accessibleMenus: [],
+            accessibleFeatures: [],
+
             token: null,
             refreshToken: null,
             isAuthenticated: false,
@@ -130,7 +145,9 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
                 set({
                     user,
                     accessibleMenus: user.accessibleMenus || [],
+                    accessibleFeatures: user.accessibleFeatures || [],
                     hasFetched: true,
+
                     isLoading: false,
                 });
             } else {
@@ -170,6 +187,11 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     canDeleteInMenu: (menuCode: string) => {
         const menu = get().accessibleMenus.find(m => m.menuCode === menuCode);
         return menu?.canDelete ?? false;
+    },
+
+    hasFeatureAccess: (featureCode: string) => {
+        const feature = get().accessibleFeatures.find(f => f.featureCode === featureCode);
+        return feature?.isEnabled ?? false;
     },
 
     setUser: (user: UserInfo) => {

@@ -10,7 +10,7 @@ export type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
 export interface TooltipProps {
     /** Tooltip content - when null/undefined, renders just children without tooltip */
-    content: string | null | undefined;
+    content: ReactNode | null | undefined;
     /** Children to wrap */
     children: ReactNode;
     /** Tooltip position */

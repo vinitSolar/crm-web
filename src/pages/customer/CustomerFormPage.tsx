@@ -44,6 +44,7 @@ import { sendVerification, checkVerification } from '@/lib/twilio';
 import { calculateDiscountedRate } from '@/lib/rate-utils';
 import LocationAutocomplete from '../LocationAutocomplete';
 import { Modal } from '@/components/common/Modal';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 // ============================================================================
 // UI COMPONENTS
@@ -391,6 +392,9 @@ export const CustomerFormPage = () => {
 
     // Rate plans
     const [selectedRatePlan, setSelectedRatePlan] = useState<RatePlan | null>(null);
+    const [isCustomDiscountMode, setIsCustomDiscountMode] = useState(false);
+    const { hasFeatureAccess } = useAuthStore();
+    const canAccessCustomDiscount = hasFeatureAccess('feature_custom_discount');
 
     // Queries & Mutations
     const { data: customerData, loading: isLoadingCustomer } = useQuery(GET_CUSTOMER_BY_ID, {
@@ -466,18 +470,7 @@ export const CustomerFormPage = () => {
             }));
     }, [ratePlans, formData.state, formData.vpp]);
 
-    const discountOptions = useMemo(() => {
-        // discountApplies is 0 or 1 (integer), so check explicitly
-        if (selectedRatePlan?.discountApplies !== 1) return [{ value: '0', label: '0%' }];
-        return [
-            { value: '0', label: '0%' },
-            { value: '5', label: '5%' },
-            { value: '7', label: '7%' },
-            { value: '10', label: '10%' },
-            { value: '13', label: '13%' },
-            { value: '15', label: '15%' },
-        ];
-    }, [selectedRatePlan]);
+
 
     // Load Data
     useEffect(() => {
@@ -834,6 +827,13 @@ export const CustomerFormPage = () => {
     // Submit
     const handleSubmit = async (targetStatus: number = 1) => {
         setSubmittingStatus(targetStatus);
+
+        // If phone is verified and we are submitting as active (1), set status to 2 (Signature Pending)
+        let finalStatus = targetStatus;
+        if (targetStatus === 1 && phoneVerified) {
+            finalStatus = 2;
+        }
+
         // Temporarily disable dirty check to allow navigation
         setIsFormDirty(false);
         try {
@@ -851,7 +851,7 @@ export const CustomerFormPage = () => {
                 propertyType: formData.propertyType,
                 tariffCode: formData.tariffCode,
                 discount: formData.discount,
-                status: targetStatus,
+                status: finalStatus,
                 enrollmentDetails: {
                     saletype: formData.saleType,
                     connectiondate: formData.connectionDate || null,
@@ -1074,8 +1074,7 @@ export const CustomerFormPage = () => {
                                                                     // User requirement: "both cannot be unchecked"
                                                                     // If I uncheck this, showName MUST be true.
                                                                     // If showName is false, keep this checked OR check showName.
-                                                                    // Decision: Prevent uncheck if the other is invalid? Or auto-check the other.
-                                                                    // Auto-check the other is smoother.
+                                                                    // Decision: Auto-check the other is smoother.
                                                                     updateField('showName', true);
                                                                 }
                                                                 updateField('showAsBusinessName', newValue);
@@ -1219,13 +1218,13 @@ export const CustomerFormPage = () => {
 
                                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-xl border border-border">
                                             <div className="col-span-2 lg:col-span-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Detailed Breakdown</div>
-                                            <Input label="Unit No." disabled className="bg-background" value={formData.unitNumber} onChange={(e) => updateField('unitNumber', e.target.value)} onBlur={() => handleBlur('unitNumber')} placeholder="1A" />
-                                            <Input label="Street No." disabled required error={errors.streetNumber} className="bg-background" value={formData.streetNumber} onChange={(e) => updateField('streetNumber', e.target.value)} onBlur={() => handleBlur('streetNumber')} placeholder="123" />
-                                            <Input label="Street Name" disabled required error={errors.streetName} className="bg-background" value={formData.streetName} onChange={(e) => updateField('streetName', e.target.value)} onBlur={() => handleBlur('streetName')} placeholder="Main" />
-                                            <Select label="Type" disabled options={streetTypeOptions} value={formData.streetType} onChange={(val) => updateField('streetType', val)} placeholder="St" />
-                                            <Input label="Suburb" disabled required error={errors.suburb} className="bg-background" value={formData.suburb} onChange={(e) => updateField('suburb', e.target.value)} onBlur={() => handleBlur('suburb')} placeholder="Sydney" />
-                                            <Select label="State" disabled options={STATE_OPTIONS} value={formData.state} onChange={(val) => updateField('state', val as string)} placeholder="NSW" />
-                                            <Input label="Postcode" disabled required error={errors.postcode} className="bg-background" value={formData.postcode} onChange={(e) => updateField('postcode', e.target.value)} onBlur={() => handleBlur('postcode')} maxLength={4} placeholder="2000" />
+                                            <Input label="Unit No." disabled className="bg-background" value={formData.unitNumber} onChange={(e) => updateField('unitNumber', e.target.value)} onBlur={() => handleBlur('unitNumber')} placeholder="e.g. 5" />
+                                            <Input label="Street No." disabled required error={errors.streetNumber} className="bg-background" value={formData.streetNumber} onChange={(e) => updateField('streetNumber', e.target.value)} onBlur={() => handleBlur('streetNumber')} placeholder="e.g. 123" />
+                                            <Input label="Street Name" disabled required error={errors.streetName} className="bg-background" value={formData.streetName} onChange={(e) => updateField('streetName', e.target.value)} onBlur={() => handleBlur('streetName')} placeholder="e.g. Smith" />
+                                            <Select label="Type" disabled options={streetTypeOptions} value={formData.streetType} onChange={(val) => updateField('streetType', val)} placeholder="Type" />
+                                            <Input label="Suburb" disabled required error={errors.suburb} className="bg-background" value={formData.suburb} onChange={(e) => updateField('suburb', e.target.value)} onBlur={() => handleBlur('suburb')} placeholder="e.g. Collingwood" />
+                                            <Select label="State" disabled options={STATE_OPTIONS} value={formData.state} onChange={(val) => updateField('state', val as string)} placeholder="State" />
+                                            <Input label="Postcode" disabled required error={errors.postcode} className="bg-background" value={formData.postcode} onChange={(e) => updateField('postcode', e.target.value)} onBlur={() => handleBlur('postcode')} maxLength={4} placeholder="e.g. 3066" />
                                             <Input label="Country" disabled className="bg-background" value={formData.country} onChange={(e) => updateField('country', e.target.value)} />
                                         </div>
 
@@ -1250,12 +1249,81 @@ export const CustomerFormPage = () => {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4">
                                         <Select label="Tariff Code" required options={tariffOptions} value={formData.tariffCode} onChange={(val) => handleTariffChange(val as string)} placeholder="Select tariff" />
-                                        <div className="space-y-1.5">
-                                            <Select label="Discount" options={discountOptions} value={formData.discount.toString()} onChange={(val) => updateField('discount', parseFloat(val as string))} placeholder="Select discount" />
-                                            {!selectedRatePlan?.discountApplies && (
-                                                <p className="text-[10px] text-muted-foreground italic px-0.5">Discount not available for this plan.</p>
-                                            )}
-                                        </div>
+                                        {/* Discount Field with Pill Selector */}
+                                        {selectedRatePlan?.discountApplies === 1 && (
+                                            <div className="space-y-1">
+                                                <label className="text-sm font-medium text-title leading-none block">
+                                                    Discount
+                                                </label>
+
+                                                <div className="flex flex-wrap items-center gap-2 min-h-[40px] pt-1.5">
+                                                    {/* Standard Options */}
+                                                    {['0', '5', '7', '10', '13', '15'].map((opt) => {
+                                                        const isActive = !isCustomDiscountMode && formData.discount?.toString() === opt;
+                                                        return (
+                                                            <button
+                                                                key={opt}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setIsCustomDiscountMode(false);
+                                                                    updateField('discount', parseFloat(opt));
+                                                                }}
+                                                                className={cn(
+                                                                    "px-4 py-1.5 rounded-full text-xs font-medium border transition-all h-8",
+                                                                    isActive
+                                                                        ? "bg-neutral-900 text-white border-neutral-900 shadow-sm"
+                                                                        : "bg-white text-neutral-600 border-border hover:border-neutral-400 hover:text-neutral-900"
+                                                                )}
+                                                            >
+                                                                {opt}%
+                                                            </button>
+                                                        );
+                                                    })}
+
+                                                    {/* Custom Option */}
+                                                    {canAccessCustomDiscount && (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setIsCustomDiscountMode(true);
+                                                                }}
+                                                                className={cn(
+                                                                    "px-4 py-1.5 rounded-full text-xs font-medium border transition-all h-8",
+                                                                    (isCustomDiscountMode || (formData.discount !== undefined && !['0', '5', '7', '10', '13', '15'].includes(formData.discount?.toString() || '')))
+                                                                        ? "bg-neutral-900 text-white border-neutral-900 shadow-sm"
+                                                                        : "bg-white text-neutral-600 border-border hover:border-neutral-400 hover:text-neutral-900"
+                                                                )}
+                                                            >
+                                                                Custom
+                                                            </button>
+
+                                                            {/* Custom Input - Inline */}
+                                                            <div className={cn(
+                                                                "overflow-hidden transition-all duration-300 ease-in-out flex items-center gap-2",
+                                                                (isCustomDiscountMode || (formData.discount !== undefined && !['0', '5', '7', '10', '13', '15'].includes(formData.discount?.toString() || '')))
+                                                                    ? "w-[120px] opacity-100"
+                                                                    : "w-0 opacity-0"
+                                                            )}>
+                                                                <div className="relative w-full">
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={!['0', '5', '7', '10', '13', '15'].includes(formData.discount?.toString() || '') ? (formData.discount ?? '') : ''}
+                                                                        onChange={(e) => updateField('discount', parseFloat(e.target.value) || 0)}
+                                                                        placeholder="0"
+                                                                        className="h-8 text-xs pr-6"
+                                                                        min={0}
+                                                                        max={100}
+                                                                        step={0.01}
+                                                                    />
+                                                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">%</span>
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -1455,27 +1523,40 @@ export const CustomerFormPage = () => {
                                             <DatePicker label="ID Expiry" value={formData.idExpiry} onChange={(date) => updateField('idExpiry', date ? date.toISOString().split('T')[0] : '')} minDate={new Date()} />
                                         </div>
                                         <div className="flex flex-wrap gap-6 pt-2">
-
-                                            <ToggleSwitch
-                                                checked={formData.concession}
-                                                onChange={(c) => {
-                                                    if (c) {
-                                                        setRestrictedFeatureError(true);
-                                                    } else {
-                                                        updateField('concession', false);
-                                                    }
-                                                }}
-                                            /><span className="text-sm">Concession Card Holder</span>
-                                            <ToggleSwitch
-                                                checked={formData.lifeSupport}
-                                                onChange={(c) => {
-                                                    if (c) {
-                                                        setRestrictedFeatureError(true);
-                                                    } else {
-                                                        updateField('lifeSupport', false);
-                                                    }
-                                                }}
-                                            /><span className="text-sm">Life Support Equipment</span>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id="concession"
+                                                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                                                    checked={formData.concession}
+                                                    onChange={(e) => {
+                                                        const c = e.target.checked;
+                                                        if (c) {
+                                                            setRestrictedFeatureError(true);
+                                                        } else {
+                                                            updateField('concession', false);
+                                                        }
+                                                    }}
+                                                />
+                                                <label htmlFor="concession" className="text-sm cursor-pointer select-none">Concession Card Holder</label>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id="lifeSupport"
+                                                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                                                    checked={formData.lifeSupport}
+                                                    onChange={(e) => {
+                                                        const c = e.target.checked;
+                                                        if (c) {
+                                                            setRestrictedFeatureError(true);
+                                                        } else {
+                                                            updateField('lifeSupport', false);
+                                                        }
+                                                    }}
+                                                />
+                                                <label htmlFor="lifeSupport" className="text-sm cursor-pointer select-none">Life Support Equipment</label>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1531,7 +1612,7 @@ export const CustomerFormPage = () => {
                                                 <h3 className="font-medium mb-3 flex items-center gap-2"><ShieldIcon size={16} className="text-blue-600" /> Plan & Pricing</h3>
                                                 <div className="space-y-1 text-sm bg-card p-3 rounded border border-border">
                                                     <p className="flex justify-between"><span className="text-muted-foreground">Tariff Code:</span> <span className="font-medium">{formData.tariffCode}</span></p>
-                                                    <p className="flex justify-between"><span className="text-muted-foreground">Discount:</span> <span className="font-medium badge bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded">{formData.discount}%</span></p>
+                                                    <p className="flex justify-between"><span className="text-muted-foreground">Discount:</span> <span className="font-medium badge bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded">{formData.discount > 0 ? `${formData.discount}%` : '—'}</span></p>
                                                     <p className="flex justify-between"><span className="text-muted-foreground">Distributor:</span> <span className="font-medium">{selectedRatePlan?.dnsp !== undefined ? (DNSP_MAP[selectedRatePlan.dnsp.toString()] || selectedRatePlan.dnsp) : '—'}</span></p>
                                                     <p className="flex justify-between"><span className="text-muted-foreground">Tariff Type:</span> <span className="font-medium">{selectedRatePlan?.tariff || '—'}</span></p>
                                                     <p className="flex justify-between"><span className="text-muted-foreground">Pricing Version:</span> <span className="font-medium font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{(isEditMode && customerRateVersion) ? customerRateVersion : activeRateVersion}</span></p>
@@ -1565,27 +1646,24 @@ export const CustomerFormPage = () => {
                                                     {formData.hasSolar && (
                                                         <div className="space-y-1 text-sm bg-card p-3 rounded border border-border">
                                                             <p className="font-medium text-xs uppercase text-muted-foreground mb-1">Solar System</p>
-                                                            <p className="flex justify-between"><span className="text-muted-foreground">Capacity:</span> <span className="font-medium">{formData.solarCapacity} kW</span></p>
-                                                            <p className="flex justify-between"><span className="text-muted-foreground">Inverter:</span> <span className="font-medium">{formData.inverterCapacity} kW</span></p>
+                                                            <p className="flex justify-between"><span className="text-muted-foreground">Has Solar:</span> <span className="font-medium">Yes</span></p>
+                                                            <p className="flex justify-between"><span className="text-muted-foreground">Solar Capacity:</span> <span className="font-medium">{formData.solarCapacity} kW</span></p>
+                                                            <p className="flex justify-between"><span className="text-muted-foreground">Inverter Capacity:</span> <span className="font-medium">{formData.inverterCapacity} kW</span></p>
                                                         </div>
                                                     )}
-                                                    {formData.batteryBrand && (
-                                                        <div className="space-y-1 text-sm bg-card p-3 rounded border border-border">
-                                                            <p className="font-medium text-xs uppercase text-muted-foreground mb-1">Battery Storage</p>
-                                                            <p className="flex justify-between"><span className="text-muted-foreground">Brand:</span> <span className="font-medium">{formData.batteryBrand}</span></p>
-                                                            <p className="flex justify-between"><span className="text-muted-foreground">Capacity:</span> <span className="font-medium">{formData.batteryCapacity} kWh</span></p>
+
+                                                    <div className="space-y-1 text-sm bg-card p-3 rounded border border-border">
+                                                        <p className="font-medium text-xs uppercase text-muted-foreground mb-1">VPP Participant</p>
+                                                        <p className="flex justify-between"><span className="text-muted-foreground">Battery Brand:</span> <span className="font-medium">{formData.batteryBrand || '—'}</span></p>
+                                                        <p className="flex justify-between"><span className="text-muted-foreground">SN Number:</span> <span className="font-medium">{formData.snNumber || '—'}</span></p>
+                                                        <p className="flex justify-between"><span className="text-muted-foreground">Battery Capacity:</span> <span className="font-medium">{formData.batteryCapacity ? `${formData.batteryCapacity} kW` : '—'}</span></p>
+                                                        <p className="flex justify-between"><span className="text-muted-foreground">Export Limit:</span> <span className="font-medium">{formData.exportLimit ? `${formData.exportLimit} kW` : '—'}</span></p>
+                                                        <div className="flex justify-between items-start gap-2">
+                                                            <span className="text-muted-foreground shrink-0">Signup Bonus:</span>
+                                                            <span className="font-medium text-right text-green-600">$50 monthly bill credit for 12 months (total $600)</span>
                                                         </div>
-                                                    )}
-                                                    {formData.vpp && (
-                                                        <div className="space-y-1 text-sm bg-card p-3 rounded border border-border">
-                                                            <p className="font-medium text-xs uppercase text-muted-foreground mb-1">VPP & Bonuses</p>
-                                                            <p className="flex justify-between"><span className="text-muted-foreground mr-2">VPP Participant:</span> <span className="font-medium text-green-600">Yes</span></p>
-                                                            <div className="flex justify-between items-start gap-2">
-                                                                <span className="text-muted-foreground shrink-0">Signup Bonus:</span>
-                                                                <span className="font-medium text-right text-green-600">$50 monthly bill credit for 12 months (total $600)</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                                    </div>
+
                                                 </div>
                                             </div>
                                         )}
