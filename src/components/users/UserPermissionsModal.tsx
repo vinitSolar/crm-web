@@ -4,8 +4,8 @@ import { toast } from 'react-toastify';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { SearchIcon, ChevronRightIcon, ShieldCheckIcon, ShieldIcon, CloseIcon } from '@/components/icons';
-import { GET_MENUS, GET_ROLE_PERMISSIONS, GET_USER_PERMISSIONS, UPSERT_USER_PERMISSION } from '@/graphql';
+import { SearchIcon, ChevronRightIcon, ShieldCheckIcon, ShieldIcon, CloseIcon, ZapIcon } from '@/components/icons';
+import { GET_MENUS, GET_ROLE_PERMISSIONS, GET_USER_PERMISSIONS, UPSERT_USER_PERMISSION, GET_FEATURES, GET_ROLE_FEATURE_PERMISSIONS, GET_USER_FEATURE_PERMISSIONS, UPSERT_USER_FEATURE_PERMISSION } from '@/graphql';
 import { cn } from '@/lib/utils';
 
 // Types
@@ -46,6 +46,26 @@ interface RolePermission {
     canCreate: boolean;
     canEdit: boolean;
     canDelete: boolean;
+}
+
+interface Feature {
+    uid: string;
+    name: string;
+    code: string;
+    description?: string;
+    menuUid: string;
+}
+
+interface UserFeaturePermission {
+    userUid: string;
+    featureUid: string;
+    isEnabled: TriStateValue;
+}
+
+interface RoleFeaturePermission {
+    roleUid: string;
+    featureUid: string;
+    isEnabled: boolean;
 }
 
 // Tri-state Toggle Component
@@ -121,9 +141,17 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
     const [selectedMenuUid, setSelectedMenuUid] = useState<string | null>(null);
     const [userPermissionsMap, setUserPermissionsMap] = useState<Record<string, UserPermission>>({});
     const [rolePermissionsMap, setRolePermissionsMap] = useState<Record<string, RolePermission>>({});
+
+    // Feature states
+    const [userFeaturePermissionsMap, setUserFeaturePermissionsMap] = useState<Record<string, UserFeaturePermission>>({});
+    const [roleFeaturePermissionsMap, setRoleFeaturePermissionsMap] = useState<Record<string, RoleFeaturePermission>>({});
+    const [featuresMap, setFeaturesMap] = useState<Record<string, Feature[]>>({}); // menuUid -> features
+
     const [searchQuery, setSearchQuery] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [changedMenus, setChangedMenus] = useState<Set<string>>(new Set());
+    const [changedFeatures, setChangedFeatures] = useState<Set<string>>(new Set());
+
 
     // Fetch all menus
     const { data: menuData, loading: menusLoading } = useQuery(GET_MENUS, {
@@ -148,7 +176,27 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
     // Combined loading state
     const isLoading = menusLoading || roleLoading || userPermLoading;
 
+    // Fetch features for specific menu when selected
+    const { data: featureData } = useQuery(GET_FEATURES, {
+        variables: { menuUid: selectedMenuUid },
+        skip: !selectedMenuUid,
+        fetchPolicy: 'network-only'
+    });
+
+    // Fetch Role Feature Permissions
+    const { data: roleFeatureData } = useQuery(GET_ROLE_FEATURE_PERMISSIONS, {
+        variables: { roleUid: user.roleUid },
+        skip: !isOpen || !user.roleUid,
+    });
+
+    // Fetch User Feature Permissions
+    const { data: userFeatureData, refetch: refetchUserFeaturePermissions } = useQuery(GET_USER_FEATURE_PERMISSIONS, {
+        variables: { userUid: user.uid },
+        skip: !isOpen || !user.uid,
+    });
+
     const [upsertUserPermission] = useMutation(UPSERT_USER_PERMISSION);
+    const [upsertUserFeaturePermission] = useMutation(UPSERT_USER_FEATURE_PERMISSION);
 
     // Initialize role permissions
     useEffect(() => {
@@ -186,10 +234,50 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
         }
     }, [userPermissionData, isOpen]);
 
+    // Initialize Feature Logic
+    useEffect(() => {
+        if (selectedMenuUid && featureData?.features) {
+            setFeaturesMap(prev => ({
+                ...prev,
+                [selectedMenuUid]: featureData.features
+            }));
+        }
+    }, [featureData, selectedMenuUid]);
+
+    useEffect(() => {
+        if (roleFeatureData?.roleFeaturePermissions) {
+            const map: Record<string, RoleFeaturePermission> = {};
+            roleFeatureData.roleFeaturePermissions.forEach((p: any) => {
+                map[p.featureUid] = {
+                    roleUid: p.roleUid,
+                    featureUid: p.featureUid,
+                    isEnabled: p.isEnabled
+                };
+            });
+            setRoleFeaturePermissionsMap(map);
+        }
+    }, [roleFeatureData]);
+
+    useEffect(() => {
+        if (userFeatureData?.userFeaturePermissions) {
+            const map: Record<string, UserFeaturePermission> = {};
+            userFeatureData.userFeaturePermissions.forEach((p: any) => {
+                map[p.featureUid] = {
+                    userUid: p.userUid,
+                    featureUid: p.featureUid,
+                    isEnabled: p.isEnabled
+                };
+            });
+            setUserFeaturePermissionsMap(map);
+        }
+    }, [userFeatureData]);
+
+
     // Reset state when modal closes
     useEffect(() => {
         if (!isOpen) {
             setChangedMenus(new Set());
+            setChangedFeatures(new Set());
             setSearchQuery('');
             setSelectedMenuUid(null);
         }
@@ -262,6 +350,28 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
 
         setChangedMenus(prev => new Set(prev).add(menuUid));
     };
+
+    // Feature Permission Logic
+    const getRoleFeaturePermission = (featureUid: string): boolean => {
+        return roleFeaturePermissionsMap[featureUid]?.isEnabled ?? false;
+    };
+
+    const getUserFeaturePermission = (featureUid: string): TriStateValue => {
+        return userFeaturePermissionsMap[featureUid]?.isEnabled ?? null;
+    };
+
+    const handleFeaturePermissionChange = (featureUid: string, value: TriStateValue) => {
+        setUserFeaturePermissionsMap(prev => ({
+            ...prev,
+            [featureUid]: {
+                userUid: user.uid,
+                featureUid,
+                isEnabled: value
+            }
+        }));
+        setChangedFeatures(prev => new Set(prev).add(featureUid));
+    };
+
 
     // Select All - Set all permissions to explicitly allowed
     const handleSelectAll = () => {
@@ -358,9 +468,27 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                 }
             }
 
+            // Save changed feature permissions
+            for (const featureUid of changedFeatures) {
+                const perm = userFeaturePermissionsMap[featureUid];
+                if (perm) {
+                    await upsertUserFeaturePermission({
+                        variables: {
+                            input: {
+                                userUid: user.uid,
+                                featureUid,
+                                isEnabled: perm.isEnabled
+                            }
+                        }
+                    });
+                }
+            }
+
             toast.success('User permissions updated successfully');
             await refetchUserPermissions();
+            await refetchUserFeaturePermissions();
             onClose();
+
         } catch (error: any) {
             console.error('Failed to save permissions:', error);
             toast.error(error.message || 'Failed to save permissions');
@@ -369,11 +497,20 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
         }
     };
 
+    // Features for the selected menu
+    const currentFeatures = useMemo(() => {
+        if (!selectedMenuUid) return [];
+        return featuresMap[selectedMenuUid] || [];
+    }, [selectedMenuUid, featuresMap]);
+
+
     // Reset - Discard all changes and reload from server
     const handleReset = () => {
         setChangedMenus(new Set());
+        setChangedFeatures(new Set());
         // Reinitialize from server data
         if (userPermissionData?.userPermissions) {
+
             const map: Record<string, UserPermission> = {};
             userPermissionData.userPermissions.forEach((p: any) => {
                 map[p.menuUid] = {
@@ -389,7 +526,22 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
         } else {
             setUserPermissionsMap({});
         }
+
+        if (userFeatureData?.userFeaturePermissions) {
+            const map: Record<string, UserFeaturePermission> = {};
+            userFeatureData.userFeaturePermissions.forEach((p: any) => {
+                map[p.featureUid] = {
+                    userUid: p.userUid,
+                    featureUid: p.featureUid,
+                    isEnabled: p.isEnabled
+                };
+            });
+            setUserFeaturePermissionsMap(map);
+        } else {
+            setUserFeaturePermissionsMap({});
+        }
     };
+
 
     // Check if menu has any user override
     const hasOverride = (menuUid: string): boolean => {
@@ -587,6 +739,40 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                                             </div>
                                         </div>
 
+
+
+                                        {/* Features Section */}
+                                        {currentFeatures.length > 0 && (
+                                            <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.08)] transition-shadow">
+                                                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
+                                                    <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg text-purple-600 dark:text-purple-400">
+                                                        <ZapIcon size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900 dark:text-white">Feature Access</h4>
+                                                        <p className="text-sm text-gray-500 dark:text-gray-400">Granular control for specific features within this module</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {currentFeatures.map(feature => (
+                                                        <div key={feature.uid} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800">
+                                                            <div>
+                                                                <p className="font-medium text-gray-800 dark:text-gray-200">{feature.name}</p>
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400">{feature.description || feature.code}</p>
+                                                            </div>
+                                                            <TriStateToggle
+                                                                value={getUserFeaturePermission(feature.uid)}
+                                                                onChange={(val) => handleFeaturePermissionChange(feature.uid, val)}
+                                                                roleValue={getRoleFeaturePermission(feature.uid)}
+                                                                label={getUserFeaturePermission(feature.uid) === true ? 'Allowed' : (getUserFeaturePermission(feature.uid) === false ? 'Denied' : (getRoleFeaturePermission(feature.uid) ? 'Inherit (Allow)' : 'Inherit (Deny)'))}
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Sub-menus */}
                                         {currentChildMenus.length > 0 && (
                                             <div className="space-y-4">
@@ -656,8 +842,9 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                             {changedMenus.size > 0 && (
                                 <>
                                     <span className="text-orange-600 dark:text-orange-400 font-medium">
-                                        {changedMenus.size} menu(s) with unsaved changes
+                                        {changedMenus.size + changedFeatures.size} item(s) with unsaved changes
                                     </span>
+
                                     <button
                                         onClick={handleReset}
                                         className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline"
@@ -671,8 +858,9 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                             <Button variant="ghost" onClick={onClose}>Cancel</Button>
                             <Button
                                 onClick={handleSave}
-                                disabled={isSaving || changedMenus.size === 0}
+                                disabled={isSaving || (changedMenus.size === 0 && changedFeatures.size === 0)}
                                 isLoading={isSaving}
+
                                 loadingText="Saving..."
                                 className="bg-[#5c8a14] hover:bg-[#4a7010] text-white shadow-lg shadow-[#5c8a14]/20 px-8"
                             >
@@ -681,7 +869,8 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                         </div>
                     </div>
                 </div>
-            )}
-        </Modal>
+            )
+            }
+        </Modal >
     );
 };

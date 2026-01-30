@@ -391,7 +391,9 @@ export const GET_CUSTOMERS_CURSOR = gql`
                 hasNextPage
                 hasPreviousPage
                 startCursor
+                startCursor
                 endCursor
+                totalCount
             }
         }
     }
@@ -460,6 +462,18 @@ export const GET_CUSTOMER_BY_ID = gql`
                 hassolar
                 solarcapacity
                 invertercapacity
+            }
+            batteryDetails {
+                id
+                customerUid
+                batterybrand
+                snnumber
+                batterycapacity
+                exportlimit
+                isActive
+                isDeleted
+                createdAt
+                updatedAt
             }
             debitDetails {
                 id
@@ -619,6 +633,25 @@ export const GET_CUSTOMER_BY_CUSTOMER_ID = gql`
                 vpp
                 vppConnected
                 vppSignupBonus
+            }
+            solarDetails {
+                id
+                customerUid
+                hassolar
+                solarcapacity
+                invertercapacity
+            }
+            batteryDetails {
+                id
+                customerUid
+                batterybrand
+                snnumber
+                batterycapacity
+                exportlimit
+                isActive
+                isDeleted
+                createdAt
+                updatedAt
             }
             debitDetails {
                 id

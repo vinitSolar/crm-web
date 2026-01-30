@@ -15,3 +15,17 @@ export const GET_MENUS = gql`
         }
     }
 `;
+
+export const GET_FEATURES = gql`
+    query GetFeatures($menuUid: String) {
+        features(menuUid: $menuUid) {
+            id
+            uid
+            name
+            code
+            description
+            menuUid
+            isActive
+        }
+    }
+`;

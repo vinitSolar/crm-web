@@ -16,3 +16,14 @@ export const GET_ROLE_PERMISSIONS = gql`
     }
 `;
 
+export const GET_ROLE_FEATURE_PERMISSIONS = gql`
+    query GetRoleFeaturePermissions($roleUid: String!) {
+        roleFeaturePermissions(roleUid: $roleUid) {
+            id
+            roleUid
+            featureUid
+            isEnabled
+        }
+    }
+`;
+

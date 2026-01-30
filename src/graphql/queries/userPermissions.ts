@@ -13,3 +13,14 @@ export const GET_USER_PERMISSIONS = gql`
         }
     }
 `;
+
+export const GET_USER_FEATURE_PERMISSIONS = gql`
+    query GetUserFeaturePermissions($userUid: String!) {
+        userFeaturePermissions(userUid: $userUid) {
+            id
+            userUid
+            featureUid
+            isEnabled
+        }
+    }
+`;

@@ -13,3 +13,14 @@ export const UPSERT_USER_PERMISSION = gql`
         }
     }
 `;
+
+export const UPSERT_USER_FEATURE_PERMISSION = gql`
+    mutation UpsertUserFeaturePermission($input: UpsertUserFeaturePermissionInput!) {
+        upsertUserFeaturePermission(input: $input) {
+            id
+            userUid
+            featureUid
+            isEnabled
+        }
+    }
+`;

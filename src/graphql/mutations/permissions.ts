@@ -1,3 +1,4 @@
+
 import { gql } from '@apollo/client';
 
 export const UPDATE_PERMISSION = gql`
@@ -27,6 +28,17 @@ export const UPDATE_PERMISSIONS = gql`
                 canEdit
                 canDelete
             }
+        }
+    }
+`;
+
+export const UPSERT_ROLE_FEATURE_PERMISSION = gql`
+    mutation UpsertRoleFeaturePermission($roleUid: String!, $featureUid: String!, $isEnabled: Boolean!) {
+        upsertRoleFeaturePermission(roleUid: $roleUid, featureUid: $featureUid, isEnabled: $isEnabled) {
+            id
+            roleUid
+            featureUid
+            isEnabled
         }
     }
 `;
