@@ -29,3 +29,5 @@ export * from './mutations/emailTemplates';
 export * from './queries/emailTemplates';
 export * from './queries/emailLogs';
 export * from './queries/emailSettings';
+export * from './queries/notes';
+

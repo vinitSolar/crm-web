@@ -46,6 +46,7 @@ export const CUSTOMER_STATUS_MAP: Record<number, { label: string; color: string 
     2: { label: 'Signature Pending', color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/30 dark:text-orange-400' },
     3: { label: 'Signed', color: 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400' },
     4: { label: 'Frozen', color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-400' },
+    5: { label: 'Not Interested', color: 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400' },
 };
 
 export const CUSTOMER_STATUS_OPTIONS = Object.entries(CUSTOMER_STATUS_MAP).map(([k, v]) => ({

@@ -99,7 +99,6 @@ export function RatesPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const isSubmittingRef = useRef(false); // Ref-based guard for preventing multiple calls
 
-    // Form initial state
     const initialFormState = {
         codes: '',
         planId: '',
@@ -110,6 +109,7 @@ export function RatesPage() {
         vpp: 0,
         discountApplies: 0,
         discountPercentage: 0,
+        isActive: 1, // 1 = active, 0 = hidden
         // Offer fields
         offerName: '',
         anytime: '',
@@ -713,6 +713,7 @@ export function RatesPage() {
             vpp: ratePlan.vpp || 0,
             discountApplies: ratePlan.discountApplies ? 1 : 0,
             discountPercentage: ratePlan.discountPercentage || 0,
+            isActive: ratePlan.isActive ? 1 : 0,
             offerName: offer?.offerName || '',
             anytime: offer?.anytime?.toString() || '',
             supplyCharge: offer?.supplyCharge?.toString() || '',
@@ -796,6 +797,7 @@ export function RatesPage() {
                 vpp: formData.vpp,
                 discountApplies: formData.discountApplies === 1,
                 discountPercentage: formData.discountPercentage,
+                isActive: formData.isActive === 1,
                 offers: [updatedOffer]
             };
 
@@ -1999,6 +2001,19 @@ export function RatesPage() {
                                     onClick={() => setFormData(prev => ({ ...prev, discountApplies: prev.discountApplies === 1 ? 0 : 1 }))}
                                 >
                                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${formData.discountApplies === 1 ? 'translate-x-4' : 'translate-x-0.5'
+                                        }`} />
+                                </button>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-red-600 dark:text-red-400">Hidden</label>
+                                <br />
+                                <button
+                                    type="button"
+                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${formData.isActive === 0 ? 'bg-red-500' : 'bg-muted'
+                                        }`}
+                                    onClick={() => setFormData(prev => ({ ...prev, isActive: prev.isActive === 1 ? 0 : 1 }))}
+                                >
+                                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${formData.isActive === 0 ? 'translate-x-4' : 'translate-x-0.5'
                                         }`} />
                                 </button>
                             </div>

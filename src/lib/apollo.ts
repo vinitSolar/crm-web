@@ -111,3 +111,33 @@ export const apolloClient = new ApolloClient({
 
 // Export axios instance for non-GraphQL API calls
 export const apiAxios = axiosInstance;
+
+// Secondary API instance
+const secondaryApiUrl = import.meta.env.VITE_SECOND_API_URL;
+export const secondaryApiAxios = axios.create({
+    baseURL: secondaryApiUrl,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    timeout: 30000,
+});
+
+// Add auth interceptor to secondary instance
+secondaryApiAxios.interceptors.request.use((config) => {
+    const token = getAccessToken();
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+// Add response interceptor to secondary instance
+secondaryApiAxios.interceptors.response.use(
+    (response) => response,
+    (error: AxiosError) => {
+        if (error.response?.status === 401) {
+            console.warn('Authentication error on secondary API - token may be expired');
+        }
+        return Promise.reject(error);
+    }
+);
