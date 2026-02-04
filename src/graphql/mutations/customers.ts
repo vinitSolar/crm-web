@@ -68,7 +68,10 @@ const CUSTOMER_FULL_RESPONSE = `
         batterybrand
         snnumber
         batterycapacity
+        batterycapacity
         exportlimit
+        inverterCapacity
+        checkCode
     }
     msatDetails {
         id
@@ -81,6 +84,14 @@ const CUSTOMER_FULL_RESPONSE = `
         vpp
         vppConnected
         vppSignupBonus
+    }
+    utilmateDetails {
+        id
+        customerUid
+        siteIdentifier
+        accountNumber
+        utilmateConnected
+        utilmateConnectedAt
     }
     debitDetails {
         id

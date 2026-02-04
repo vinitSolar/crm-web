@@ -53,7 +53,7 @@ export const OfferAccessPage = () => {
     const [fetchError, setFetchError] = useState(false);
     const [offerExpired, setOfferExpired] = useState(false);
 
-    const [directDebitOptIn, setDirectDebitOptIn] = useState(false);
+    const [directDebitOptIn, setDirectDebitOptIn] = useState(true);
     const [ddDetails, setDdDetails] = useState({
         accountType: 'business' as 'business' | 'personal',
         companyName: '',
@@ -600,7 +600,7 @@ export const OfferAccessPage = () => {
     // Check if phone is already verified from DB or locally verified
     const isPhoneVerified = customerData.phoneVerifiedAt || mobileVerification.verified;
 
-    const canSign = (directDebitOptIn ? isDirectDebitValid() : true) && isPhoneVerified;
+    const canSign = isPhoneVerified;
 
     // Check if signature section is complete for enabling save button
     // const isSignatureComplete = mode === 'type' ? typed.trim().length > 0 : true;
@@ -1191,7 +1191,10 @@ export const OfferAccessPage = () => {
                                     )}
                                     <Button
                                         disabled={!canSign}
-                                        onClick={() => setShowModal(true)}
+                                        onClick={() => {
+                                            setDirectDebitOptIn(true);
+                                            setShowModal(true);
+                                        }}
                                         className={`px-8 transition-all ${canSign
                                             ? 'bg-green-600 hover:bg-green-700 text-white shadow-md cursor-pointer'
                                             : 'bg-muted text-muted-foreground cursor-not-allowed'
@@ -1271,18 +1274,38 @@ export const OfferAccessPage = () => {
                                 </div>
                                 <div>
                                     <h3 className="text-base font-semibold text-foreground">Direct Debit Setup</h3>
-                                    <p className="text-xs text-muted-foreground">Securely set up automatic payments</p>
+                                    <p className="text-xs text-muted-foreground">Would you like to set up direct debit details?</p>
                                 </div>
                             </div>
-                            <label className="flex items-center gap-3 cursor-pointer select-none bg-background px-4 py-2 rounded-lg border border-border hover:border-primary/50 transition-colors">
-                                <input
-                                    type="checkbox"
-                                    checked={directDebitOptIn}
-                                    onChange={(e) => setDirectDebitOptIn(e.target.checked)}
-                                    className="rounded border-input text-primary focus:ring-primary h-4 w-4"
-                                />
-                                <span className="text-sm font-medium text-foreground">Enable Direct Debit</span>
-                            </label>
+                            <div className="flex items-center gap-6 pr-2">
+                                <label className="flex items-center gap-2 cursor-pointer select-none group">
+                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${directDebitOptIn ? 'border-primary' : 'border-muted-foreground/40 group-hover:border-primary/50'}`}>
+                                        {directDebitOptIn && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                                    </div>
+                                    <input
+                                        type="radio"
+                                        name="ddOptIn"
+                                        checked={directDebitOptIn}
+                                        onChange={() => setDirectDebitOptIn(true)}
+                                        className="hidden"
+                                    />
+                                    <span className={`text-sm font-medium ${directDebitOptIn ? 'text-foreground' : 'text-muted-foreground'}`}>Yes</span>
+                                </label>
+
+                                <label className="flex items-center gap-2 cursor-pointer select-none group">
+                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${!directDebitOptIn ? 'border-primary' : 'border-muted-foreground/40 group-hover:border-primary/50'}`}>
+                                        {!directDebitOptIn && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                                    </div>
+                                    <input
+                                        type="radio"
+                                        name="ddOptIn"
+                                        checked={!directDebitOptIn}
+                                        onChange={() => setDirectDebitOptIn(false)}
+                                        className="hidden"
+                                    />
+                                    <span className={`text-sm font-medium ${!directDebitOptIn ? 'text-foreground' : 'text-muted-foreground'}`}>No</span>
+                                </label>
+                            </div>
                         </div>
 
                         {directDebitOptIn && (

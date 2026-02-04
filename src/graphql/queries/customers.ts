@@ -143,6 +143,8 @@ export const GET_CUSTOMERS = gql`
                     snnumber
                     batterycapacity
                     exportlimit
+                    inverterCapacity
+                    checkCode
                     isActive
                     isDeleted
                     createdAt
@@ -372,6 +374,12 @@ export const GET_CUSTOMERS_CURSOR = gql`
                     vppConnected
                     vppSignupBonus
                 }
+                utilmateDetails {
+                    siteIdentifier
+                    accountNumber
+                    utilmateConnected
+                    utilmateConnectedAt
+                }
                 address {
                     id
                     customerUid
@@ -470,6 +478,8 @@ export const GET_CUSTOMER_BY_ID = gql`
                 snnumber
                 batterycapacity
                 exportlimit
+                inverterCapacity
+                checkCode
                 isActive
                 isDeleted
                 createdAt
@@ -490,6 +500,14 @@ export const GET_CUSTOMER_BY_ID = gql`
                 paymentFrequency
                 firstDebitDate
                 optIn
+            }
+            utilmateDetails {
+                id
+                customerUid
+                siteIdentifier
+                accountNumber
+                utilmateConnected
+                utilmateConnectedAt
             }
             ratePlan {
                 uid
@@ -648,6 +666,8 @@ export const GET_CUSTOMER_BY_CUSTOMER_ID = gql`
                 snnumber
                 batterycapacity
                 exportlimit
+                inverterCapacity
+                checkCode
                 isActive
                 isDeleted
                 createdAt

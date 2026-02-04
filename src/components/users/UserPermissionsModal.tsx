@@ -3,8 +3,7 @@ import { useQuery, useMutation } from '@apollo/client';
 import { toast } from 'react-toastify';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { SearchIcon, ChevronRightIcon, ShieldCheckIcon, ShieldIcon, CloseIcon, ZapIcon } from '@/components/icons';
+import { ChevronRightIcon, ShieldCheckIcon, ShieldIcon, CloseIcon, ZapIcon } from '@/components/icons';
 import { GET_MENUS, GET_ROLE_PERMISSIONS, GET_USER_PERMISSIONS, UPSERT_USER_PERMISSION, GET_FEATURES, GET_ROLE_FEATURE_PERMISSIONS, GET_USER_FEATURE_PERMISSIONS, UPSERT_USER_FEATURE_PERMISSION } from '@/graphql';
 import { cn } from '@/lib/utils';
 
@@ -144,13 +143,15 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
 
     // Feature states
     const [userFeaturePermissionsMap, setUserFeaturePermissionsMap] = useState<Record<string, UserFeaturePermission>>({});
+    const [initialUserFeaturePermissionsMap, setInitialUserFeaturePermissionsMap] = useState<Record<string, UserFeaturePermission>>({});
     const [roleFeaturePermissionsMap, setRoleFeaturePermissionsMap] = useState<Record<string, RoleFeaturePermission>>({});
     const [featuresMap, setFeaturesMap] = useState<Record<string, Feature[]>>({}); // menuUid -> features
 
     const [searchQuery, setSearchQuery] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-    const [changedMenus, setChangedMenus] = useState<Set<string>>(new Set());
-    const [changedFeatures, setChangedFeatures] = useState<Set<string>>(new Set());
+
+    // Initial state storage for accurate change tracking
+    const [initialUserPermissionsMap, setInitialUserPermissionsMap] = useState<Record<string, UserPermission>>({});
 
 
     // Fetch all menus
@@ -231,6 +232,7 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                 };
             });
             setUserPermissionsMap(map);
+            setInitialUserPermissionsMap(map);
         }
     }, [userPermissionData, isOpen]);
 
@@ -269,6 +271,7 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                 };
             });
             setUserFeaturePermissionsMap(map);
+            setInitialUserFeaturePermissionsMap(map);
         }
     }, [userFeatureData]);
 
@@ -276,12 +279,73 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
     // Reset state when modal closes
     useEffect(() => {
         if (!isOpen) {
-            setChangedMenus(new Set());
-            setChangedFeatures(new Set());
             setSearchQuery('');
             setSelectedMenuUid(null);
         }
     }, [isOpen]);
+
+    // Compute changed items by comparing with initial state
+    const changedMenus = useMemo(() => {
+        const changed = new Set<string>();
+
+        // Check all currently modified menus
+        const allMenuUids = new Set([...Object.keys(userPermissionsMap), ...Object.keys(initialUserPermissionsMap)]);
+
+        allMenuUids.forEach(uid => {
+            const current = userPermissionsMap[uid];
+            const initial = initialUserPermissionsMap[uid];
+
+            if (!current && !initial) return;
+
+            // If one exists but not the other, it's changed (unless both effectively null)
+            if (!current || !initial) {
+                const effective = current || initial;
+                if (effective.canView !== null || effective.canCreate !== null || effective.canEdit !== null || effective.canDelete !== null) {
+                    changed.add(uid);
+                }
+                return;
+            }
+
+            // Compare fields
+            if (
+                current.canView !== initial.canView ||
+                current.canCreate !== initial.canCreate ||
+                current.canEdit !== initial.canEdit ||
+                current.canDelete !== initial.canDelete
+            ) {
+                changed.add(uid);
+            }
+        });
+
+        return changed;
+    }, [userPermissionsMap, initialUserPermissionsMap]);
+
+    const changedFeatures = useMemo(() => {
+        const changed = new Set<string>();
+
+        const allFeatureUids = new Set([...Object.keys(userFeaturePermissionsMap), ...Object.keys(initialUserFeaturePermissionsMap)]);
+
+        allFeatureUids.forEach(uid => {
+            const current = userFeaturePermissionsMap[uid];
+            const initial = initialUserFeaturePermissionsMap[uid];
+
+            if (!current && !initial) return;
+
+            if (!current || !initial) {
+                const effective = current || initial;
+                if (effective.isEnabled !== null) {
+                    changed.add(uid);
+                }
+                return;
+            }
+
+            if (current.isEnabled !== initial.isEnabled) {
+                changed.add(uid);
+            }
+        });
+
+        return changed;
+    }, [userFeaturePermissionsMap, initialUserFeaturePermissionsMap]);
 
     const menus = useMemo(() => menuData?.menus?.data || [], [menuData]);
 
@@ -347,8 +411,6 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
 
             return { ...prev, [menuUid]: updated };
         });
-
-        setChangedMenus(prev => new Set(prev).add(menuUid));
     };
 
     // Feature Permission Logic
@@ -369,7 +431,6 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                 isEnabled: value
             }
         }));
-        setChangedFeatures(prev => new Set(prev).add(featureUid));
     };
 
 
@@ -377,56 +438,97 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
     const handleSelectAll = () => {
         if (!selectedMenuUid) return;
 
-        const menusToUpdate = [selectedMenuUid, ...currentChildMenus.map((m: Menu) => m.uid)];
-
         setUserPermissionsMap(prev => {
             const updated = { ...prev };
-            menusToUpdate.forEach(menuUid => {
-                updated[menuUid] = {
+
+            // Handle Parent
+            const isParentWithChildren = currentChildMenus.length > 0;
+            updated[selectedMenuUid] = {
+                userUid: user.uid,
+                menuUid: selectedMenuUid,
+                canView: true,
+                canCreate: isParentWithChildren ? null : true,
+                canEdit: isParentWithChildren ? null : true,
+                canDelete: isParentWithChildren ? null : true,
+            };
+
+            // Handle Children
+            currentChildMenus.forEach((m: Menu) => {
+                updated[m.uid] = {
                     userUid: user.uid,
-                    menuUid,
+                    menuUid: m.uid,
                     canView: true,
                     canCreate: true,
                     canEdit: true,
                     canDelete: true,
                 };
             });
+
             return updated;
         });
 
-        setChangedMenus(prev => {
-            const newSet = new Set(prev);
-            menusToUpdate.forEach(uid => newSet.add(uid));
-            return newSet;
-        });
+        // Also handle features
+        if (currentFeatures.length > 0) {
+            setUserFeaturePermissionsMap(prev => {
+                const updated = { ...prev };
+                currentFeatures.forEach(f => {
+                    updated[f.uid] = {
+                        userUid: user.uid,
+                        featureUid: f.uid,
+                        isEnabled: true
+                    };
+                });
+                return updated;
+            });
+        }
     };
 
     // Clear - Reset all permissions to inherit from role (null)
     const handleClear = () => {
         if (!selectedMenuUid) return;
 
-        const menusToUpdate = [selectedMenuUid, ...currentChildMenus.map((m: Menu) => m.uid)];
-
         setUserPermissionsMap(prev => {
             const updated = { ...prev };
-            menusToUpdate.forEach(menuUid => {
-                updated[menuUid] = {
+
+            // Reset Parent
+            updated[selectedMenuUid] = {
+                userUid: user.uid,
+                menuUid: selectedMenuUid,
+                canView: null,
+                canCreate: null,
+                canEdit: null,
+                canDelete: null,
+            };
+
+            // Reset Children
+            currentChildMenus.forEach((m: Menu) => {
+                updated[m.uid] = {
                     userUid: user.uid,
-                    menuUid,
+                    menuUid: m.uid,
                     canView: null,
                     canCreate: null,
                     canEdit: null,
                     canDelete: null,
                 };
             });
+
             return updated;
         });
 
-        setChangedMenus(prev => {
-            const newSet = new Set(prev);
-            menusToUpdate.forEach(uid => newSet.add(uid));
-            return newSet;
-        });
+        // Clear features
+        if (currentFeatures.length > 0) {
+            setUserFeaturePermissionsMap(prev => {
+                const updated = { ...prev };
+                currentFeatures.forEach(f => {
+                    updated[f.uid] = {
+                        userUid: user.uid,
+                        featureUid: f.uid,
+                        isEnabled: null
+                    };
+                });
+                return updated;
+            });
+        }
     };
 
     const currentChildMenus = useMemo(() => {
@@ -504,42 +606,10 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
     }, [selectedMenuUid, featuresMap]);
 
 
-    // Reset - Discard all changes and reload from server
+    // Reset - Discard all changes and restore initial maps
     const handleReset = () => {
-        setChangedMenus(new Set());
-        setChangedFeatures(new Set());
-        // Reinitialize from server data
-        if (userPermissionData?.userPermissions) {
-
-            const map: Record<string, UserPermission> = {};
-            userPermissionData.userPermissions.forEach((p: any) => {
-                map[p.menuUid] = {
-                    userUid: p.userUid,
-                    menuUid: p.menuUid,
-                    canView: p.canView,
-                    canCreate: p.canCreate,
-                    canEdit: p.canEdit,
-                    canDelete: p.canDelete,
-                };
-            });
-            setUserPermissionsMap(map);
-        } else {
-            setUserPermissionsMap({});
-        }
-
-        if (userFeatureData?.userFeaturePermissions) {
-            const map: Record<string, UserFeaturePermission> = {};
-            userFeatureData.userFeaturePermissions.forEach((p: any) => {
-                map[p.featureUid] = {
-                    userUid: p.userUid,
-                    featureUid: p.featureUid,
-                    isEnabled: p.isEnabled
-                };
-            });
-            setUserFeaturePermissionsMap(map);
-        } else {
-            setUserFeaturePermissionsMap({});
-        }
+        setUserPermissionsMap(initialUserPermissionsMap);
+        setUserFeaturePermissionsMap(initialUserFeaturePermissionsMap);
     };
 
 
@@ -663,7 +733,7 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                                 <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                                     {selectedMenuName}
                                 </h3>
-                                <div className="relative w-72">
+                                {/* <div className="relative w-72">
                                     <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                                     <Input
                                         placeholder="Search sub-menus..."
@@ -671,7 +741,7 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />
-                                </div>
+                                </div> */}
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
@@ -690,24 +760,32 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                                                         <p className="text-sm text-gray-500 dark:text-gray-400">Click to cycle: Inherited → Allowed → Denied</p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={handleSelectAll}
-                                                        className="px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
-                                                    >
-                                                        Allow All
-                                                    </button>
-                                                    <button
-                                                        onClick={handleClear}
-                                                        className="px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
-                                                    >
-                                                        Reset to Inherit
-                                                    </button>
-                                                </div>
+                                                {currentChildMenus.length === 0 && (
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={handleSelectAll}
+                                                            className="px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+                                                        >
+                                                            Allow All
+                                                        </button>
+                                                        <button
+                                                            onClick={handleClear}
+                                                            className="px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                                                        >
+                                                            Reset to Inherit
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                {(['canView', 'canEdit', 'canCreate', 'canDelete'] as const).map((field) => {
+                                                {(() => {
+                                                    const allFields = ['canView', 'canEdit', 'canCreate', 'canDelete'] as const;
+                                                    // If parent has submenus, only allow 'canView'
+                                                    const availableFields = currentChildMenus.length > 0
+                                                        ? ['canView'] as const
+                                                        : allFields;
+
                                                     const labels: Record<string, string> = {
                                                         canView: 'View',
                                                         canEdit: 'Edit',
@@ -715,7 +793,7 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                                                         canDelete: 'Delete'
                                                     };
 
-                                                    return (
+                                                    return availableFields.map((field) => (
                                                         <TriStateToggle
                                                             key={field}
                                                             value={getUserPermission(selectedMenuUid, field)}
@@ -723,8 +801,8 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                                                             roleValue={getRolePermission(selectedMenuUid, field)}
                                                             label={labels[field]}
                                                         />
-                                                    );
-                                                })}
+                                                    ));
+                                                })()}
                                             </div>
 
                                             {/* Role baseline info */}
@@ -776,10 +854,26 @@ export const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ isOp
                                         {/* Sub-menus */}
                                         {currentChildMenus.length > 0 && (
                                             <div className="space-y-4">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1"></div>
-                                                    <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-2">Sub-Menus</span>
-                                                    <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1"></div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-2 flex-1">
+                                                        <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1"></div>
+                                                        <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-2">Sub-Menus</span>
+                                                        <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1"></div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 ml-4">
+                                                        <button
+                                                            onClick={handleSelectAll}
+                                                            className="px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+                                                        >
+                                                            Allow All
+                                                        </button>
+                                                        <button
+                                                            onClick={handleClear}
+                                                            className="px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                                                        >
+                                                            Reset to Inherit
+                                                        </button>
+                                                    </div>
                                                 </div>
 
                                                 <div className="grid grid-cols-1 gap-4">

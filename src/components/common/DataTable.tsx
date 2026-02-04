@@ -20,6 +20,15 @@ export interface Column<T> {
     stickyOffset?: number;
 }
 
+export interface PaginationProps {
+    currentPage: number;
+    totalCount?: number;
+    pageSize: number;
+    onPageChange: (page: number) => void;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+}
+
 export interface DataTableProps<T> {
     /** Array of column definitions */
     columns: Column<T>[];
@@ -43,8 +52,10 @@ export interface DataTableProps<T> {
     isLoadingMore?: boolean;
     /** Callback when scrolled near bottom */
     onLoadMore?: () => void;
-    /** Custom max height class */
+    /** Custom max height class (legacy) */
     maxHeightClass?: string;
+    /** Custom container height class (e.g. h-[500px]) - prefers this over maxHeightClass and default */
+    containerHeightClass?: string;
     /** Custom class for wrapper */
     className?: string;
     /** Enable row selection */
@@ -61,6 +72,8 @@ export interface DataTableProps<T> {
     totalFilteredCount?: number;
     /** Whether select all is loading */
     isSelectingAll?: boolean;
+    /** Pagination configuration */
+    pagination?: PaginationProps;
 }
 
 // ============================================================
@@ -80,6 +93,7 @@ export function DataTable<T>({
     isLoadingMore = false,
     onLoadMore,
     maxHeightClass = 'max-h-[calc(100vh-270px)]',
+    containerHeightClass,
     className,
     rowClassName,
     enableSelection = false,
@@ -88,7 +102,11 @@ export function DataTable<T>({
     onSelectAll,
     totalFilteredCount,
     isSelectingAll = false,
+    pagination,
 }: DataTableProps<T>) {
+    // Determine the height class to use
+    // If containerHeightClass is provided, use it. Otherwise use maxHeightClass.
+    const heightClass = containerHeightClass || maxHeightClass;
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const colSpan = columns.length + (enableSelection ? 1 : 0);
     const [isScrolledHorizontally, setIsScrolledHorizontally] = useState(false);
@@ -107,7 +125,9 @@ export function DataTable<T>({
         const atRightEdge = container.scrollLeft + container.clientWidth >= container.scrollWidth - 1;
         setCanScrollRight(canScroll && !atRightEdge);
 
-        // Infinite scroll logic
+        // Infinite scroll logic - ONLY if pagination is NOT used
+        if (pagination) return;
+
         if (!infiniteScroll || !onLoadMore) return;
         if (loading || isLoadingMore || !hasMore) return;
 
@@ -117,7 +137,7 @@ export function DataTable<T>({
         if (scrollHeight - scrollTop - clientHeight < scrollThreshold) {
             onLoadMore();
         }
-    }, [infiniteScroll, onLoadMore, loading, isLoadingMore, hasMore]);
+    }, [infiniteScroll, onLoadMore, loading, isLoadingMore, hasMore, pagination]);
 
     // Attach scroll listener and check initial overflow
     useEffect(() => {
@@ -181,10 +201,10 @@ export function DataTable<T>({
     const someSelected = data.length > 0 && selectedRowKeys.length > 0 && !allSelected;
 
     return (
-        <div className={cn('overflow-hidden rounded-md', className)}>
+        <div className={cn('flex flex-col rounded-md', className)}>
             <div
                 ref={scrollContainerRef}
-                className={cn(maxHeightClass, 'overflow-auto scrollbar-thin')}
+                className={cn(heightClass, 'overflow-auto scrollbar-thin rounded-t-md', pagination ? 'border-b border-border' : '')}
             >
                 <table className="w-full relative border-separate border-spacing-0">
                     <thead className="sticky top-0 z-20 bg-background">
@@ -192,20 +212,20 @@ export function DataTable<T>({
                             {enableSelection && (
                                 <th className="sticky left-0 z-30 w-[40px] px-3 py-3 text-left bg-background border-b border-border">
                                     <div className="flex items-center gap-2">
-                                        {isSelectingAll ? (
-                                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent" />
-                                        ) : (
-                                            <input
-                                                type="checkbox"
-                                                checked={allSelected}
-                                                ref={input => {
-                                                    if (input) input.indeterminate = someSelected;
-                                                }}
-                                                onChange={handleSelectAll}
-                                                className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
-                                                title={totalFilteredCount ? `Select all ${totalFilteredCount} items` : 'Select all visible items'}
-                                            />
-                                        )}
+                                        <input
+                                            type="checkbox"
+                                            checked={allSelected}
+                                            disabled={isSelectingAll}
+                                            ref={input => {
+                                                if (input) input.indeterminate = someSelected;
+                                            }}
+                                            onChange={handleSelectAll}
+                                            className={cn(
+                                                "rounded border-gray-300 text-primary focus:ring-primary h-4 w-4",
+                                                isSelectingAll ? "opacity-50 cursor-wait" : "cursor-pointer"
+                                            )}
+                                            title={totalFilteredCount ? `Select all ${totalFilteredCount} items` : 'Select all visible items'}
+                                        />
                                     </div>
                                 </th>
                             )}
@@ -342,8 +362,8 @@ export function DataTable<T>({
                                         </tr>
                                     );
                                 })}
-                                {/* Loading more indicator */}
-                                {isLoadingMore && (
+                                {/* Loading more indicator - ONLY for infinite scroll */}
+                                {isLoadingMore && !pagination && (
                                     <tr>
                                         <td colSpan={colSpan} className="px-4 py-4 text-center text-muted-foreground">
                                             <div className="flex items-center justify-center gap-2">
@@ -358,6 +378,46 @@ export function DataTable<T>({
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination Footer */}
+            {pagination && (
+                <div className="flex items-center justify-between px-4 py-3 bg-card border-t border-border rounded-b-md">
+                    <div className="text-sm text-muted-foreground">
+                        {/* Showing X-Y of Z logic could go here, but with cursor pagination we might not know 'Y' easily if not returned, 
+                           but if we have totalCount we can show 'Page X of Y' or similar. 
+                           For now, let's show simple 'Page X' or 'Showing X results' if on first page. 
+                       */}
+                        {pagination.totalCount !== undefined ? (
+                            <span>Total {pagination.totalCount} items</span>
+                        ) : (
+                            <span>Page {pagination.currentPage}</span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
+                            disabled={!pagination.hasPreviousPage}
+                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md
+                                     bg-background border border-input hover:bg-accent hover:text-accent-foreground
+                                     disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Previous
+                        </button>
+                        <span className="text-sm font-medium min-w-[3rem] text-center">
+                            Page {pagination.currentPage}
+                        </span>
+                        <button
+                            onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
+                            disabled={!pagination.hasNextPage}
+                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md
+                                     bg-background border border-input hover:bg-accent hover:text-accent-foreground
+                                     disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            )}
         </div >
     );
 }

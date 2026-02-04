@@ -3,8 +3,7 @@ import { useQuery, useMutation } from '@apollo/client';
 import { toast } from 'react-toastify';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { SearchIcon, ChevronRightIcon, ShieldCheckIcon, ShieldIcon, CloseIcon, ZapIcon } from '@/components/icons';
+import { ChevronRightIcon, ShieldCheckIcon, ShieldIcon, CloseIcon, ZapIcon } from '@/components/icons';
 import {
     GET_MENUS,
     GET_ROLE_PERMISSIONS,
@@ -60,10 +59,12 @@ export const RolePermissionsModal: React.FC<RolePermissionsModalProps> = ({ isOp
     const [selectedMenuUid, setSelectedMenuUid] = useState<string | null>(null);
     const [permissionsMap, setPermissionsMap] = useState<Record<string, RolePermission>>({});
     const [featurePermissionsMap, setFeaturePermissionsMap] = useState<Record<string, boolean>>({});
+    const [initialFeaturePermissionsMap, setInitialFeaturePermissionsMap] = useState<Record<string, boolean>>({});
     const [searchQuery, setSearchQuery] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-    const [changedMenus, setChangedMenus] = useState<Set<string>>(new Set());
-    const [changedFeatures, setChangedFeatures] = useState<Set<string>>(new Set());
+
+    // Initial state storage for accurate change tracking
+    const [initialPermissionsMap, setInitialPermissionsMap] = useState<Record<string, RolePermission>>({});
 
     // Fetch all menus
     const { data: menuData, loading: menusLoading } = useQuery(GET_MENUS, {
@@ -112,6 +113,7 @@ export const RolePermissionsModal: React.FC<RolePermissionsModalProps> = ({ isOp
                 };
             });
             setPermissionsMap(map);
+            setInitialPermissionsMap(map);
         }
     }, [rolePermissionData, isOpen]);
 
@@ -124,18 +126,68 @@ export const RolePermissionsModal: React.FC<RolePermissionsModalProps> = ({ isOp
                 map[p.featureUid] = !!p.isEnabled;
             });
             setFeaturePermissionsMap(map);
+            setInitialFeaturePermissionsMap(map);
         }
     }, [roleFeatureData, isOpen]);
 
     // Reset state when modal closes
     useEffect(() => {
         if (!isOpen) {
-            setChangedMenus(new Set());
-            setChangedFeatures(new Set());
             setSearchQuery('');
             setSelectedMenuUid(null);
         }
     }, [isOpen]);
+
+    // Compute changed items by comparing with initial state
+    const changedMenus = useMemo(() => {
+        const changed = new Set<string>();
+
+        const allMenuUids = new Set([...Object.keys(permissionsMap), ...Object.keys(initialPermissionsMap)]);
+
+        allMenuUids.forEach(uid => {
+            const current = permissionsMap[uid];
+            const initial = initialPermissionsMap[uid];
+
+            if (!current && !initial) return;
+
+            if (!current || !initial) {
+                const effective = current || initial;
+                // For role permissions, View is the base. If any permission is enabled, it's modified from non-existent.
+                if (effective.canView || effective.canCreate || effective.canEdit || effective.canDelete) {
+                    changed.add(uid);
+                }
+                return;
+            }
+
+            if (
+                current.canView !== initial.canView ||
+                current.canCreate !== initial.canCreate ||
+                current.canEdit !== initial.canEdit ||
+                current.canDelete !== initial.canDelete
+            ) {
+                changed.add(uid);
+            }
+        });
+
+        return changed;
+    }, [permissionsMap, initialPermissionsMap]);
+
+    const changedFeatures = useMemo(() => {
+        const changed = new Set<string>();
+
+        const allFeatureUids = new Set([...Object.keys(featurePermissionsMap), ...Object.keys(initialFeaturePermissionsMap)]);
+
+        allFeatureUids.forEach(uid => {
+            const current = featurePermissionsMap[uid];
+            const initial = initialFeaturePermissionsMap[uid];
+
+            if (current !== initial) {
+                changed.add(uid);
+            }
+        });
+
+        return changed;
+    }, [featurePermissionsMap, initialFeaturePermissionsMap]);
 
     const menus = useMemo(() => menuData?.menus?.data || [], [menuData]);
 
@@ -213,15 +265,6 @@ export const RolePermissionsModal: React.FC<RolePermissionsModalProps> = ({ isOp
 
             return newMap;
         });
-
-        setChangedMenus(prev => {
-            const newSet = new Set(prev);
-            newSet.add(menuUid);
-            if (hasChildren && field === 'canView' && value === true) {
-                children.forEach((c: Menu) => newSet.add(c.uid));
-            }
-            return newSet;
-        });
     };
 
     const handleFeaturePermissionChange = (featureUid: string, value: boolean) => {
@@ -229,43 +272,42 @@ export const RolePermissionsModal: React.FC<RolePermissionsModalProps> = ({ isOp
             ...prev,
             [featureUid]: value
         }));
-        setChangedFeatures(prev => {
-            const newSet = new Set(prev);
-            newSet.add(featureUid);
-            return newSet;
-        });
     };
 
     // Select All permissions for current module and its sub-menus
     const handleSelectAll = () => {
         if (!selectedMenuUid) return;
 
-        const menusToUpdate = [selectedMenuUid, ...currentChildMenus.map((m: Menu) => m.uid)];
-
         setPermissionsMap(prev => {
             const updated = { ...prev };
-            menusToUpdate.forEach(menuUid => {
-                updated[menuUid] = {
+
+            // Handle Parent
+            const isParentWithChildren = currentChildMenus.length > 0;
+            updated[selectedMenuUid] = {
+                roleUid: role.uid,
+                menuUid: selectedMenuUid,
+                canView: true,
+                canCreate: isParentWithChildren ? false : true,
+                canEdit: isParentWithChildren ? false : true,
+                canDelete: isParentWithChildren ? false : true,
+            };
+
+            // Handle Children
+            currentChildMenus.forEach((m: Menu) => {
+                updated[m.uid] = {
                     roleUid: role.uid,
-                    menuUid,
+                    menuUid: m.uid,
                     canView: true,
                     canCreate: true,
                     canEdit: true,
                     canDelete: true,
                 };
             });
+
             return updated;
         });
 
-        setChangedMenus(prev => {
-            const newSet = new Set(prev);
-            menusToUpdate.forEach(uid => newSet.add(uid));
-            return newSet;
-        });
-
-        // Also select all features? 
-        // Typically "Select All" applies to permissions within the view. 
-        // Let's implement select all features if available.
+        // Also handle features
         if (currentFeatures.length > 0) {
             setFeaturePermissionsMap(prev => {
                 const updated = { ...prev };
@@ -274,11 +316,6 @@ export const RolePermissionsModal: React.FC<RolePermissionsModalProps> = ({ isOp
                 });
                 return updated;
             });
-            setChangedFeatures(prev => {
-                const newSet = new Set(prev);
-                currentFeatures.forEach((f: any) => newSet.add(f.uid));
-                return newSet;
-            });
         }
     };
 
@@ -286,27 +323,32 @@ export const RolePermissionsModal: React.FC<RolePermissionsModalProps> = ({ isOp
     const handleClear = () => {
         if (!selectedMenuUid) return;
 
-        const menusToUpdate = [selectedMenuUid, ...currentChildMenus.map((m: Menu) => m.uid)];
-
         setPermissionsMap(prev => {
             const updated = { ...prev };
-            menusToUpdate.forEach(menuUid => {
-                updated[menuUid] = {
+
+            // Reset Parent
+            updated[selectedMenuUid] = {
+                roleUid: role.uid,
+                menuUid: selectedMenuUid,
+                canView: false,
+                canCreate: false,
+                canEdit: false,
+                canDelete: false,
+            };
+
+            // Reset Children
+            currentChildMenus.forEach((m: Menu) => {
+                updated[m.uid] = {
                     roleUid: role.uid,
-                    menuUid,
+                    menuUid: m.uid,
                     canView: false,
                     canCreate: false,
                     canEdit: false,
                     canDelete: false,
                 };
             });
-            return updated;
-        });
 
-        setChangedMenus(prev => {
-            const newSet = new Set(prev);
-            menusToUpdate.forEach(uid => newSet.add(uid));
-            return newSet;
+            return updated;
         });
 
         // Clear features
@@ -317,11 +359,6 @@ export const RolePermissionsModal: React.FC<RolePermissionsModalProps> = ({ isOp
                     updated[f.uid] = false;
                 });
                 return updated;
-            });
-            setChangedFeatures(prev => {
-                const newSet = new Set(prev);
-                currentFeatures.forEach((f: any) => newSet.add(f.uid));
-                return newSet;
             });
         }
     };
@@ -393,34 +430,10 @@ export const RolePermissionsModal: React.FC<RolePermissionsModalProps> = ({ isOp
         }
     };
 
-    // Reset - Discard all changes and reload from server
+    // Reset - Discard all changes and restore initial maps
     const handleReset = () => {
-        setChangedMenus(new Set());
-        setChangedFeatures(new Set());
-
-        // Reinitialize from server data
-        if (rolePermissionData?.rolePermissions?.data) {
-            const map: Record<string, RolePermission> = {};
-            rolePermissionData.rolePermissions.data.forEach((p: any) => {
-                map[p.menuUid] = {
-                    roleUid: p.roleUid,
-                    menuUid: p.menuUid,
-                    canView: p.canView,
-                    canCreate: p.canCreate,
-                    canEdit: p.canEdit,
-                    canDelete: p.canDelete,
-                };
-            });
-            setPermissionsMap(map);
-        }
-
-        if (roleFeatureData?.roleFeaturePermissions) {
-            const map: Record<string, boolean> = {};
-            roleFeatureData.roleFeaturePermissions.forEach((p: any) => {
-                map[p.featureUid] = !!p.isEnabled;
-            });
-            setFeaturePermissionsMap(map);
-        }
+        setPermissionsMap(initialPermissionsMap);
+        setFeaturePermissionsMap(initialFeaturePermissionsMap);
     };
 
     return (
@@ -522,15 +535,6 @@ export const RolePermissionsModal: React.FC<RolePermissionsModalProps> = ({ isOp
                                 <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                                     {selectedMenuName}
                                 </h3>
-                                <div className="relative w-72">
-                                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                                    <Input
-                                        placeholder="Search sub-menus..."
-                                        className="pl-10 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 focus:border-[#5c8a14] focus:ring-[#5c8a14]/20 rounded-xl"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                    />
-                                </div>
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
@@ -549,20 +553,22 @@ export const RolePermissionsModal: React.FC<RolePermissionsModalProps> = ({ isOp
                                                         <p className="text-sm text-gray-500 dark:text-gray-400">Click to toggle permission on/off</p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={handleSelectAll}
-                                                        className="px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
-                                                    >
-                                                        Select All
-                                                    </button>
-                                                    <button
-                                                        onClick={handleClear}
-                                                        className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                                    >
-                                                        Clear
-                                                    </button>
-                                                </div>
+                                                {currentChildMenus.length === 0 && (
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={handleSelectAll}
+                                                            className="px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+                                                        >
+                                                            Select All
+                                                        </button>
+                                                        <button
+                                                            onClick={handleClear}
+                                                            className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                                        >
+                                                            Clear
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -626,10 +632,26 @@ export const RolePermissionsModal: React.FC<RolePermissionsModalProps> = ({ isOp
                                         {/* Sub-menus */}
                                         {currentChildMenus.length > 0 && (
                                             <div className="space-y-4">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1"></div>
-                                                    <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-2">Sub-Menus</span>
-                                                    <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1"></div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-2 flex-1">
+                                                        <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1"></div>
+                                                        <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-2">Sub-Menus</span>
+                                                        <div className="h-px bg-gray-200 dark:bg-gray-800 flex-1"></div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 ml-4">
+                                                        <button
+                                                            onClick={handleSelectAll}
+                                                            className="px-3 py-1.5 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+                                                        >
+                                                            Select All
+                                                        </button>
+                                                        <button
+                                                            onClick={handleClear}
+                                                            className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                                        >
+                                                            Clear
+                                                        </button>
+                                                    </div>
                                                 </div>
 
                                                 <div className="grid grid-cols-1 gap-4">

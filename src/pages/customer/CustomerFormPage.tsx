@@ -142,28 +142,7 @@ const initialFormData: CustomerFormData = {
 
 
 
-const batteryBrandOptions = [
-    { value: 'Fox ESS', label: 'Fox ESS' },
-    { value: 'NeoVolt', label: 'NeoVolt' },
-    { value: 'Solis-Pylontech', label: 'Solis-Pylontech' },
-    { value: 'Growatt', label: 'Growatt' },
-    { value: 'Tesla', label: 'Tesla' },
-    { value: 'LG Energy Solution', label: 'LG Energy Solution' },
-    { value: 'BYD', label: 'BYD' },
-    { value: 'Sonnen', label: 'Sonnen' },
-    { value: 'AlphaESS', label: 'AlphaESS' },
-    { value: 'Sungrow', label: 'Sungrow' },
-    { value: 'Huawei', label: 'Huawei' },
-    { value: 'Enphase', label: 'Enphase' },
-    { value: 'Senec', label: 'Senec' },
-    { value: 'Fronius', label: 'Fronius' },
-    { value: 'GoodWe', label: 'GoodWe' },
-    { value: 'Delta', label: 'Delta' },
-    { value: 'Redflow', label: 'Redflow' },
-    { value: 'SolaX', label: 'SolaX' },
-    { value: 'Victorn Energy', label: 'Victron Energy' },
-    { value: 'Other', label: 'Other' },
-];
+
 
 
 
@@ -1130,44 +1109,63 @@ export const CustomerFormPage = () => {
                                     </details>
 
                                     {/* VPP Section - Standalone */}
-                                    <details open={formData.vpp} className="rounded-xl border border-border group bg-background">
-                                        <summary className="flex items-center justify-between p-4 cursor-pointer list-none select-none hover:bg-accent rounded-xl">
-                                            <div className="flex items-center gap-2 font-medium">
-                                                {/* Reuse ZapIcon or add a BatteryIcon if available, sticking to existing style for now */}
-                                                <ZapIcon size={20} className="text-green-600" />
-                                                <span>VPP participant</span>
+                                    <div className={`rounded-xl border transition-all duration-300 ${formData.vpp ? 'border-primary/20 bg-primary/5' : 'border-border bg-card'}`}>
+                                        <div className="flex items-center justify-between p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${formData.vpp ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                                                    <ZapIcon className="w-4 h-4" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium text-foreground">VPP Participant</span>
+                                                    <span className="text-xs text-muted-foreground">Enrol customer in Virtual Power Plant</span>
+                                                </div>
                                             </div>
                                             <div className="flex items-center gap-3">
+                                                <span className={`text-sm font-medium ${formData.vpp ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                    {formData.vpp ? 'Active' : 'Inactive'}
+                                                </span>
                                                 <ToggleSwitch checked={formData.vpp} onChange={(checked) => updateField('vpp', checked)} />
-                                                <span className="text-sm text-neutral-600 w-20 text-right">{formData.vpp ? 'Active' : 'Inactive'}</span>
-                                                <div className="transform transition-transform group-open:rotate-180"><ChevronRightIcon size={16} className="rotate-90" /></div>
                                             </div>
-                                        </summary>
+                                        </div>
+
                                         {formData.vpp && (
-                                            <div className="p-4 space-y-4 border-t border-border">
-                                                <div className="p-3 rounded-xl border border-dashed border-border bg-muted/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div className="p-4 pt-0 space-y-5 animate-in slide-in-from-top-2 duration-300">
+                                                {/* Signup Bonus Card */}
+                                                <div className="p-4 rounded-xl border border-dashed border-primary/20 bg-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                                     <div>
-                                                        <div className="text-sm font-semibold text-foreground uppercase tracking-tight">VPP signup bonus</div>
-                                                        <div className="text-[10px] text-muted-foreground">Eligible customers receive a $50 monthly bill credit for 12 months ($600 total).</div>
+                                                        <div className="text-sm font-bold text-primary flex items-center gap-2 uppercase tracking-wide">
+                                                            <ZapIcon size={14} />
+                                                            VPP SIGNUP BONUS
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground mt-1 max-w-md leading-relaxed">
+                                                            Eligible customers receive a $50 monthly bill credit for 12 months, totaling $600 in value.
+                                                        </div>
                                                     </div>
-                                                    <button
+                                                    <Button
                                                         type="button"
+                                                        size="sm"
                                                         onClick={() => updateField('vppSignupBonus', formData.vppSignupBonus === '600' ? '' : '600')}
-                                                        className={`px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-colors ${formData.vppSignupBonus === '600' ? 'bg-green-600 text-white border-green-600' : 'border-neutral-300 dark:border-zinc-600 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-zinc-700'}`}
+                                                        className={cn(
+                                                            "shrink-0 transition-all font-semibold shadow-sm",
+                                                            formData.vppSignupBonus === '600'
+                                                                ? "bg-primary hover:bg-primary/90 text-primary-foreground border-transparent"
+                                                                : "bg-transparent border-primary/20 text-primary hover:bg-primary/10"
+                                                        )}
+                                                        variant={formData.vppSignupBonus === '600' ? 'default' : 'outline'}
                                                     >
-                                                        {formData.vppSignupBonus === '600' ? 'Bonus Applied' : 'Add $600 signup bonus'}
-                                                    </button>
+                                                        {formData.vppSignupBonus === '600' ? (
+                                                            <><CheckIcon className="w-3 h-3 mr-1.5" /> Bonus Applied</>
+                                                        ) : (
+                                                            'Add $600 Bonus'
+                                                        )}
+                                                    </Button>
                                                 </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                    <Select label="Battery brand" options={batteryBrandOptions} value={formData.batteryBrand} onChange={(val) => updateField('batteryBrand', val as string)} placeholder="Select.." />
-                                                    <Input label="SN number" placeholder="SN123456" value={formData.snNumber} onChange={(e) => updateField('snNumber', e.target.value)} />
-                                                    <Input label="Battery capacity(kW)" type="number" step="any" placeholder="13.5" value={formData.batteryCapacity} onChange={(e) => updateField('batteryCapacity', e.target.value)} />
-                                                    <Input label="Export limit(kW)" type="number" step="any" placeholder="5.0" value={formData.exportLimit} onChange={(e) => updateField('exportLimit', e.target.value)} />
-                                                    <Input label="Signup bonus" disabled value={formData.vppSignupBonus === '600' ? '$50 monthly bill credit for 12 months (total $600)' : formData.vppSignupBonus} onChange={(e) => updateField('vppSignupBonus', e.target.value)} placeholder="—" />
-                                                </div>
+
+                                                {/* Battery details moved to Customer Modal on VPP Connect */}
                                             </div>
                                         )}
-                                    </details>
+                                    </div>
+
 
                                     {/* Address */}
                                     <div className="space-y-4">
@@ -1512,7 +1510,7 @@ export const CustomerFormPage = () => {
                                                 maxDate={new Date()}
                                             />
                                             <Select label="Sale Type" options={SALE_TYPE_OPTIONS} value={formData.saleType.toString()} onChange={(val) => updateField('saleType', parseInt(val as string))} />
-                                            <DatePicker label="Connection Date" required value={formData.connectionDate} onChange={(date) => updateField('connectionDate', date ? date.toISOString().split('T')[0] : '')} minDate={new Date()} />
+                                            <DatePicker label="Connection Date" required value={formData.connectionDate} onChange={(date) => updateField('connectionDate', date ? date.toISOString().split('T')[0] : '')} />
                                             <Select label="Billing Preference" options={BILLING_PREF_OPTIONS} value={formData.billingPreference.toString()} onChange={(val) => updateField('billingPreference', parseInt(val as string))} />
                                         </div>
 

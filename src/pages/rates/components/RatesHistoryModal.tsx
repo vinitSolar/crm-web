@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Switch } from '@/components/ui/Switch';
 import { Modal } from '@/components/common';
 import { ClockIcon, PencilIcon } from '@/components/icons';
-import { formatDateTime } from '@/lib/date';
+import { formatSydneyTime } from '@/lib/date';
 import { GET_RATES_HISTORY } from '@/graphql/queries/rates';
 import { SET_ACTIVE_RATES_VERSION, RESTORE_RATES_SNAPSHOT } from '@/graphql/mutations/rates';
 import { SnapshotDetails } from './SnapshotDetails';
@@ -15,9 +15,11 @@ interface RatesHistoryModalProps {
     onClose: () => void;
     refetchChanges?: () => void;
     refetchRatePlans?: () => void;
+    onApplyLocalSnapshot?: (snapshotData: any[]) => void;
 }
 
-export function RatesHistoryModal({ isOpen, onClose, refetchChanges, refetchRatePlans }: RatesHistoryModalProps) {
+
+export function RatesHistoryModal({ isOpen, onClose, refetchChanges, refetchRatePlans, onApplyLocalSnapshot }: RatesHistoryModalProps) {
     // State
     const [historyPage, setHistoryPage] = useState(1);
     const [activeVersionUid, setActiveVersionUid] = useState<string | null>(null);
@@ -53,10 +55,30 @@ export function RatesHistoryModal({ isOpen, onClose, refetchChanges, refetchRate
         fetchHistory({ variables: { page: newPage, limit: 20 } });
     };
 
-    // Direct restore handler - updates rate_plans and rate_offers directly
+    // Direct restore handler - updates rate_plans and rate_offers directly (Modified to be local-only application)
     const handleDirectRestore = async (uid: string) => {
         setRestoringUid(uid);
         try {
+            // Find the record in local data
+            const record = historyData?.ratesHistory?.data?.find((r: any) => r.uid === uid);
+            if (!record) throw new Error('History record not found');
+
+            if (onApplyLocalSnapshot && record.newRecord) {
+                let snapshotData;
+                try {
+                    snapshotData = typeof record.newRecord === 'string' ? JSON.parse(record.newRecord) : record.newRecord;
+                } catch (e) {
+                    console.error('Failed to parse snapshot', e);
+                    throw new Error('Invalid snapshot data format');
+                }
+
+                onApplyLocalSnapshot(snapshotData);
+                toast.success('Version applied locally. Review changes and save.');
+                onClose();
+                return;
+            }
+
+            // Fallback to old behavior (should not happen if props provided)
             await restoreRatesSnapshot({ variables: { historyUid: uid } });
             toast.success('Version restored successfully');
             onClose(); // Close the modal
@@ -123,7 +145,8 @@ export function RatesHistoryModal({ isOpen, onClose, refetchChanges, refetchRate
                             <div className="space-y-4">
                                 {historyData?.ratesHistory?.data?.map((record: any) => {
                                     const actionStyles = {
-                                        SNAPSHOT: { bg: 'bg-purple-500', icon: '?', label: 'Version', border: 'border-purple-200', lightBg: 'bg-purple-50' }
+                                        SNAPSHOT: { bg: 'bg-purple-500', icon: '?', label: 'Version', border: 'border-purple-200', lightBg: 'bg-purple-50' },
+                                        VERSION: { bg: 'bg-purple-500', icon: '?', label: 'Version', border: 'border-purple-200', lightBg: 'bg-purple-50' }
                                     };
                                     const actionKey = (record.auditAction || 'SNAPSHOT') as keyof typeof actionStyles;
                                     const actionConfig = actionStyles[actionKey] || { bg: 'bg-gray-500', icon: '?', label: record.auditAction, border: 'border-gray-200', lightBg: 'bg-gray-50' };
@@ -134,7 +157,7 @@ export function RatesHistoryModal({ isOpen, onClose, refetchChanges, refetchRate
                                                 <div className="flex items-start justify-between gap-4 mb-3">
                                                     <div>
                                                         <div className="flex items-center gap-2 mb-1">
-                                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${actionConfig.bg} text-white`}>
+                                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${record.uid === activeVersionUid ? 'bg-green-500' : actionConfig.bg} text-white`}>
                                                                 {actionConfig.label}
                                                             </span>
                                                             <span className="text-xs text-muted-foreground">
@@ -145,7 +168,7 @@ export function RatesHistoryModal({ isOpen, onClose, refetchChanges, refetchRate
                                                             Saved Version
                                                         </p>
                                                         <div className="flex items-center gap-2 mt-1">
-                                                            <p className="text-xs text-muted-foreground">{formatDateTime(record.createdAt)}</p>
+                                                            <p className="text-xs text-muted-foreground">{formatSydneyTime(record.createdAt)}</p>
                                                             {(record.createdByName || record.createdBy) && (
                                                                 <>
                                                                     <span className="text-xs text-muted-foreground">•</span>
@@ -211,7 +234,24 @@ export function RatesHistoryModal({ isOpen, onClose, refetchChanges, refetchRate
                                                         View Version Data
                                                     </summary>
                                                     <div className="mt-3">
-                                                        <SnapshotDetails uid={record.uid} />
+                                                        <SnapshotDetails
+                                                            uid={record.uid}
+                                                            activeSnapshot={
+                                                                (() => {
+                                                                    const activeRecord = historyData?.ratesHistory?.data?.find((r: any) => r.uid === activeVersionUid);
+                                                                    if (activeRecord?.newRecord) {
+                                                                        try {
+                                                                            return typeof activeRecord.newRecord === 'string'
+                                                                                ? JSON.parse(activeRecord.newRecord)
+                                                                                : activeRecord.newRecord;
+                                                                        } catch (e) {
+                                                                            return null;
+                                                                        }
+                                                                    }
+                                                                    return null;
+                                                                })()
+                                                            }
+                                                        />
                                                     </div>
                                                 </details>
                                             </div>

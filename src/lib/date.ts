@@ -83,12 +83,32 @@ export function formatDateTime(
  * @param date - Date string, Date object, or null
  * @param format - Display format (default: 'hh:mm A')
  */
+/**
+ * Format a time for display in the configured timezone
+ * @param date - Date string, Date object, or null
+ * @param format - Display format (default: 'hh:mm A')
+ */
 export function formatTime(
     date: Date | string | null | undefined,
     format: string = 'hh:mm A'
 ): string {
     if (!date) return '-';
     return dayjs.utc(date).tz(getUserTimezone()).format(format);
+}
+
+/**
+ * Format a date/time specifically for Sydney (AEDT/AEST)
+ * @param date - Date string, Date object, or null
+ * @param format - Display format (default: 'DD/MM/YYYY, hh:mm A')
+ */
+export function formatSydneyTime(
+    date: Date | string | null | undefined,
+    format: string = 'DD/MM/YYYY, hh:mm A'
+): string {
+    if (!date) return '-';
+    // Convert to Sydney time
+    const sydneyTime = dayjs.utc(date).tz('Australia/Sydney');
+    return sydneyTime.format(format);
 }
 
 // ============================================================
