@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useLazyQuery, useMutation } from '@apollo/client';
 import { calculateDiscountedRate } from '../../lib/rate-utils';
@@ -7,17 +7,18 @@ import { Input } from '@/components/ui/Input';
 import { DataTable, type Column, Modal } from '@/components/common';
 import {
     PlusIcon, PencilIcon,
-    // TrashIcon,
     CheckIcon, XIcon, MailIcon, Settings2Icon, PlugIcon, ZapIcon,
-    ActivityIcon, ChevronRightIcon, InfoIcon
+    ActivityIcon, InfoIcon
 } from '@/components/icons';
 import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL, CREATE_CUSTOMER, UPDATE_CUSTOMER, GET_ALL_FILTERED_CUSTOMER_IDS } from '@/graphql';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { Select } from '@/components/ui/Select';
 import { StatusField } from '@/components/common';
-import { formatDateTime, formatDate } from '@/lib/date';
+import { ConfirmationPopover } from '@/components/ui/ConfirmationPopover';
+import { formatSydneyTime } from '@/lib/date';
+import { cn } from '@/lib/utils';
 import BulkEmailModal from './BulkEmailModal';
-import { SALE_TYPE_LABELS, BILLING_PREF_LABELS, DNSP_LABELS, DNSP_OPTIONS, DISCOUNT_OPTIONS, CUSTOMER_STATUS_OPTIONS, VPP_OPTIONS, VPP_CONNECTED_OPTIONS, ULTIMATE_STATUS_OPTIONS, MSAT_CONNECTED_OPTIONS, ID_TYPE_MAP } from '@/lib/constants';
+import { SALE_TYPE_LABELS, BILLING_PREF_LABELS, DNSP_LABELS, DNSP_OPTIONS, DISCOUNT_OPTIONS, CUSTOMER_STATUS_OPTIONS, VPP_OPTIONS, VPP_CONNECTED_OPTIONS, ULTIMATE_STATUS_OPTIONS, MSAT_CONNECTED_OPTIONS, ID_TYPE_MAP, BATTERY_BRAND_OPTIONS } from '@/lib/constants';
 import { toast } from 'react-toastify';
 import { useAuthStore } from '@/stores/useAuthStore';
 
@@ -48,7 +49,7 @@ interface Customer {
     rateVersion?: number;
     address?: CustomerAddress;
     ratePlan?: {
-        dnsp?: string;
+        dnsp?: number;
         tariff?: string;
     };
     vppDetails?: {
@@ -59,6 +60,9 @@ interface Customer {
     utilmateStatus?: number;
     msatDetails?: {
         msatConnected?: number;
+    };
+    utilmateDetails?: {
+        utilmateConnected?: number;
     };
 }
 
@@ -173,6 +177,16 @@ interface CustomerDetails {
         snnumber?: string;
         batterycapacity?: number;
         exportlimit?: number;
+        inverterCapacity?: number;
+        checkCode?: string;
+    };
+    utilmateDetails?: {
+        id?: string;
+        customerUid?: string;
+        siteIdentifier?: string;
+        accountNumber?: string;
+        utilmateConnected?: number;
+        utilmateConnectedAt?: string;
     };
     utilmateStatus?: string | number;
     rateVersion?: number;
@@ -198,6 +212,9 @@ interface CustomerDetails {
 
 
 
+
+
+
 const ToggleSwitch = ({ checked, onChange, disabled }: { checked: boolean, onChange: (checked: boolean) => void, disabled?: boolean }) => (
     <button
         type="button"
@@ -216,34 +233,6 @@ const ToggleSwitch = ({ checked, onChange, disabled }: { checked: boolean, onCha
     </button>
 );
 
-const AccordionCard = ({ title, icon, children, badge }: { title: string, icon: React.ReactNode, children: React.ReactNode, badge?: React.ReactNode }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    return (
-        <div className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow group">
-            <div
-                className="flex items-center justify-between p-5 cursor-pointer select-none"
-                onClick={(e) => {
-                    e.preventDefault();
-                    setIsOpen(!isOpen);
-                }}
-            >
-                <div className="flex items-center gap-2">
-                    {icon}
-                    <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-                    {badge}
-                </div>
-                <div className={`transform transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}>
-                    <ChevronRightIcon size={16} />
-                </div>
-            </div>
-            {isOpen && (
-                <div className="px-5 pb-5 animate-in slide-in-from-top-2 duration-200">
-                    {children}
-                </div>
-            )}
-        </div>
-    );
-};
 
 interface SearchFilters {
     id: string;
@@ -280,11 +269,16 @@ export function CustomersPage() {
         utilmateStatus: '',
         msatConnected: '',
     });
+
+
+
     const [debouncedFilters, setDebouncedFilters] = useState(searchFilters);
     const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
-    const [endCursor, setEndCursor] = useState<string | null>(null);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [hasNextPage, setHasNextPage] = useState(false);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const [pageCursors, setPageCursors] = useState<(string | null)[]>([null]); // Index 0 corresponds to page 1's start cursor (which is null)
 
     // Delete modal state
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -296,6 +290,16 @@ export function CustomersPage() {
     const [detailsModalOpen, setDetailsModalOpen] = useState(false);
     const [selectedCustomerDetails, setSelectedCustomerDetails] = useState<CustomerDetails | null>(null);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+
+    // Detail Section State
+    const [selectedDetailSection, setSelectedDetailSection] = useState<'info' | 'location' | 'account' | 'rates' | 'solar' | 'debit' | 'vpp' | 'utilmate'>('info');
+
+    // Reset section when modal opens/customer changes
+    useEffect(() => {
+        if (detailsModalOpen) {
+            setSelectedDetailSection('info');
+        }
+    }, [detailsModalOpen, selectedCustomerDetails?.uid]);
 
     // Lazy query for customer details
     const [fetchCustomerDetails] = useLazyQuery(GET_CUSTOMER_BY_ID, {
@@ -315,14 +319,15 @@ export function CustomersPage() {
 
     const limit = 20;
 
-    // Debounce search
+    // Debounce search and reset pagination
     useEffect(() => {
         const timer = setTimeout(() => {
             if (JSON.stringify(searchFilters) !== JSON.stringify(debouncedFilters)) {
                 setAllCustomers([]);
-                setEndCursor(null);
                 setDebouncedFilters(searchFilters);
-                // Reset selection when filters change
+                // Reset pagination and selection
+                setCurrentPage(1);
+                setPageCursors([null]);
                 setSelectedCustomerIds([]);
                 setTotalFilteredCount(undefined);
             }
@@ -330,10 +335,10 @@ export function CustomersPage() {
         return () => clearTimeout(timer);
     }, [searchFilters, debouncedFilters]);
 
-    const { data, loading, error, fetchMore, refetch } = useQuery<CustomersCursorResponse>(GET_CUSTOMERS_CURSOR, {
+    const { data, loading, error, refetch } = useQuery<CustomersCursorResponse>(GET_CUSTOMERS_CURSOR, {
         variables: {
             first: limit,
-            after: null,
+            after: pageCursors[currentPage - 1] || null,
             searchId: debouncedFilters.id || undefined,
             searchName: debouncedFilters.name || undefined,
             searchMobile: debouncedFilters.mobile || undefined,
@@ -352,91 +357,39 @@ export function CustomersPage() {
     });
 
     const pageInfo = data?.customersCursor?.pageInfo;
-    const hasMore = hasNextPage; // Use local state instead of derived prop which might be stale
-
-    // Refetch when search changes
-    useEffect(() => {
-        refetch({
-            first: limit,
-            after: null,
-            searchId: debouncedFilters.id || undefined,
-            searchName: debouncedFilters.name || undefined,
-            searchMobile: debouncedFilters.mobile || undefined,
-            searchAddress: debouncedFilters.address || undefined,
-            searchTariff: debouncedFilters.tariff || undefined,
-            searchDnsp: debouncedFilters.dnsp || undefined,
-            searchDiscount: debouncedFilters.discount ? parseInt(debouncedFilters.discount) : undefined,
-            searchStatus: debouncedFilters.status ? parseInt(debouncedFilters.status) : undefined,
-            searchVpp: debouncedFilters.vpp ? parseInt(debouncedFilters.vpp) : undefined,
-            searchVppConnected: debouncedFilters.vppConnected ? parseInt(debouncedFilters.vppConnected) : undefined,
-            searchUtilmateStatus: debouncedFilters.utilmateStatus ? parseInt(debouncedFilters.utilmateStatus) : undefined,
-            searchMsatConnected: debouncedFilters.msatConnected ? parseInt(debouncedFilters.msatConnected) : undefined,
-        });
-    }, [debouncedFilters, refetch]);
 
     // Update customers when data changes
     useEffect(() => {
         if (data?.customersCursor?.data) {
-            const newCustomers = data.customersCursor.data;
-            if (!endCursor) {
-                // Initial load or search reset
-                setAllCustomers(newCustomers);
-            }
+            setAllCustomers(data.customersCursor.data);
+
+            // If we have an endCursor and we are moving forward to a page we haven't visited yet (conceptually),
+            // though with this array approach we usually just push the next one if it doesn't exist.
             if (data.customersCursor.pageInfo.endCursor) {
-                setEndCursor(data.customersCursor.pageInfo.endCursor);
-            }
-            // Initialize hasNextPage from initial data
-            if (data.customersCursor.pageInfo) {
-                setHasNextPage(data.customersCursor.pageInfo.hasNextPage);
-            }
-            setIsLoadingMore(false);
-        }
-    }, [data]);
-
-    const handleLoadMore = useCallback(async () => {
-        if (!hasMore || isLoadingMore || !endCursor) return;
-
-        setIsLoadingMore(true);
-        try {
-            const result = await fetchMore({
-                variables: {
-                    first: limit,
-                    after: endCursor,
-                    searchId: debouncedFilters.id || undefined,
-                    searchName: debouncedFilters.name || undefined,
-                    searchMobile: debouncedFilters.mobile || undefined,
-                    searchAddress: debouncedFilters.address || undefined,
-                    searchDnsp: debouncedFilters.dnsp || undefined,
-                    searchDiscount: debouncedFilters.discount ? parseInt(debouncedFilters.discount) : undefined,
-                    searchStatus: debouncedFilters.status ? parseInt(debouncedFilters.status) : undefined,
-                    searchVpp: debouncedFilters.vpp ? parseInt(debouncedFilters.vpp) : undefined,
-                    searchVppConnected: debouncedFilters.vppConnected ? parseInt(debouncedFilters.vppConnected) : undefined,
-                    searchUtilmateStatus: debouncedFilters.utilmateStatus ? parseInt(debouncedFilters.utilmateStatus) : undefined,
-                    searchMsatConnected: debouncedFilters.msatConnected ? parseInt(debouncedFilters.msatConnected) : undefined,
-                },
-            });
-
-
-            if (result.data?.customersCursor?.data) {
-                setAllCustomers(prev => {
-                    const existingIds = new Set(prev.map(c => c.uid));
-                    const uniqueNew = result.data.customersCursor.data.filter(c => !existingIds.has(c.uid));
-                    return [...prev, ...uniqueNew];
+                setPageCursors(prev => {
+                    const newCursors = [...prev];
+                    // Ensure the cursor for the NEXT page (index = currentPage) is set
+                    if (newCursors.length <= currentPage) {
+                        newCursors[currentPage] = data.customersCursor.pageInfo.endCursor;
+                    } else {
+                        newCursors[currentPage] = data.customersCursor.pageInfo.endCursor;
+                    }
+                    return newCursors;
                 });
-                if (result.data.customersCursor.pageInfo.endCursor) {
-                    setEndCursor(result.data.customersCursor.pageInfo.endCursor);
-                }
-                // Update hasNextPage from fetchMore result
-                if (result.data.customersCursor.pageInfo) {
-                    setHasNextPage(result.data.customersCursor.pageInfo.hasNextPage);
-                }
             }
-        } catch (err) {
-            console.error('Error loading more customers:', err);
-        } finally {
-            setIsLoadingMore(false);
         }
-    }, [hasMore, isLoadingMore, endCursor, fetchMore, debouncedFilters]);
+    }, [data, currentPage]);
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage < 1) return;
+        // Prevent going to next page if we don't have a cursor for it, unless it's page 1
+        if (newPage > currentPage && !pageInfo?.hasNextPage) return;
+
+        setCurrentPage(newPage);
+        // Deselect when changing pages (optional, but typical for non-persisted selection across pages)
+        // Keeping selection across pages might be desired, current logic allows it if IDs are kept.
+        // Existing logic `setSelectedCustomerIds` persists IDs, so we can keep them.
+    };
 
     const handleSearchChange = (key: keyof typeof searchFilters, value: string) => {
         setSearchFilters(prev => ({ ...prev, [key]: value }));
@@ -451,6 +404,141 @@ export function CustomersPage() {
     const [freezeModalOpen, setFreezeModalOpen] = useState(false);
     const [customerToFreeze, setCustomerToFreeze] = useState<CustomerDetails | null>(null);
     const [updateCustomer] = useMutation(UPDATE_CUSTOMER);
+
+    // VPP Form State
+    const [isEditingVpp, setIsEditingVpp] = useState(false);
+    const [vppForm, setVppForm] = useState({
+        vppSignupBonus: '',
+        batteryBrand: '',
+        snNumber: '',
+        batteryCapacity: '',
+        exportLimit: '',
+        inverterCapacity: '',
+        checkCode: ''
+    });
+    const [vppConnectModalOpen, setVppConnectModalOpen] = useState(false);
+    const [utilmateConnectModalOpen, setUtilmateConnectModalOpen] = useState(false);
+
+    // Utilmate Form State
+    const [isEditingUtilmate, setIsEditingUtilmate] = useState(false);
+    const [utilmateForm, setUtilmateForm] = useState({
+        siteIdentifier: '',
+        accountNumber: '',
+        utilmateConnected: 0,
+        utilmateConnectedAt: ''
+    });
+
+    // Sync VPP form data when customer details are loaded
+    useEffect(() => {
+        if (selectedCustomerDetails) {
+            setVppForm({
+                vppSignupBonus: selectedCustomerDetails.vppDetails?.vppSignupBonus?.toString() || '',
+                batteryBrand: selectedCustomerDetails.batteryDetails?.batterybrand || '',
+                snNumber: selectedCustomerDetails.batteryDetails?.snnumber || '',
+                batteryCapacity: selectedCustomerDetails.batteryDetails?.batterycapacity?.toString() || '',
+                exportLimit: selectedCustomerDetails.batteryDetails?.exportlimit?.toString() || '',
+                inverterCapacity: selectedCustomerDetails.batteryDetails?.inverterCapacity?.toString() || '',
+                checkCode: selectedCustomerDetails.batteryDetails?.checkCode || ''
+            });
+            // Reset editing state when switching customers
+            setIsEditingVpp(false);
+
+            setUtilmateForm({
+                siteIdentifier: selectedCustomerDetails.utilmateDetails?.siteIdentifier || '',
+                accountNumber: selectedCustomerDetails.utilmateDetails?.accountNumber || '',
+                utilmateConnected: selectedCustomerDetails.utilmateDetails?.utilmateConnected || 0,
+                utilmateConnectedAt: selectedCustomerDetails.utilmateDetails?.utilmateConnectedAt || ''
+            });
+            setIsEditingUtilmate(false);
+        }
+    }, [selectedCustomerDetails?.uid]); // Only depend on UID change to avoid loops
+
+    const handleSaveVppDetails = async () => {
+        if (!selectedCustomerDetails) return;
+
+        try {
+            const input: any = {
+                vppDetails: {
+                    vpp: 1, // Ensure VPP is ON
+                    // Preserve existing connected status if just editing details, 
+                    // or default to 0 if enabling for first time (backend handles logic usually, but let's be safe)
+                    vppConnected: selectedCustomerDetails.vppDetails?.vppConnected || 0,
+                    vppSignupBonus: vppForm.vppSignupBonus ? parseFloat(vppForm.vppSignupBonus) : undefined,
+                },
+                batteryDetails: vppForm.batteryBrand ? {
+                    batterybrand: vppForm.batteryBrand,
+                    snnumber: vppForm.snNumber || undefined,
+                    batterycapacity: vppForm.batteryCapacity ? parseFloat(vppForm.batteryCapacity) : undefined,
+                    exportlimit: vppForm.exportLimit ? parseFloat(vppForm.exportLimit) : undefined,
+                    inverterCapacity: vppForm.inverterCapacity ? parseFloat(vppForm.inverterCapacity) : undefined,
+                    checkCode: vppForm.checkCode || undefined,
+                } : undefined
+            };
+
+            await updateCustomer({
+                variables: {
+                    uid: selectedCustomerDetails.uid,
+                    input
+                }
+            });
+
+            toast.success('VPP details saved successfully');
+            setIsEditingVpp(false);
+
+            // Optimistic update
+            setSelectedCustomerDetails({
+                ...selectedCustomerDetails,
+                vppDetails: {
+                    ...selectedCustomerDetails.vppDetails,
+                    vpp: 1,
+                    vppSignupBonus: input.vppDetails.vppSignupBonus
+                },
+                batteryDetails: input.batteryDetails
+            });
+
+        } catch (error: any) {
+            console.error('Error saving VPP details:', error);
+            toast.error(error.message || 'Failed to save VPP details');
+        }
+    };
+
+    const handleSaveUtilmateDetails = async () => {
+        if (!selectedCustomerDetails) return;
+
+        try {
+            const input: any = {
+                utilmateDetails: {
+                    siteIdentifier: utilmateForm.siteIdentifier || undefined,
+                    accountNumber: utilmateForm.accountNumber || undefined,
+                    utilmateConnected: utilmateForm.utilmateConnected,
+                    utilmateConnectedAt: utilmateForm.utilmateConnectedAt || undefined,
+                }
+            };
+
+            await updateCustomer({
+                variables: {
+                    uid: selectedCustomerDetails.uid,
+                    input
+                }
+            });
+
+            toast.success('Utilmate details saved successfully');
+            setIsEditingUtilmate(false);
+
+            // Optimistic update
+            setSelectedCustomerDetails({
+                ...selectedCustomerDetails,
+                utilmateDetails: {
+                    ...selectedCustomerDetails.utilmateDetails,
+                    ...input.utilmateDetails
+                }
+            });
+
+        } catch (error: any) {
+            console.error('Error saving Utilmate details:', error);
+            toast.error(error.message || 'Failed to save Utilmate details');
+        }
+    };
 
     const handleFreezeClick = (customer: CustomerDetails) => {
         setCustomerToFreeze(customer);
@@ -544,7 +632,8 @@ export function CustomersPage() {
                 setDetailsModalOpen(false);
                 // Refresh the customer list - reset state and refetch
                 setAllCustomers([]);
-                setEndCursor(null);
+                setPageCursors([null]);
+                setCurrentPage(1);
                 refetch();
             }
         } catch (error: any) {
@@ -556,6 +645,25 @@ export function CustomersPage() {
     };
 
     const handleVppToggle = async (customerUid: string, newValue: boolean) => {
+        // If turning ON, open modal to collect details unless it's just a quick toggle off/on
+        // But user requirement says "when tries to turn on... ask this detail first"
+        // So we interpret this as: always ask details when connecting.
+        if (newValue) {
+            // Pre-fill form with existing details if available
+            setVppForm({
+                vppSignupBonus: selectedCustomerDetails?.vppDetails?.vppSignupBonus?.toString() || '',
+                batteryBrand: selectedCustomerDetails?.batteryDetails?.batterybrand || '',
+                snNumber: selectedCustomerDetails?.batteryDetails?.snnumber || '',
+                batteryCapacity: selectedCustomerDetails?.batteryDetails?.batterycapacity?.toString() || '',
+
+                exportLimit: selectedCustomerDetails?.batteryDetails?.exportlimit?.toString() || '',
+                inverterCapacity: selectedCustomerDetails?.batteryDetails?.inverterCapacity?.toString() || '',
+                checkCode: selectedCustomerDetails?.batteryDetails?.checkCode || ''
+            });
+            setVppConnectModalOpen(true);
+            return;
+        }
+
         // Optimistic update - immediately update UI
         const previousValue = selectedCustomerDetails?.vppDetails?.vppConnected;
         if (selectedCustomerDetails) {
@@ -593,6 +701,55 @@ export function CustomersPage() {
                     }
                 });
             }
+        }
+    };
+
+    const handleConfirmVppConnect = async () => {
+        if (!selectedCustomerDetails) return;
+
+        try {
+            const input: any = {
+                vppDetails: {
+                    vpp: 1, // Ensure VPP is marked as eligible/active
+                    vppConnected: 1, // Connect it
+                    vppSignupBonus: vppForm.vppSignupBonus ? parseFloat(vppForm.vppSignupBonus) : undefined,
+                },
+                batteryDetails: vppForm.batteryBrand ? {
+                    batterybrand: vppForm.batteryBrand,
+                    snnumber: vppForm.snNumber || undefined,
+                    batterycapacity: vppForm.batteryCapacity ? parseFloat(vppForm.batteryCapacity) : undefined,
+
+                    exportlimit: vppForm.exportLimit ? parseFloat(vppForm.exportLimit) : undefined,
+                    inverterCapacity: vppForm.inverterCapacity ? parseFloat(vppForm.inverterCapacity) : undefined,
+                    checkCode: vppForm.checkCode || undefined,
+                } : undefined
+            };
+
+            await updateCustomer({
+                variables: {
+                    uid: selectedCustomerDetails.uid,
+                    input
+                }
+            });
+
+            toast.success('VPP Connected and details saved');
+            setVppConnectModalOpen(false);
+
+            // Update local state
+            setSelectedCustomerDetails({
+                ...selectedCustomerDetails,
+                vppDetails: {
+                    ...selectedCustomerDetails.vppDetails,
+                    vpp: 1,
+                    vppConnected: 1,
+                    vppSignupBonus: input.vppDetails.vppSignupBonus
+                },
+                batteryDetails: input.batteryDetails
+            });
+
+        } catch (error: any) {
+            console.error('Error connecting VPP:', error);
+            toast.error(error.message || 'Failed to connect VPP');
         }
     };
 
@@ -639,6 +796,119 @@ export function CustomersPage() {
                     }
                 });
             }
+        }
+    };
+
+    const handleUtilmateToggle = async (customerUid: string, newValue: boolean) => {
+        // Restriction: Cannot connect to Utilmate if MSAT is not connected
+        if (newValue && selectedCustomerDetails?.msatDetails?.msatConnected !== 1) {
+            toast.error("Please connect to MSAT first before connecting to Utilmate.");
+            return;
+        }
+
+        if (newValue) {
+            // Pre-fill form with existing details if available
+            setUtilmateForm({
+                siteIdentifier: selectedCustomerDetails?.utilmateDetails?.siteIdentifier || '',
+                accountNumber: selectedCustomerDetails?.utilmateDetails?.accountNumber || '',
+                utilmateConnected: 1,
+                utilmateConnectedAt: selectedCustomerDetails?.utilmateDetails?.utilmateConnectedAt || ''
+            });
+            setUtilmateConnectModalOpen(true);
+            return;
+        }
+
+        // Optimistic update - immediately update UI
+        const previousValue = selectedCustomerDetails?.utilmateDetails?.utilmateConnected;
+        const now = new Date().toISOString();
+        if (selectedCustomerDetails) {
+            setSelectedCustomerDetails({
+                ...selectedCustomerDetails,
+                utilmateDetails: {
+                    ...selectedCustomerDetails.utilmateDetails,
+                    utilmateConnected: newValue ? 1 : 0,
+                    utilmateConnectedAt: newValue ? now : selectedCustomerDetails.utilmateDetails?.utilmateConnectedAt,
+                }
+            });
+
+            // Also update form
+            setUtilmateForm(prev => ({
+                ...prev,
+                utilmateConnected: newValue ? 1 : 0,
+                utilmateConnectedAt: newValue ? now : prev.utilmateConnectedAt
+            }));
+        }
+
+        try {
+            await updateCustomer({
+                variables: {
+                    uid: customerUid,
+                    input: {
+                        utilmateDetails: {
+                            utilmateConnected: newValue ? 1 : 0,
+                            utilmateConnectedAt: newValue ? now : undefined,
+                        }
+                    }
+                }
+            });
+            toast.success(`Utilmate ${newValue ? 'connected' : 'disconnected'} successfully`);
+        } catch (error: any) {
+            console.error('Error updating Utilmate status:', error);
+            toast.error(error.message || 'Failed to update Utilmate status');
+            // Revert to previous value on failure
+            if (selectedCustomerDetails) {
+                setSelectedCustomerDetails({
+                    ...selectedCustomerDetails,
+                    utilmateDetails: {
+                        ...selectedCustomerDetails.utilmateDetails,
+                        utilmateConnected: previousValue
+                    }
+                });
+
+                setUtilmateForm(prev => ({
+                    ...prev,
+                    utilmateConnected: previousValue || 0
+                }));
+            }
+        }
+    };
+
+    const handleConfirmUtilmateConnect = async () => {
+        if (!selectedCustomerDetails) return;
+
+        try {
+            const now = new Date().toISOString();
+            const input: any = {
+                utilmateDetails: {
+                    siteIdentifier: utilmateForm.siteIdentifier || undefined,
+                    accountNumber: utilmateForm.accountNumber || undefined,
+                    utilmateConnected: 1,
+                    utilmateConnectedAt: now,
+                }
+            };
+
+            await updateCustomer({
+                variables: {
+                    uid: selectedCustomerDetails.uid,
+                    input
+                }
+            });
+
+            toast.success('Utilmate connected and details saved');
+            setUtilmateConnectModalOpen(false);
+
+            // Update local state
+            setSelectedCustomerDetails({
+                ...selectedCustomerDetails,
+                utilmateDetails: {
+                    ...selectedCustomerDetails.utilmateDetails,
+                    ...input.utilmateDetails
+                }
+            });
+
+        } catch (error: any) {
+            console.error('Error connecting Utilmate:', error);
+            toast.error(error.message || 'Failed to connect Utilmate');
         }
     };
 
@@ -763,6 +1033,7 @@ export function CustomersPage() {
         } catch (error: any) {
             console.error('Error fetching all customer IDs:', error);
             toast.error('Failed to select all customers');
+            setSelectedCustomerIds([]);
         } finally {
             setIsSelectingAll(false);
         }
@@ -818,85 +1089,6 @@ export function CustomersPage() {
             ),
             width: 'w-[120px]',
             render: (row) => <span className="font-medium text-foreground">{row.firstName} {row.lastName}</span>,
-        },
-        {
-            key: 'mobile',
-            header: (
-                <div className="flex flex-col gap-1 max-w-[110px]">
-                    <div className="h-7 flex items-center">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">Mobile</span>
-                    </div>
-                    <Input
-                        value={searchFilters.mobile}
-                        onChange={(e) => handleSearchChange('mobile', e.target.value)}
-                        placeholder="Search mobile..."
-                        className="h-7 text-xs"
-                    />
-                </div>
-            ),
-            render: (row) => <span className="text-foreground">{row.number || '-'}</span>,
-        },
-        {
-            key: 'address',
-            header: (
-                <div className="flex flex-col gap-1 min-w-[120px]">
-                    <div className="h-7 flex items-center">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">Address</span>
-                    </div>
-                    <Input
-                        value={searchFilters.address}
-                        onChange={(e) => handleSearchChange('address', e.target.value)}
-                        placeholder="Search address..."
-                        className="h-7 text-xs"
-                    />
-                </div>
-            ),
-            render: (row) => {
-                const fullAddr = row.address?.fullAddress;
-                if (!fullAddr) return <span className="text-muted-foreground">-</span>;
-                return (
-                    <Tooltip content={fullAddr}>
-                        <span className="text-foreground text-sm truncate max-w-[220px] block">
-                            {fullAddr}
-                        </span>
-                    </Tooltip>
-                );
-            },
-        },
-        {
-            key: 'tariff',
-            header: (
-                <div className="flex flex-col gap-1 max-w-[100px]">
-                    <div className="h-7 flex items-center">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">Tariff</span>
-                    </div>
-                    <Input
-                        value={searchFilters.tariff}
-                        onChange={(e) => handleSearchChange('tariff', e.target.value)}
-                        placeholder="Search tariff..."
-                        className="h-7 text-xs"
-                    />
-                </div>
-            ),
-            render: (row) => <span className="text-foreground">{row.tariffCode || row.ratePlan?.tariff || '-'}</span>,
-        },
-        {
-            key: 'dnsp',
-            header: (
-                <div className="flex flex-col gap-1 items-start">
-                    <div className="h-7 flex items-center">
-                        <span className="text-xs font-semibold uppercase text-muted-foreground">DNSP</span>
-                    </div>
-                    <Select
-                        options={[{ value: '', label: 'All' }, ...DNSP_OPTIONS]}
-                        value={searchFilters.dnsp}
-                        onChange={(val) => handleSearchChange('dnsp', val as string)}
-                        placeholder="All"
-                        className="h-7 text-xs w-[90px]"
-                    />
-                </div>
-            ),
-            render: (row) => <StatusField type="dnsp" value={row.ratePlan?.dnsp} mode="badge" />,
         },
         {
             key: 'discount',
@@ -986,7 +1178,7 @@ export function CustomersPage() {
                 header: (
                     <div className="flex flex-col gap-1 items-start">
                         <div className="h-7 flex items-center">
-                            <span className="text-xs font-semibold uppercase text-muted-foreground">Ultimate Status</span>
+                            <span className="text-xs font-semibold uppercase text-muted-foreground">Ultimate</span>
                         </div>
                         <Select
                             options={[{ value: '', label: 'All' }, ...ULTIMATE_STATUS_OPTIONS]}
@@ -999,7 +1191,7 @@ export function CustomersPage() {
                 ),
                 render: (row: Customer) => (
                     <div className="flex justify-center">
-                        {row.utilmateStatus === 1 ? (
+                        {row.utilmateDetails?.utilmateConnected === 1 ? (
                             <div className="rounded-full bg-green-100 dark:bg-green-900/30 p-1">
                                 <CheckIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
                             </div>
@@ -1016,7 +1208,7 @@ export function CustomersPage() {
                 header: (
                     <div className="flex flex-col gap-1 items-start">
                         <div className="h-7 flex items-center">
-                            <span className="text-xs font-semibold uppercase text-muted-foreground">MSAT Connected</span>
+                            <span className="text-xs font-semibold uppercase text-muted-foreground">MSAT</span>
                         </div>
                         <Select
                             options={[{ value: '', label: 'All' }, ...MSAT_CONNECTED_OPTIONS]}
@@ -1042,6 +1234,85 @@ export function CustomersPage() {
                 ),
             }
         ] : []),
+        {
+            key: 'mobile',
+            header: (
+                <div className="flex flex-col gap-1 max-w-[110px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Mobile</span>
+                    </div>
+                    <Input
+                        value={searchFilters.mobile}
+                        onChange={(e) => handleSearchChange('mobile', e.target.value)}
+                        placeholder="Search mobile..."
+                        className="h-7 text-xs"
+                    />
+                </div>
+            ),
+            render: (row) => <span className="text-foreground">{row.number || '-'}</span>,
+        },
+        {
+            key: 'address',
+            header: (
+                <div className="flex flex-col gap-1 min-w-[120px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Address</span>
+                    </div>
+                    <Input
+                        value={searchFilters.address}
+                        onChange={(e) => handleSearchChange('address', e.target.value)}
+                        placeholder="Search address..."
+                        className="h-7 text-xs"
+                    />
+                </div>
+            ),
+            render: (row) => {
+                const fullAddr = row.address?.fullAddress;
+                if (!fullAddr) return <span className="text-muted-foreground">-</span>;
+                return (
+                    <Tooltip content={fullAddr}>
+                        <span className="text-foreground text-sm truncate max-w-[220px] block">
+                            {fullAddr}
+                        </span>
+                    </Tooltip>
+                );
+            },
+        },
+        {
+            key: 'tariff',
+            header: (
+                <div className="flex flex-col gap-1 max-w-[100px]">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Tariff</span>
+                    </div>
+                    <Input
+                        value={searchFilters.tariff}
+                        onChange={(e) => handleSearchChange('tariff', e.target.value)}
+                        placeholder="Search tariff..."
+                        className="h-7 text-xs"
+                    />
+                </div>
+            ),
+            render: (row) => <span className="text-foreground">{row.tariffCode || row.ratePlan?.tariff || '-'}</span>,
+        },
+        {
+            key: 'dnsp',
+            header: (
+                <div className="flex flex-col gap-1 items-start">
+                    <div className="h-7 flex items-center">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">DNSP</span>
+                    </div>
+                    <Select
+                        options={[{ value: '', label: 'All' }, ...DNSP_OPTIONS]}
+                        value={searchFilters.dnsp}
+                        onChange={(val) => handleSearchChange('dnsp', val as string)}
+                        placeholder="All"
+                        className="h-7 text-xs w-[90px]"
+                    />
+                </div>
+            ),
+            render: (row) => <StatusField type="dnsp" value={row.ratePlan?.dnsp} mode="badge" />,
+        },
         ...(showActionsColumn ? [{
             key: 'actions' as const,
             header: (
@@ -1153,13 +1424,10 @@ export function CustomersPage() {
             </div>
 
             {/* Customers Table */}
-            <div className="p-5 bg-background rounded-lg border border-border shadow-sm">
-                <div className="flex flex-col gap-4 mb-6">
-                    <p className="text-sm text-muted-foreground">
-                        {Object.values(debouncedFilters).some(v => v)
-                            ? `Showing ${filteredCustomers.length} matching results${pageInfo?.totalCount ? ` (filtered from ${pageInfo.totalCount} total matching)` : ` (filtered from ${allCustomers.length} loaded)`}`
-                            : `Loaded ${allCustomers.length}${pageInfo?.totalCount ? ` of ${pageInfo.totalCount}` : ''} customers${hasMore ? ' (scroll for more)' : ''}`
-                        }
+            <div className='p-5 bg-background rounded-lg border border-border shadow-sm'>
+                <div className="flex flex-col gap-4 mb-4">
+                    <p className="text-sm font-medium text-muted-foreground">
+                        Total Customers: <span className="text-foreground">{pageInfo?.totalCount ?? 0}</span>
                     </p>
                 </div>
 
@@ -1171,16 +1439,21 @@ export function CustomersPage() {
                     rowKey={(row) => row.uid}
                     emptyMessage='No customers found. Click "Add Customer" to create one.'
                     loadingMessage="Loading customers..."
-                    infiniteScroll
-                    hasMore={hasMore}
-                    isLoadingMore={isLoadingMore}
-                    onLoadMore={handleLoadMore}
+                    /* Fixed height for pagination - adjusted to ensure footer is visible */
+                    containerHeightClass="h-[calc(100vh-280px)]"
                     enableSelection={true}
                     selectedRowKeys={selectedCustomerIds}
                     onSelectionChange={setSelectedCustomerIds}
                     onSelectAll={handleSelectAll}
                     isSelectingAll={isSelectingAll}
                     totalFilteredCount={totalFilteredCount}
+                    pagination={{
+                        currentPage,
+                        pageSize: limit,
+                        onPageChange: handlePageChange,
+                        hasNextPage: !!pageInfo?.hasNextPage,
+                        hasPreviousPage: currentPage > 1,
+                    }}
                 />
             </div>
 
@@ -1246,7 +1519,12 @@ export function CustomersPage() {
             <Modal
                 isOpen={detailsModalOpen}
                 onClose={() => { setDetailsModalOpen(false); setReminderSent(false); }}
-                title={selectedCustomerDetails ? `Customer details · ${selectedCustomerDetails.firstName} ${selectedCustomerDetails.lastName}` : 'Customer details'}
+                title={selectedCustomerDetails ? (
+                    <>
+                        <span className="hidden sm:inline">Customer details · </span>
+                        <span>{selectedCustomerDetails.firstName} {selectedCustomerDetails.lastName}</span>
+                    </>
+                ) : 'Customer details'}
                 size="full"
                 footer={
                     <div className="flex justify-end gap-2">
@@ -1303,12 +1581,12 @@ export function CustomersPage() {
                             <div className="relative flex justify-between items-start">
                                 {[
                                     { label: 'Offer sent', date: selectedCustomerDetails.createdAt, completed: true, step: 1 },
-                                    { label: 'Signed by customer', date: selectedCustomerDetails.signDate, completed: selectedCustomerDetails.status >= 2, showReminder: selectedCustomerDetails.status < 2, step: 2 },
+                                    { label: 'Signed by customer', date: selectedCustomerDetails.signDate, completed: !!selectedCustomerDetails.signDate, showReminder: selectedCustomerDetails.status < 2, step: 2 },
                                     ...(selectedCustomerDetails.vppDetails?.vpp === 1 ? [
                                         { label: 'VPP connect', date: null, completed: selectedCustomerDetails.vppDetails?.vppConnected === 1, showToggle: true, disabled: selectedCustomerDetails.status < 2, step: 3 },
                                     ] : []),
                                     { label: 'Connected to MSAT', date: null, completed: selectedCustomerDetails.msatDetails?.msatConnected === 1, showToggle: true, disabled: selectedCustomerDetails.vppDetails?.vpp === 1 && selectedCustomerDetails.vppDetails?.vppConnected !== 1, step: 4 },
-                                    { label: 'Utilmate Connect', date: null, completed: !!selectedCustomerDetails.utilmateStatus, showToggle: true, step: 5 },
+                                    { label: 'Utilmate Connect', date: null, completed: selectedCustomerDetails.utilmateDetails?.utilmateConnected === 1, showToggle: true, disabled: selectedCustomerDetails.msatDetails?.msatConnected !== 1, step: 5 },
                                 ].map((item, index, arr) => (
                                     <div key={index} className="relative flex flex-col items-center" style={{ width: `${100 / arr.length}%` }}>
                                         {index > 0 && (
@@ -1340,11 +1618,11 @@ export function CustomersPage() {
                                                                 </div>
                                                                 <div className="flex justify-between gap-4">
                                                                     <span className="text-muted-foreground">Connected:</span>
-                                                                    <span>{selectedCustomerDetails.msatDetails?.msatConnectedAt ? formatDateTime(selectedCustomerDetails.msatDetails.msatConnectedAt) : '—'}</span>
+                                                                    <span>{selectedCustomerDetails.msatDetails?.msatConnectedAt ? formatSydneyTime(selectedCustomerDetails.msatDetails.msatConnectedAt) : '—'}</span>
                                                                 </div>
                                                                 <div className="flex justify-between gap-4">
                                                                     <span className="text-muted-foreground">Updated:</span>
-                                                                    <span>{selectedCustomerDetails.msatDetails?.msatUpdatedAt ? formatDateTime(selectedCustomerDetails.msatDetails.msatUpdatedAt) : '—'}</span>
+                                                                    <span>{selectedCustomerDetails.msatDetails?.msatUpdatedAt ? formatSydneyTime(selectedCustomerDetails.msatDetails.msatUpdatedAt) : '—'}</span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1356,7 +1634,7 @@ export function CustomersPage() {
                                                 </Tooltip>
                                             )}
                                         </div>
-                                        {item.date && <span className="text-[10px] text-muted-foreground">{formatDateTime(item.date)}</span>}
+                                        {item.date && <span className="text-[10px] text-muted-foreground">{formatSydneyTime(item.date)}</span>}
                                         {item.showReminder && (
                                             <button
                                                 onClick={() => handleSendReminder(selectedCustomerDetails.uid)}
@@ -1376,19 +1654,37 @@ export function CustomersPage() {
 
                                         {item.showToggle && (
                                             <div className="mt-1 relative z-30">
-                                                <ToggleSwitch
-                                                    checked={item.completed}
-                                                    disabled={item.disabled}
-                                                    onChange={(val) => {
+                                                <ConfirmationPopover
+                                                    title="Disconnect?"
+                                                    description="Are you sure you want to disconnect this service?"
+                                                    enabled={item.completed}
+                                                    onConfirm={() => {
                                                         if (item.step === 3) {
-                                                            handleVppToggle(selectedCustomerDetails.uid, val);
+                                                            handleVppToggle(selectedCustomerDetails.uid, false);
                                                         } else if (item.step === 4) {
-                                                            handleMsatToggle(selectedCustomerDetails.uid, val);
-                                                        } else {
-                                                            console.log('Toggle', item.label, val);
+                                                            handleMsatToggle(selectedCustomerDetails.uid, false);
+                                                        } else if (item.step === 5) {
+                                                            handleUtilmateToggle(selectedCustomerDetails.uid, false);
                                                         }
                                                     }}
-                                                />
+                                                >
+                                                    <ToggleSwitch
+                                                        checked={item.completed}
+                                                        disabled={item.disabled}
+                                                        onChange={(val) => {
+                                                            // Only handle turning ON here. Turning OFF is handled by onConfirm.
+                                                            if (val) {
+                                                                if (item.step === 3) {
+                                                                    handleVppToggle(selectedCustomerDetails.uid, true);
+                                                                } else if (item.step === 4) {
+                                                                    handleMsatToggle(selectedCustomerDetails.uid, true);
+                                                                } else if (item.step === 5) {
+                                                                    handleUtilmateToggle(selectedCustomerDetails.uid, true);
+                                                                }
+                                                            }
+                                                        }}
+                                                    />
+                                                </ConfirmationPopover>
                                             </div>
                                         )}
                                     </div>
@@ -1396,355 +1692,676 @@ export function CustomersPage() {
                             </div>
                         </div>
 
-                        {/* Three Column Layout */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-                            {/* Customer Info Card */}
-                            <AccordionCard
-                                title="Customer Info"
-                                icon={
-                                    <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                                    </div>
-                                }
-                            >
-                                <div className="space-y-3">
-                                    {[
-                                        { label: 'Customer Id', value: selectedCustomerDetails.customerId },
-                                        { label: 'Business', value: selectedCustomerDetails.businessName },
-                                        { label: 'ABN', value: selectedCustomerDetails.abn },
-                                        { label: 'Email', value: selectedCustomerDetails.email },
-                                        { label: 'Mobile', value: selectedCustomerDetails.number },
-                                        { label: 'DOB', value: selectedCustomerDetails.dob ? formatDate(selectedCustomerDetails.dob) : null },
-                                        { label: 'ID Type', value: ID_TYPE_MAP[selectedCustomerDetails.enrollmentDetails?.idtype ?? -1] },
-                                        { label: 'ID Number', value: selectedCustomerDetails.enrollmentDetails?.idnumber },
-                                        { label: 'ID State', value: selectedCustomerDetails.enrollmentDetails?.idstate },
-                                        { label: 'ID Expiry', value: selectedCustomerDetails.enrollmentDetails?.idexpiry ? formatDate(selectedCustomerDetails.enrollmentDetails.idexpiry) : null },
-                                    ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-border last:border-0">
-                                            <span className="text-xs text-muted-foreground">{item.label}</span>
-                                            <span className="text-xs font-medium text-foreground text-right max-w-[180px] truncate">{item.value || '—'}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </AccordionCard>
+                        {/* Master-Detail Layout */}
+                        <div className="flex flex-col lg:flex-row gap-6 items-start min-h-[500px]">
+                            {/* Navigation Sidebar */}
+                            <div className="w-full lg:w-64 flex-shrink-0 flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible gap-2 lg:space-y-1 pb-2 lg:pb-0">
+                                {[
+                                    {
+                                        id: 'info',
+                                        label: 'Customer Info',
+                                        mobileLabel: 'Info',
+                                        icon: (
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${selectedDetailSection === 'info' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                            </div>
+                                        )
+                                    },
+                                    {
+                                        id: 'location',
+                                        label: 'Location & Meter',
+                                        mobileLabel: 'Location',
+                                        icon: (
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${selectedDetailSection === 'location' ? 'bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                            </div>
+                                        )
+                                    },
+                                    {
+                                        id: 'account',
+                                        label: 'Account Settings',
+                                        mobileLabel: 'Account',
+                                        icon: (
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${selectedDetailSection === 'account' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                            </div>
+                                        )
+                                    },
+                                    ...(selectedCustomerDetails.ratePlan ? [{
+                                        id: 'rates',
+                                        label: 'Rate Plan',
+                                        mobileLabel: 'Rates',
+                                        icon: (
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${selectedDetailSection === 'rates' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                            </div>
+                                        ),
+                                        badge: <span className="ml-auto px-2 py-0.5 text-[10px] font-medium bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full border border-amber-200/50 dark:border-amber-800/50 truncate max-w-[80px] hidden lg:block">{selectedCustomerDetails.tariffCode || selectedCustomerDetails.ratePlan.tariff || 'View'}</span>
+                                    }] : []),
 
-                            {/* Location Card */}
-                            <AccordionCard
-                                title="Location & Meter"
-                                icon={
-                                    <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
-                                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                    </div>
-                                }
-                            >
-                                <div className="space-y-3">
-                                    {[
-                                        { label: 'Address', value: selectedCustomerDetails.address?.fullAddress || [selectedCustomerDetails.address?.streetNumber, selectedCustomerDetails.address?.streetName, selectedCustomerDetails.address?.suburb].filter(Boolean).join(' ') },
-                                        { label: 'State', value: selectedCustomerDetails.address?.state },
-                                        { label: 'Postcode', value: selectedCustomerDetails.address?.postcode },
-                                        { label: 'NMI', value: selectedCustomerDetails.address?.nmi },
-                                        { label: 'Tariff Code', value: selectedCustomerDetails.tariffCode },
-                                    ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-start py-1.5 border-b border-border last:border-0">
-                                            <span className="text-xs text-muted-foreground shrink-0 w-24">{item.label}</span>
-                                            <span className="text-xs font-medium text-foreground text-right flex-1 break-words">{item.value || '—'}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </AccordionCard>
+                                    ...(selectedCustomerDetails.solarDetails?.hassolar === 1 ? [{
+                                        id: 'solar',
+                                        label: 'Solar System',
+                                        mobileLabel: 'Solar',
+                                        icon: (
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${selectedDetailSection === 'solar' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
+                                            </div>
+                                        ),
+                                        badge: <span className="ml-auto px-2 py-0.5 text-[10px] font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 rounded-full hidden lg:block">Has Solar</span>
+                                    }] : []),
+                                    ...(selectedCustomerDetails.debitDetails?.optIn === 1 ? [{
+                                        id: 'debit',
+                                        label: 'Debit Details',
+                                        mobileLabel: 'Debit',
+                                        icon: (
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${selectedDetailSection === 'debit' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                                            </div>
+                                        ),
+                                        badge: <span className="ml-auto px-2 py-0.5 text-[10px] font-medium bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-full hidden lg:block">Active</span>
+                                    }] : []),
+                                    ...(selectedCustomerDetails.vppDetails?.vpp === 1 ? [{
+                                        id: 'vpp',
+                                        label: 'VPP Participant',
+                                        mobileLabel: 'VPP',
+                                        icon: (
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${selectedDetailSection === 'vpp' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                                <ZapIcon className="w-4 h-4" />
+                                            </div>
+                                        ),
+                                        badge: <span className="ml-auto px-2 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-full hidden lg:block">Active</span>
+                                    }] : []),
+                                    ...(selectedCustomerDetails.utilmateDetails?.utilmateConnected === 1 ? [{
+                                        id: 'utilmate',
+                                        label: 'Utilmate Details',
+                                        mobileLabel: 'Utilmate',
+                                        icon: (
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${selectedDetailSection === 'utilmate' ? 'bg-sky-100 text-sky-600 dark:bg-sky-900/50 dark:text-sky-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                                <PlugIcon className="w-4 h-4" />
+                                            </div>
+                                        ),
+                                    }] : [])
+                                ].map((item) => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => setSelectedDetailSection(item.id as 'info' | 'location' | 'account' | 'rates' | 'solar' | 'debit' | 'vpp' | 'utilmate')}
+                                        className={`flex-1 flex flex-col lg:flex-row items-center lg:w-full gap-1 lg:gap-3 p-2 rounded-xl text-sm font-medium transition-all ${selectedDetailSection === item.id
+                                            ? 'bg-card shadow-sm border border-border text-foreground ring-1 ring-primary/5'
+                                            : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                            } justify-center lg:justify-start`}
+                                        title={item.label}
+                                    >
+                                        {item.icon}
+                                        <span className="lg:hidden text-[10px]">{item.mobileLabel}</span>
+                                        <span className="hidden lg:block">{item.label}</span>
+                                        {item.badge}
+                                    </button>
+                                ))}
+                            </div>
 
-                            {/* Account Settings Card */}
-                            <AccordionCard
-                                title="Account Settings"
-                                icon={
-                                    <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
-                                        <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                    </div>
-                                }
-                            >
-                                <div className="space-y-3">
-                                    {[
-                                        { label: 'Sale Type', value: SALE_TYPE_LABELS[selectedCustomerDetails.enrollmentDetails?.saletype ?? 0] || 'Direct' },
-                                        { label: 'Billing', value: BILLING_PREF_LABELS[selectedCustomerDetails.enrollmentDetails?.billingpreference ?? 0] || 'eBill' },
-                                        { label: 'Discount', value: selectedCustomerDetails.discount ? `${selectedCustomerDetails.discount}%` : '-' },
-                                        { label: 'Rate Version', value: selectedCustomerDetails.rateVersion ?? '—' },
-                                        { label: 'Connection Date', value: selectedCustomerDetails.enrollmentDetails?.connectiondate ? formatDate(selectedCustomerDetails.enrollmentDetails.connectiondate) : null },
-                                        { label: 'Concession', value: selectedCustomerDetails.enrollmentDetails?.concession === 1 ? 'Yes' : 'No' },
-                                        { label: 'Life Support', value: selectedCustomerDetails.enrollmentDetails?.lifesupport === 1 ? 'Yes' : 'No' },
-                                    ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-center py-1.5 border-b border-border last:border-0">
-                                            <span className="text-xs text-muted-foreground">{item.label}</span>
-                                            <span className="text-xs font-medium text-foreground">{item.value || '—'}</span>
+                            {/* Content Area */}
+                            <div className="w-full flex-1 bg-card rounded-xl border border-border p-6 shadow-sm min-h-[500px] flex flex-col">
+                                {selectedDetailSection === 'info' && (
+                                    <div className="space-y-4 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between border-b border-border pb-4">
+                                            <h3 className="text-xl font-semibold text-foreground tracking-tight">Customer Info</h3>
                                         </div>
-                                    ))}
-                                </div>
-                            </AccordionCard>
-                        </div>
-
-                        {/* VPP, MSAT, Solar & Debit Details Row */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-                            {/* VPP Participant Card */}
-                            {selectedCustomerDetails.vppDetails?.vpp === 1 && (
-                                <AccordionCard
-                                    title="VPP Participant"
-                                    icon={
-                                        <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                                        </div>
-                                    }
-                                    badge={
-                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">Enrolled</span>
-                                    }
-                                >
-                                    <div className="space-y-3">
-                                        {[
-                                            { label: 'VPP Enrolled', value: 'Yes' },
-                                            { label: 'VPP Connected', value: selectedCustomerDetails.vppDetails?.vppConnected === 1 ? 'Yes' : 'No' },
-                                            { label: 'Signup Bonus', value: selectedCustomerDetails.vppDetails?.vppSignupBonus ? '$50 monthly bill credit for 12 months (total $600)' : '—' },
-                                            // VPP Participant / Battery Details
-                                            ...(selectedCustomerDetails.batteryDetails ? [
-                                                { label: 'Battery Brand', value: selectedCustomerDetails.batteryDetails.batterybrand },
-                                                { label: 'SN Number', value: selectedCustomerDetails.batteryDetails.snnumber },
-                                                { label: 'Battery Capacity', value: selectedCustomerDetails.batteryDetails.batterycapacity ? `${selectedCustomerDetails.batteryDetails.batterycapacity} kW` : null },
-                                                { label: 'Export Limit', value: selectedCustomerDetails.batteryDetails.exportlimit ? `${selectedCustomerDetails.batteryDetails.exportlimit} kW` : null },
-                                            ] : [])
-                                        ].map((item, i) => (
-                                            item.value ? ( // Only show if value exists (for battery props) or keep existing logic
-                                                <div key={i} className="flex justify-between items-start py-1.5 border-b border-border last:border-0">
-                                                    <span className="text-xs text-muted-foreground shrink-0 w-24 pt-0.5">{item.label}</span>
-                                                    <span className={`text-xs font-medium text-foreground text-right flex-1 ${item.value.toString().length > 30 ? 'leading-relaxed' : ''}`}>{item.value}</span>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            {[
+                                                { label: 'Customer Id', value: selectedCustomerDetails.customerId },
+                                                { label: 'Business', value: selectedCustomerDetails.businessName },
+                                                { label: 'ABN', value: selectedCustomerDetails.abn },
+                                                { label: 'Email', value: selectedCustomerDetails.email, fullWidth: true },
+                                                { label: 'Mobile', value: selectedCustomerDetails.number },
+                                                { label: 'DOB', value: selectedCustomerDetails.dob ? formatSydneyTime(selectedCustomerDetails.dob, 'DD/MM/YYYY') : null },
+                                                { label: 'ID Type', value: ID_TYPE_MAP[selectedCustomerDetails.enrollmentDetails?.idtype ?? -1] },
+                                                { label: 'ID Number', value: selectedCustomerDetails.enrollmentDetails?.idnumber },
+                                                { label: 'ID State', value: selectedCustomerDetails.enrollmentDetails?.idstate },
+                                                { label: 'ID Expiry', value: selectedCustomerDetails.enrollmentDetails?.idexpiry ? formatSydneyTime(selectedCustomerDetails.enrollmentDetails.idexpiry, 'DD/MM/YYYY') : null },
+                                            ].map((item, i) => (
+                                                <div key={i} className={`flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50 ${item.fullWidth ? 'col-span-1 sm:col-span-2 lg:col-span-3' : ''}`}>
+                                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
+                                                    <span className="text-sm font-medium text-foreground break-words">{item.value || '—'}</span>
                                                 </div>
-                                            ) : null
-                                        ))}
-                                    </div>
-                                </AccordionCard>
-                            )}
-
-
-
-                            {/* Solar System Card */}
-                            {selectedCustomerDetails.solarDetails?.hassolar === 1 && (
-                                <AccordionCard
-                                    title="Solar System"
-                                    icon={
-                                        <div className="w-8 h-8 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
+                                            ))}
                                         </div>
-                                    }
-                                    badge={
-                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 rounded-full">Has Solar</span>
-                                    }
-                                >
-                                    <div className="space-y-3">
-                                        {[
-                                            { label: 'Has Solar', value: 'Yes' },
-                                            { label: 'Solar Capacity', value: selectedCustomerDetails.solarDetails?.solarcapacity ? `${selectedCustomerDetails.solarDetails.solarcapacity} kW` : '—' },
-                                            { label: 'Inverter Capacity', value: selectedCustomerDetails.solarDetails?.invertercapacity ? `${selectedCustomerDetails.solarDetails.invertercapacity} kW` : '—' },
-                                        ].map((item, i) => (
-                                            <div key={i} className="flex justify-between items-center py-1.5 border-b border-border last:border-0">
-                                                <span className="text-xs text-muted-foreground">{item.label}</span>
-                                                <span className="text-xs font-medium text-foreground">{item.value}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </AccordionCard>
-                            )}
-
-                            {/* Debit Details Card */}
-                            {selectedCustomerDetails.debitDetails?.optIn === 1 && (
-                                <AccordionCard
-                                    title="Debit Details"
-                                    icon={
-                                        <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
-                                            <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                                        </div>
-                                    }
-                                    badge={
-                                        <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-full">Active</span>
-                                    }
-                                >
-                                    <div className="space-y-3">
-                                        {[
-                                            { label: 'Name', value: selectedCustomerDetails.debitDetails.accountType === 0 ? selectedCustomerDetails.debitDetails.companyName : `${selectedCustomerDetails.debitDetails.firstName} ${selectedCustomerDetails.debitDetails.lastName}` },
-                                            { label: 'Type', value: selectedCustomerDetails.debitDetails.accountType === 0 ? 'Business' : 'Personal' },
-                                            ...(selectedCustomerDetails.debitDetails.accountType === 0 ? [{ label: 'ABN', value: selectedCustomerDetails.debitDetails.abn }] : []),
-                                            { label: 'Bank', value: selectedCustomerDetails.debitDetails.bankName },
-                                            { label: 'BSB', value: selectedCustomerDetails.debitDetails.bsb },
-                                            { label: 'Account', value: selectedCustomerDetails.debitDetails.accountNumber },
-                                            {
-                                                label: 'Frequency',
-                                                value: selectedCustomerDetails.debitDetails.paymentFrequency === 0 ? 'Monthly' :
-                                                    selectedCustomerDetails.debitDetails.paymentFrequency === 1 ? 'Fortnightly' : 'Weekly'
-                                            },
-                                            { label: 'Start Date', value: selectedCustomerDetails.debitDetails.firstDebitDate ? formatDate(selectedCustomerDetails.debitDetails.firstDebitDate) : '—' },
-                                        ].map((item, i) => (
-                                            <div key={i} className="flex justify-between items-center py-1.5 border-b border-border last:border-0">
-                                                <span className="text-xs text-muted-foreground">{item.label}</span>
-                                                <span className="text-xs font-medium text-foreground text-right">{item.value || '—'}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </AccordionCard>
-                            )}
-                        </div>
-
-                        {/* Rate Plan Section */}
-                        {selectedCustomerDetails.ratePlan && (
-                            <details className="bg-card rounded-xl border border-border shadow-sm overflow-hidden group">
-                                <summary className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 px-5 py-4 border-b border-border list-none cursor-pointer [&::-webkit-details-marker]:hidden">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
-                                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                                            </div>
-                                            <div>
-                                                <h3 className="text-sm font-semibold text-foreground">Rate Plan: {selectedCustomerDetails.tariffCode || selectedCustomerDetails.ratePlan?.tariff}</h3>
-                                                <p className="text-xs text-muted-foreground">DNSP: {DNSP_LABELS[selectedCustomerDetails.ratePlan?.dnsp ?? -1]} • VPP: {selectedCustomerDetails.vppDetails?.vpp === 1 ? 'Yes' : 'No'}</p>
-                                            </div>
-                                        </div>
-                                        <div className="transform transition-transform duration-200 group-open:rotate-90">
-                                            <ChevronRightIcon size={16} />
-                                        </div>
-                                    </div>
-                                </summary>
-
-                                {selectedCustomerDetails.ratePlan.offers && selectedCustomerDetails.ratePlan.offers.length > 0 && (
-                                    <div className="p-5 animate-in slide-in-from-top-2 duration-200">
-                                        {selectedCustomerDetails.ratePlan.offers.map((offer, idx) => {
-                                            const discount = selectedCustomerDetails.discount ?? 0;
-                                            const hasCL = (offer.cl1Usage || 0) > 0 || (offer.cl2Usage || 0) > 0;
-                                            const hasFiT = (offer.fit || 0) > 0 || (offer.fitPeak || 0) > 0 || (offer.fitCritical || 0) > 0 || (offer.fitVpp || 0) > 0;
-
-                                            return (
-                                                <div key={offer.uid || idx}>
-                                                    <div className="flex flex-wrap gap-8">
-                                                        {/* Column 1: Energy Rates */}
-                                                        <div className="space-y-4 min-w-[180px] flex-1">
-                                                            <div className="flex items-center gap-2 text-blue-500 dark:text-blue-400">
-                                                                <Settings2Icon size={16} />
-                                                                <h4 className="text-sm font-bold uppercase tracking-wide">Energy Rates</h4>
-                                                            </div>
-                                                            <div className="space-y-3">
-                                                                {(offer.peak ?? 0) > 0 && (
-                                                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.peak ?? 0, discount).toFixed(4)}/kWh</div>
-                                                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Peak</div>
-                                                                    </div>
-                                                                )}
-                                                                {(offer.offPeak ?? 0) > 0 && (
-                                                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.offPeak ?? 0, discount).toFixed(4)}/kWh</div>
-                                                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Off-Peak</div>
-                                                                    </div>
-                                                                )}
-                                                                {(offer.shoulder ?? 0) > 0 && (
-                                                                    <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                        <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.shoulder ?? 0, discount).toFixed(4)}/kWh</div>
-                                                                        <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Shoulder</div>
-                                                                    </div>
-                                                                )}
-                                                                {(offer.anytime ?? 0) > 0 && (
-                                                                    <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                        <div className="text-orange-600 dark:text-orange-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.anytime ?? 0, discount).toFixed(4)}/kWh</div>
-                                                                        <div className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider opacity-80">Anytime</div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Column 2: Supply Charges */}
-                                                        <div className="space-y-4 min-w-[180px] flex-1">
-                                                            <div className="flex items-center gap-2 text-purple-500 dark:text-purple-400">
-                                                                <PlugIcon size={16} />
-                                                                <h4 className="text-sm font-bold uppercase tracking-wide">Supply Charges</h4>
-                                                            </div>
-                                                            <div className="space-y-3">
-                                                                <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                    <div className="text-purple-600 dark:text-purple-400 font-bold text-base tracking-tight">${(offer.supplyCharge ?? 0).toFixed(4)}/day</div>
-                                                                    <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">Supply</div>
-                                                                </div>
-                                                                {(offer.vppOrcharge ?? 0) > 0 && (
-                                                                    <>
-                                                                        <div className="flex items-center gap-2 text-amber-500 dark:text-amber-400 mt-4">
-                                                                            <ActivityIcon size={16} />
-                                                                            <h4 className="text-sm font-bold uppercase tracking-wide">VPP Orchestration Charges</h4>
-                                                                        </div>
-                                                                        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                            <div className="text-amber-600 dark:text-amber-400 font-bold text-base tracking-tight">${(offer.vppOrcharge ?? 0).toFixed(4)}/day</div>
-                                                                            <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider opacity-80">Orchestration</div>
-                                                                        </div>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Column 3: Solar FiT */}
-                                                        {hasFiT && (
-                                                            <div className="space-y-4 min-w-[180px] flex-1">
-                                                                <div className="flex items-center gap-2 text-teal-500 dark:text-teal-400">
-                                                                    <ZapIcon size={16} />
-                                                                    <h4 className="text-sm font-bold uppercase tracking-wide">Solar FiT</h4>
-                                                                </div>
-                                                                <div className="space-y-3">
-                                                                    {(offer.fit ?? 0) > 0 && (
-                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fit ?? 0).toFixed(4)}/kWh</div>
-                                                                            <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">Feed-in</div>
-                                                                        </div>
-                                                                    )}
-                                                                    {(offer.fitPeak ?? 0) > 0 && (
-                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitPeak ?? 0).toFixed(4)}/kWh</div>
-                                                                            <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Peak</div>
-                                                                        </div>
-                                                                    )}
-                                                                    {(offer.fitCritical ?? 0) > 0 && (
-                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitCritical ?? 0).toFixed(4)}/kWh</div>
-                                                                            <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Critical</div>
-                                                                        </div>
-                                                                    )}
-                                                                    {(offer.fitVpp ?? 0) > 0 && (
-                                                                        <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                            <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitVpp ?? 0).toFixed(4)}/kWh</div>
-                                                                            <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT VPP</div>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Column 4: Controlled Load */}
-                                                        {hasCL && (
-                                                            <div className="space-y-4 min-w-[180px] flex-1">
-                                                                <div className="flex items-center gap-2 text-green-500 dark:text-green-400">
-                                                                    <PlugIcon size={16} />
-                                                                    <h4 className="text-sm font-bold uppercase tracking-wide">Controlled Load</h4>
-                                                                </div>
-                                                                <div className="space-y-3">
-                                                                    {(offer.cl1Usage ?? 0) > 0 && (
-                                                                        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                            <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.cl1Usage ?? 0, discount).toFixed(4)}/kWh</div>
-                                                                            <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL1 Usage</div>
-                                                                        </div>
-                                                                    )}
-                                                                    {(offer.cl2Usage ?? 0) > 0 && (
-                                                                        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
-                                                                            <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.cl2Usage ?? 0, discount).toFixed(4)}/kWh</div>
-                                                                            <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL2 Usage</div>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
                                     </div>
                                 )}
-                            </details>
-                        )}
+
+                                {selectedDetailSection === 'location' && (
+                                    <div className="space-y-4 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between border-b border-border pb-4">
+                                            <h3 className="text-xl font-semibold text-foreground tracking-tight">Location & Meter</h3>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div className="flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50 col-span-1 sm:col-span-2">
+                                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Address</span>
+                                                <span className="text-sm font-medium text-foreground break-words">{selectedCustomerDetails.address?.fullAddress || [selectedCustomerDetails.address?.streetNumber, selectedCustomerDetails.address?.streetName, selectedCustomerDetails.address?.suburb].filter(Boolean).join(' ') || '—'}</span>
+                                            </div>
+                                            {[
+                                                { label: 'State', value: selectedCustomerDetails.address?.state },
+                                                { label: 'Postcode', value: selectedCustomerDetails.address?.postcode },
+                                                { label: 'NMI', value: selectedCustomerDetails.address?.nmi },
+                                                { label: 'Tariff Code', value: selectedCustomerDetails.tariffCode },
+                                            ].map((item, i) => (
+                                                <div key={i} className="flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50">
+                                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
+                                                    <span className="text-sm font-medium text-foreground">{item.value || '—'}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedDetailSection === 'account' && (
+                                    <div className="space-y-4 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between border-b border-border pb-4">
+                                            <h3 className="text-xl font-semibold text-foreground tracking-tight">Account Settings</h3>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            {[
+                                                { label: 'Sale Type', value: SALE_TYPE_LABELS[selectedCustomerDetails.enrollmentDetails?.saletype ?? 0] || 'Direct' },
+                                                { label: 'Billing Preference', value: BILLING_PREF_LABELS[selectedCustomerDetails.enrollmentDetails?.billingpreference ?? 0] || 'eBill' },
+                                                { label: 'Discount', value: selectedCustomerDetails.discount ? `${selectedCustomerDetails.discount}%` : '-' },
+                                                { label: 'Rate Version', value: selectedCustomerDetails.rateVersion ?? '—' },
+                                                { label: 'Connection Date', value: selectedCustomerDetails.enrollmentDetails?.connectiondate ? formatSydneyTime(selectedCustomerDetails.enrollmentDetails.connectiondate, 'DD/MM/YYYY') : null },
+                                                { label: 'Concession', value: selectedCustomerDetails.enrollmentDetails?.concession === 1 ? 'Yes' : 'No' },
+                                                { label: 'Life Support', value: selectedCustomerDetails.enrollmentDetails?.lifesupport === 1 ? 'Yes' : 'No' },
+                                            ].map((item, i) => (
+                                                <div key={i} className="flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50">
+                                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
+                                                    <span className="text-sm font-medium text-foreground">{item.value || '—'}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedDetailSection === 'rates' && selectedCustomerDetails.ratePlan && (
+                                    <div className="space-y-4 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+                                            <h3 className="text-lg font-semibold text-foreground">Rate Plan Details</h3>
+                                            <div className="flex items-center gap-2">
+                                                <span className="px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground rounded-lg">DNSP: {DNSP_LABELS[selectedCustomerDetails.ratePlan.dnsp ?? -1] || 'Unknown'}</span>
+                                                {selectedCustomerDetails.vppDetails?.vpp === 1 && <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-lg">VPP Active</span>}
+                                            </div>
+                                        </div>
+
+                                        {selectedCustomerDetails.ratePlan.offers && selectedCustomerDetails.ratePlan.offers.length > 0 ? (
+                                            <div className="space-y-6">
+                                                {selectedCustomerDetails.ratePlan.offers.map((offer, idx) => {
+                                                    const discount = selectedCustomerDetails.discount ?? 0;
+                                                    const hasCL = (offer.cl1Usage || 0) > 0 || (offer.cl2Usage || 0) > 0;
+                                                    const hasFiT = (offer.fit || 0) > 0 || (offer.fitPeak || 0) > 0 || (offer.fitCritical || 0) > 0 || (offer.fitVpp || 0) > 0;
+
+                                                    return (
+                                                        <div key={offer.uid || idx} className="space-y-4">
+                                                            <div className="flex flex-wrap gap-8">
+                                                                {/* Column 1: Energy Rates */}
+                                                                <div className="space-y-4 min-w-[180px] flex-1">
+                                                                    <div className="flex items-center gap-2 text-blue-500 dark:text-blue-400">
+                                                                        <Settings2Icon size={16} />
+                                                                        <h4 className="text-sm font-bold uppercase tracking-wide">Energy Rates</h4>
+                                                                    </div>
+                                                                    <div className="space-y-3">
+                                                                        {(offer.peak ?? 0) > 0 && (
+                                                                            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                                <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.peak ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                                <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Peak</div>
+                                                                            </div>
+                                                                        )}
+                                                                        {(offer.offPeak ?? 0) > 0 && (
+                                                                            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                                <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.offPeak ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                                <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Off-Peak</div>
+                                                                            </div>
+                                                                        )}
+                                                                        {(offer.shoulder ?? 0) > 0 && (
+                                                                            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                                <div className="text-blue-600 dark:text-blue-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.shoulder ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                                <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider opacity-80">Shoulder</div>
+                                                                            </div>
+                                                                        )}
+                                                                        {(offer.anytime ?? 0) > 0 && (
+                                                                            <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                                <div className="text-orange-600 dark:text-orange-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.anytime ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                                <div className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider opacity-80">Anytime</div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Column 2: Supply Charges */}
+                                                                <div className="space-y-4 min-w-[180px] flex-1">
+                                                                    <div className="flex items-center gap-2 text-purple-500 dark:text-purple-400">
+                                                                        <PlugIcon size={16} />
+                                                                        <h4 className="text-sm font-bold uppercase tracking-wide">Supply Charges</h4>
+                                                                    </div>
+                                                                    <div className="space-y-3">
+                                                                        <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                            <div className="text-purple-600 dark:text-purple-400 font-bold text-base tracking-tight">${(offer.supplyCharge ?? 0).toFixed(4)}/day</div>
+                                                                            <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider opacity-80">Supply</div>
+                                                                        </div>
+                                                                        {(offer.vppOrcharge ?? 0) > 0 && (
+                                                                            <>
+                                                                                <div className="flex items-center gap-2 text-amber-500 dark:text-amber-400 mt-4">
+                                                                                    <ActivityIcon size={16} />
+                                                                                    <h4 className="text-sm font-bold uppercase tracking-wide">VPP Charges</h4>
+                                                                                </div>
+                                                                                <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                                    <div className="text-amber-600 dark:text-amber-400 font-bold text-base tracking-tight">${(offer.vppOrcharge ?? 0).toFixed(4)}/day</div>
+                                                                                    <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider opacity-80">Orchestration</div>
+                                                                                </div>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Column 3: Solar FiT */}
+                                                                {hasFiT && (
+                                                                    <div className="space-y-4 min-w-[180px] flex-1">
+                                                                        <div className="flex items-center gap-2 text-teal-500 dark:text-teal-400">
+                                                                            <ZapIcon size={16} />
+                                                                            <h4 className="text-sm font-bold uppercase tracking-wide">Solar FiT</h4>
+                                                                        </div>
+                                                                        <div className="space-y-3">
+                                                                            {(offer.fit ?? 0) > 0 && (
+                                                                                <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                                    <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fit ?? 0).toFixed(4)}/kWh</div>
+                                                                                    <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">Feed-in</div>
+                                                                                </div>
+                                                                            )}
+                                                                            {(offer.fitPeak ?? 0) > 0 && (
+                                                                                <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                                    <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitPeak ?? 0).toFixed(4)}/kWh</div>
+                                                                                    <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Peak</div>
+                                                                                </div>
+                                                                            )}
+                                                                            {(offer.fitCritical ?? 0) > 0 && (
+                                                                                <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                                    <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitCritical ?? 0).toFixed(4)}/kWh</div>
+                                                                                    <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Critical</div>
+                                                                                </div>
+                                                                            )}
+                                                                            {(offer.fitVpp ?? 0) > 0 && (
+                                                                                <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                                    <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitVpp ?? 0).toFixed(4)}/kWh</div>
+                                                                                    <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT VPP</div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Column 4: Controlled Load */}
+                                                                {hasCL && (
+                                                                    <div className="space-y-4 min-w-[180px] flex-1">
+                                                                        <div className="flex items-center gap-2 text-green-500 dark:text-green-400">
+                                                                            <PlugIcon size={16} />
+                                                                            <h4 className="text-sm font-bold uppercase tracking-wide">Controlled Load</h4>
+                                                                        </div>
+                                                                        <div className="space-y-3">
+                                                                            {(offer.cl1Usage ?? 0) > 0 && (
+                                                                                <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                                    <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.cl1Usage ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                                    <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL1 Usage</div>
+                                                                                </div>
+                                                                            )}
+                                                                            {(offer.cl2Usage ?? 0) > 0 && (
+                                                                                <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center space-y-0.5">
+                                                                                    <div className="text-green-600 dark:text-green-400 font-bold text-base tracking-tight">${calculateDiscountedRate(offer.cl2Usage ?? 0, discount).toFixed(4)}/kWh</div>
+                                                                                    <div className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider opacity-80">CL2 Usage</div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <p className="text-center text-muted-foreground py-8">No rate offers available.</p>
+                                        )}
+                                    </div>
+                                )}
+
+
+
+                                {selectedDetailSection === 'solar' && (
+                                    <div className="space-y-4 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between border-b border-border pb-4">
+                                            <h3 className="text-xl font-semibold text-foreground tracking-tight">Solar System</h3>
+                                            <span className="px-3 py-1 text-xs font-semibold bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full border border-yellow-200 dark:border-yellow-800">
+                                                System Installed
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            {[
+                                                { label: 'Has Solar', value: 'Yes' },
+                                                { label: 'Solar Capacity', value: selectedCustomerDetails.solarDetails?.solarcapacity ? `${selectedCustomerDetails.solarDetails.solarcapacity} kW` : '—' },
+                                                { label: 'Inverter Capacity', value: selectedCustomerDetails.solarDetails?.invertercapacity ? `${selectedCustomerDetails.solarDetails.invertercapacity} kW` : '—' },
+                                            ].map((item, i) => (
+                                                <div key={i} className="flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50">
+                                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
+                                                    <span className="text-sm font-medium text-foreground">{item.value}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedDetailSection === 'vpp' && selectedCustomerDetails.vppDetails?.vpp === 1 && (
+                                    <div className="space-y-4 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between border-b border-border pb-4">
+                                            <h3 className="text-xl font-semibold text-foreground tracking-tight">VPP Participation</h3>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-sm font-medium text-foreground">
+                                                    {selectedCustomerDetails.vppDetails?.vpp === 1 ? 'Active' : 'Inactive'}
+                                                </span>
+                                                <ConfirmationPopover
+                                                    title="Deactivate VPP?"
+                                                    description="Are you sure you want to deactivate VPP participation? This will also disconnect VPP services."
+                                                    enabled={selectedCustomerDetails.vppDetails?.vpp === 1}
+                                                    onConfirm={async () => {
+                                                        try {
+                                                            await updateCustomer({
+                                                                variables: {
+                                                                    uid: selectedCustomerDetails.uid,
+                                                                    input: { vppDetails: { vpp: 0, vppConnected: 0 } }
+                                                                }
+                                                            });
+                                                            toast.success('VPP deactivated');
+                                                            setSelectedCustomerDetails({
+                                                                ...selectedCustomerDetails,
+                                                                vppDetails: { ...selectedCustomerDetails.vppDetails, vpp: 0, vppConnected: 0 }
+                                                            });
+                                                            setIsEditingVpp(false);
+                                                        } catch (err: any) {
+                                                            toast.error('Failed to deactivate VPP');
+                                                        }
+                                                    }}
+                                                >
+                                                    <ToggleSwitch
+                                                        checked={selectedCustomerDetails.vppDetails?.vpp === 1}
+                                                        onChange={(checked) => {
+                                                            if (checked) {
+                                                                setVppForm({
+                                                                    vppSignupBonus: '600',
+                                                                    batteryBrand: '',
+                                                                    snNumber: '',
+                                                                    batteryCapacity: '',
+                                                                    exportLimit: '',
+                                                                    inverterCapacity: '',
+                                                                    checkCode: ''
+                                                                });
+                                                                setIsEditingVpp(true);
+                                                                // Optimistically set VPP to 1 to show the form, but don't save yet
+                                                                setSelectedCustomerDetails({
+                                                                    ...selectedCustomerDetails,
+                                                                    vppDetails: { ...selectedCustomerDetails.vppDetails, vpp: 1 }
+                                                                });
+                                                            }
+                                                        }}
+                                                    />
+                                                </ConfirmationPopover>
+                                            </div>
+                                        </div>
+
+                                        {(selectedCustomerDetails.vppDetails?.vpp === 1 || isEditingVpp) && (
+                                            <div className="space-y-6">
+                                                {/* {!isEditingVpp && (
+                                                    <div className="flex justify-end">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setVppForm({
+                                                                    vppSignupBonus: selectedCustomerDetails.vppDetails?.vppSignupBonus?.toString() || '',
+                                                                    batteryBrand: selectedCustomerDetails.batteryDetails?.batterybrand || '',
+                                                                    snNumber: selectedCustomerDetails.batteryDetails?.snnumber || '',
+                                                                    batteryCapacity: selectedCustomerDetails.batteryDetails?.batterycapacity?.toString() || '',
+                                                                    exportLimit: selectedCustomerDetails.batteryDetails?.exportlimit?.toString() || ''
+                                                                });
+                                                                setIsEditingVpp(true);
+                                                            }}
+                                                        >
+                                                            <PencilIcon className="w-4 h-4 mr-2" />
+                                                            Edit Details
+                                                        </Button>
+                                                    </div>
+                                                )} */}
+
+                                                {isEditingVpp ? (
+                                                    <div className="bg-muted/30 rounded-xl border border-dashed border-border p-6 space-y-6">
+                                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-background rounded-lg border border-border">
+                                                            <div>
+                                                                <div className="text-sm font-semibold text-foreground uppercase tracking-tight">VPP signup bonus</div>
+                                                                <div className="text-[10px] text-muted-foreground">Eligible customers receive a $50 monthly bill credit for 12 months.</div>
+                                                            </div>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => setVppForm({ ...vppForm, vppSignupBonus: vppForm.vppSignupBonus === '600' ? '' : '600' })}
+                                                                className={cn(
+                                                                    "transition-colors",
+                                                                    vppForm.vppSignupBonus === '600'
+                                                                        ? "bg-green-600 text-white border-green-600 hover:bg-green-700 hover:text-white"
+                                                                        : "border-input hover:bg-accent hover:text-accent-foreground"
+                                                                )}
+                                                            >
+                                                                {vppForm.vppSignupBonus === '600' ? 'Bonus Applied' : 'Add $600 Bonus'}
+                                                            </Button>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-semibold uppercase text-muted-foreground">Battery Brand</label>
+                                                                <Select
+                                                                    options={BATTERY_BRAND_OPTIONS}
+                                                                    value={vppForm.batteryBrand}
+                                                                    onChange={(val) => setVppForm({ ...vppForm, batteryBrand: val as string })}
+                                                                    placeholder="Select Brand..."
+                                                                    className="w-full"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-semibold uppercase text-muted-foreground">SN Number</label>
+                                                                <Input
+                                                                    value={vppForm.snNumber}
+                                                                    onChange={(e) => setVppForm({ ...vppForm, snNumber: e.target.value })}
+                                                                    placeholder="SN..."
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-semibold uppercase text-muted-foreground">Capacity (kW)</label>
+                                                                <Input
+                                                                    type="number"
+                                                                    value={vppForm.batteryCapacity}
+                                                                    onChange={(e) => setVppForm({ ...vppForm, batteryCapacity: e.target.value })}
+                                                                    placeholder="13.5"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-semibold uppercase text-muted-foreground">Export Limit (kW)</label>
+                                                                <Input
+                                                                    type="number"
+                                                                    value={vppForm.exportLimit}
+                                                                    onChange={(e) => setVppForm({ ...vppForm, exportLimit: e.target.value })}
+                                                                    placeholder="5.0"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex justify-end gap-2 pt-2">
+                                                            <Button
+                                                                variant="ghost"
+                                                                onClick={() => {
+                                                                    setIsEditingVpp(false);
+                                                                    if (selectedCustomerDetails.vppDetails?.vpp !== 1) {
+                                                                        setSelectedCustomerDetails({
+                                                                            ...selectedCustomerDetails,
+                                                                            vppDetails: { ...selectedCustomerDetails.vppDetails, vpp: 0 }
+                                                                        });
+                                                                    }
+                                                                }}
+                                                            >
+                                                                Cancel
+                                                            </Button>
+                                                            <Button
+                                                                className="bg-neutral-900 text-white hover:bg-neutral-800"
+                                                                onClick={handleSaveVppDetails}
+                                                            >
+                                                                Save Details
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                        {[
+                                                            { label: 'VPP Connected', value: selectedCustomerDetails.vppDetails?.vppConnected === 1 ? 'Yes' : 'No' },
+                                                            { label: 'Signup Bonus', value: selectedCustomerDetails.vppDetails?.vppSignupBonus ? '$50 monthly bill credit for 12 months (total $600)' : 'None', fullWidth: true },
+                                                            { label: 'Battery Brand', value: selectedCustomerDetails.batteryDetails?.batterybrand },
+                                                            { label: 'SN Number', value: selectedCustomerDetails.batteryDetails?.snnumber },
+                                                            { label: 'Battery Capacity', value: selectedCustomerDetails.batteryDetails?.batterycapacity ? `${selectedCustomerDetails.batteryDetails.batterycapacity} kW` : null },
+                                                            { label: 'Export Limit', value: selectedCustomerDetails.batteryDetails?.exportlimit ? `${selectedCustomerDetails.batteryDetails.exportlimit} kW` : null },
+                                                            { label: 'Inverter Capacity', value: selectedCustomerDetails.batteryDetails?.inverterCapacity ? `${selectedCustomerDetails.batteryDetails.inverterCapacity} kW` : null },
+                                                            { label: 'Check Code', value: selectedCustomerDetails.batteryDetails?.checkCode },
+                                                        ].map((item, i) => (
+                                                            <div key={i} className={`flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50 ${(item as any).fullWidth ? 'col-span-1 sm:col-span-2 lg:col-span-3' : ''}`}>
+                                                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
+                                                                <span className="text-sm font-medium text-foreground">{item.value || '—'}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {selectedDetailSection === 'debit' && selectedCustomerDetails.debitDetails && (
+                                    <div className="space-y-4 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between border-b border-border pb-4">
+                                            <h3 className="text-xl font-semibold text-foreground tracking-tight">Direct Debit</h3>
+                                            <span className="px-3 py-1 text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full border border-emerald-200 dark:border-emerald-800">
+                                                Active
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            {[
+                                                { label: 'Account Name', value: selectedCustomerDetails.debitDetails.accountType === 0 ? selectedCustomerDetails.debitDetails.companyName : `${selectedCustomerDetails.debitDetails.firstName} ${selectedCustomerDetails.debitDetails.lastName}`, fullWidth: true },
+                                                { label: 'Type', value: selectedCustomerDetails.debitDetails.accountType === 0 ? 'Business' : 'Personal' },
+                                                ...(selectedCustomerDetails.debitDetails.accountType === 0 ? [{ label: 'ABN', value: selectedCustomerDetails.debitDetails.abn }] : []),
+                                                { label: 'Bank Name', value: selectedCustomerDetails.debitDetails.bankName },
+                                                { label: 'BSB', value: selectedCustomerDetails.debitDetails.bsb },
+                                                { label: 'Account Number', value: selectedCustomerDetails.debitDetails.accountNumber },
+                                                {
+                                                    label: 'Payment Frequency',
+                                                    value: selectedCustomerDetails.debitDetails.paymentFrequency === 0 ? 'Monthly' :
+                                                        selectedCustomerDetails.debitDetails.paymentFrequency === 1 ? 'Fortnightly' : 'Weekly'
+                                                },
+                                                { label: 'Start Date', value: selectedCustomerDetails.debitDetails.firstDebitDate ? formatSydneyTime(selectedCustomerDetails.debitDetails.firstDebitDate, 'DD/MM/YYYY') : '—' },
+                                            ].map((item, i) => (
+                                                <div key={i} className={`flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50 ${item.fullWidth ? 'col-span-1 sm:col-span-2 lg:col-span-3' : ''}`}>
+                                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
+                                                    <span className="text-sm font-medium text-foreground break-words">{item.value || '—'}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedDetailSection === 'utilmate' && (
+                                    <div className="space-y-4 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between border-b border-border pb-4">
+                                            <div>
+                                                <h3 className="text-xl font-semibold text-foreground tracking-tight">Utilmate Details</h3>
+                                                <p className="text-[10px] text-muted-foreground">Manage connection status and identifiers.</p>
+                                            </div>
+
+                                        </div>
+
+                                        {isEditingUtilmate ? (
+                                            <div className="bg-muted/30 rounded-xl border border-dashed border-border p-6 space-y-6">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-semibold uppercase text-muted-foreground">Site Identifier</label>
+                                                        <Input
+                                                            value={utilmateForm.siteIdentifier}
+                                                            onChange={(e) => {
+                                                                setUtilmateForm({ ...utilmateForm, siteIdentifier: e.target.value });
+                                                                setIsEditingUtilmate(true);
+                                                            }}
+                                                            placeholder="Site ID..."
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-semibold uppercase text-muted-foreground">Account Number</label>
+                                                        <Input
+                                                            value={utilmateForm.accountNumber}
+                                                            onChange={(e) => {
+                                                                setUtilmateForm({ ...utilmateForm, accountNumber: e.target.value });
+                                                                setIsEditingUtilmate(true);
+                                                            }}
+                                                            placeholder="Account #..."
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-end gap-2 pt-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        onClick={() => {
+                                                            setIsEditingUtilmate(false);
+                                                            setUtilmateForm({
+                                                                siteIdentifier: selectedCustomerDetails.utilmateDetails?.siteIdentifier || '',
+                                                                accountNumber: selectedCustomerDetails.utilmateDetails?.accountNumber || '',
+                                                                utilmateConnected: selectedCustomerDetails.utilmateDetails?.utilmateConnected || 0,
+                                                                utilmateConnectedAt: selectedCustomerDetails.utilmateDetails?.utilmateConnectedAt || ''
+                                                            });
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        className="bg-neutral-900 text-white hover:bg-neutral-800"
+                                                        onClick={handleSaveUtilmateDetails}
+                                                    >
+                                                        Save Details
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                <div
+                                                    className="flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50 cursor-pointer"
+                                                    onClick={() => setIsEditingUtilmate(true)}
+                                                >
+                                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Site Identifier</span>
+                                                    <span className="text-sm font-medium text-foreground">{selectedCustomerDetails.utilmateDetails?.siteIdentifier || '—'}</span>
+                                                </div>
+                                                <div
+                                                    className="flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50 cursor-pointer"
+                                                    onClick={() => setIsEditingUtilmate(true)}
+                                                >
+                                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Account Number</span>
+                                                    <span className="text-sm font-medium text-foreground">{selectedCustomerDetails.utilmateDetails?.accountNumber || '—'}</span>
+                                                </div>
+                                                <div className="flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50">
+                                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Connected At</span>
+                                                    <span className="text-sm font-medium text-foreground">{selectedCustomerDetails.utilmateDetails?.utilmateConnectedAt ? formatSydneyTime(selectedCustomerDetails.utilmateDetails.utilmateConnectedAt) : '—'}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+
                     </div>
                 ) : (
                     <p className="text-center text-muted-foreground py-8">No customer data available</p>
@@ -1787,6 +2404,153 @@ export function CustomersPage() {
                     <p className="text-gray-500 dark:text-gray-400">
                         This will create a new customer record and mark the current one as Frozen.
                     </p>
+                </div>
+            </Modal>
+
+            {/* VPP Connection Modal */}
+            <Modal
+                isOpen={vppConnectModalOpen}
+                onClose={() => setVppConnectModalOpen(false)}
+                title="Connect VPP - Battery Details"
+                size="md"
+                footer={
+                    <>
+                        <Button
+                            variant="ghost"
+                            onClick={() => setVppConnectModalOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-neutral-900 text-white hover:bg-neutral-800"
+                            onClick={handleConfirmVppConnect}
+                        >
+                            Connect & Save
+                        </Button>
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground mb-4">
+                        Please provide battery details to connect VPP.
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold uppercase text-muted-foreground">Battery Brand</label>
+                            <Select
+                                options={BATTERY_BRAND_OPTIONS}
+                                value={vppForm.batteryBrand}
+                                onChange={(val) => setVppForm({ ...vppForm, batteryBrand: val as string })}
+                                placeholder="Select Brand..."
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold uppercase text-muted-foreground">SN Number</label>
+                            <Input
+                                placeholder="e.g. SN12345678"
+                                value={vppForm.snNumber}
+                                onChange={(e) => setVppForm({ ...vppForm, snNumber: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2 relative">
+                            <label className="text-xs font-semibold uppercase text-muted-foreground">Battery Capacity</label>
+                            <div className="relative">
+                                <Input
+                                    type="number"
+                                    step="0.1"
+                                    placeholder="13.5"
+                                    value={vppForm.batteryCapacity}
+                                    onChange={(e) => setVppForm({ ...vppForm, batteryCapacity: e.target.value })}
+                                />
+                                <span className="absolute right-3 top-2.5 text-xs text-muted-foreground font-medium pointer-events-none">kW</span>
+                            </div>
+                        </div>
+                        <div className="space-y-2 relative">
+                            <label className="text-xs font-semibold uppercase text-muted-foreground">Export Limit</label>
+                            <div className="relative">
+                                <Input
+                                    type="number"
+                                    step="0.1"
+                                    placeholder="5.0"
+                                    value={vppForm.exportLimit}
+                                    onChange={(e) => setVppForm({ ...vppForm, exportLimit: e.target.value })}
+                                />
+                                <span className="absolute right-3 top-2.5 text-xs text-muted-foreground font-medium pointer-events-none">kW</span>
+                            </div>
+                        </div>
+                        <div className="space-y-2 relative">
+                            <label className="text-xs font-semibold uppercase text-muted-foreground">Inverter Capacity</label>
+                            <div className="relative">
+                                <Input
+                                    type="number"
+                                    step="0.1"
+                                    placeholder="6.0"
+                                    value={vppForm.inverterCapacity}
+                                    onChange={(e) => setVppForm({ ...vppForm, inverterCapacity: e.target.value })}
+                                />
+                                <span className="absolute right-3 top-2.5 text-xs text-muted-foreground font-medium pointer-events-none">kW</span>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold uppercase text-muted-foreground">Check Code</label>
+                            <Input
+                                placeholder="Verification Code"
+                                value={vppForm.checkCode}
+                                onChange={(e) => setVppForm({ ...vppForm, checkCode: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Utilmate Connection Modal */}
+            <Modal
+                isOpen={utilmateConnectModalOpen}
+                onClose={() => setUtilmateConnectModalOpen(false)}
+                title="Connect Utilmate"
+                size="md"
+                footer={
+                    <>
+                        <Button
+                            variant="ghost"
+                            onClick={() => setUtilmateConnectModalOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-neutral-900 text-white hover:bg-neutral-800"
+                            onClick={handleConfirmUtilmateConnect}
+                        >
+                            Connect & Save
+                        </Button>
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground mb-4">
+                        Please provide Utilmate details to connect.
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold uppercase text-muted-foreground">Site Identifier</label>
+                            <Input
+                                placeholder="Site ID..."
+                                value={utilmateForm.siteIdentifier}
+                                onChange={(e) => setUtilmateForm({ ...utilmateForm, siteIdentifier: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold uppercase text-muted-foreground">Account Number</label>
+                            <Input
+                                placeholder="Account #..."
+                                value={utilmateForm.accountNumber}
+                                onChange={(e) => setUtilmateForm({ ...utilmateForm, accountNumber: e.target.value })}
+                            />
+                        </div>
+                    </div>
                 </div>
             </Modal>
         </div>

@@ -1,18 +1,25 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useBlocker } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { DataTable, type Column, Modal } from '@/components/common';
-import { PlusIcon, FilterIcon, RefreshCwIcon, TrashIcon, PencilIcon, SaveIcon, ClockIcon } from '@/components/icons';
+import { PlusIcon, RefreshCwIcon, TrashIcon, PencilIcon, SaveIcon, ClockIcon, AlertCircleIcon } from '@/components/icons';
 import { GET_RATE_PLANS, HAS_RATES_CHANGES } from '@/graphql/queries/rates';
-import { CREATE_RATE_PLAN, UPDATE_RATE_PLAN, SOFT_DELETE_RATE_PLAN, RESTORE_RATE_PLAN, CREATE_RATES_SNAPSHOT } from '@/graphql/mutations/rates';
-import { formatDateTime } from '@/lib/date';
+import {
+    CREATE_RATE_PLAN,
+    // UPDATE_RATE_PLAN, 
+    UPDATE_RATE_PLANS,
+    SOFT_DELETE_RATE_PLAN, RESTORE_RATE_PLAN, CREATE_RATES_SNAPSHOT
+} from '@/graphql/mutations/rates';
+import { formatSydneyTime } from '@/lib/date';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { StatusField } from '@/components/common';
-import { STATE_OPTIONS, DNSP_OPTIONS } from '@/lib/constants';
+import { STATE_OPTIONS, DNSP_OPTIONS, DNSP_MAP, RATE_TYPE_MAP } from '@/lib/constants';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { RatesHistoryModal } from './components/RatesHistoryModal';
+
 
 // Interfaces based on the query
 interface RateOffer {
@@ -132,6 +139,13 @@ export function RatesPage() {
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editingRatePlan, setEditingRatePlan] = useState<RatePlan | null>(null);
 
+    // Local Edit State
+    const [localOriginals, setLocalOriginals] = useState<Map<string, RatePlan>>(new Map());
+    const [localModifiedUids, setLocalModifiedUids] = useState<Set<string>>(new Set());
+    const [localCreatedUids, setLocalCreatedUids] = useState<Set<string>>(new Set());
+    const [localDeletedUids, setLocalDeletedUids] = useState<Set<string>>(new Set());
+    const [localRestoredUids, setLocalRestoredUids] = useState<Set<string>>(new Set());
+
     // Delete/Restore state
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [ratePlanToDelete, setRatePlanToDelete] = useState<RatePlan | null>(null);
@@ -142,27 +156,281 @@ export function RatesPage() {
     const [isRestoring, setIsRestoring] = useState(false);
 
     // Mutations
+    // Mutations
     const [createRatePlan] = useMutation(CREATE_RATE_PLAN);
-    const [updateRatePlan] = useMutation(UPDATE_RATE_PLAN);
+    // const [updateRatePlan] = useMutation(UPDATE_RATE_PLAN);
+    const [updateRatePlans, { loading: isUpdating }] = useMutation(UPDATE_RATE_PLANS);
     const [softDeleteRatePlan] = useMutation(SOFT_DELETE_RATE_PLAN);
     const [restoreRatePlanMutation] = useMutation(RESTORE_RATE_PLAN);
     const [createRatesSnapshot, { loading: isSnapshotting }] = useMutation(CREATE_RATES_SNAPSHOT);
 
+    const handleResetLocalChanges = () => {
+        if (!hasLocalChanges) return;
+
+        // Revert allRatePlans to exclude local creations and restore local deletions/modifications
+        setAllRatePlans(prev => {
+            // Remove local creations
+            const filtered = prev.filter(p => !localCreatedUids.has(p.uid));
+
+            // Restore originals for modifications/deletions
+            return filtered.map(plan => {
+                const original = localOriginals.get(plan.uid);
+                return original ? JSON.parse(JSON.stringify(original)) : plan;
+            });
+        });
+
+        // Clear tracking
+        setLocalModifiedUids(new Set());
+        setLocalCreatedUids(new Set());
+        setLocalDeletedUids(new Set());
+        setLocalRestoredUids(new Set());
+        setLocalOriginals(new Map());
+
+        toast.info('Changes discarded');
+    };
+
     const handleCreateSnapshot = async () => {
+        // Collect all local changes
+        if (!hasLocalChanges && !hasUnsavedChanges) {
+            toast.info('No changes to save');
+            return;
+        }
+
         try {
-            const { data } = await createRatesSnapshot({
+            // 1. Creations
+            const createdPlans = Array.from(localCreatedUids)
+                .map(uid => allRatePlans.find(p => p.uid === uid))
+                .filter((p): p is RatePlan => !!p);
+
+            const creationPromises = createdPlans.map(plan => {
+                const input = {
+                    codes: Array.isArray(plan.codes) ? plan.codes.join(', ') : plan.codes,
+                    planId: plan.planId || undefined,
+                    tariff: plan.tariff || undefined,
+                    state: plan.state,
+                    dnsp: parseInt(String(plan.dnsp), 10),
+                    type: parseInt(String(plan.type || 0), 10),
+                    vpp: plan.vpp ? 1 : 0,
+                    discountApplies: plan.discountApplies ? 1 : 0,
+                    discountPercentage: plan.discountPercentage || 0,
+                    offers: plan.offers.map(o => ({
+                        offerName: o.offerName,
+                        anytime: parseFloat(String(o.anytime || 0)),
+                        supplyCharge: parseFloat(String(o.supplyCharge || 0)),
+                        vppOrcharge: parseFloat(String(o.vppOrcharge || 0)),
+                        peak: parseFloat(String(o.peak || 0)),
+                        shoulder: parseFloat(String(o.shoulder || 0)),
+                        offPeak: parseFloat(String(o.offPeak || 0)),
+                        cl1Supply: parseFloat(String(o.cl1Supply || 0)),
+                        cl1Usage: parseFloat(String(o.cl1Usage || 0)),
+                        cl2Supply: parseFloat(String(o.cl2Supply || 0)),
+                        cl2Usage: parseFloat(String(o.cl2Usage || 0)),
+                        demand: parseFloat(String(o.demand || 0)),
+                        demandOp: parseFloat(String(o.demandOp || 0)),
+                        demandP: parseFloat(String(o.demandP || 0)),
+                        demandS: parseFloat(String(o.demandS || 0)),
+                        fit: parseFloat(String(o.fit || 0)),
+                        fitPeak: parseFloat(String(o.fitPeak || 0)),
+                        fitCritical: parseFloat(String(o.fitCritical || 0)),
+                        fitVpp: parseFloat(String(o.fitVpp || 0)),
+                    }))
+                };
+                return createRatePlan({ variables: { input } });
+            });
+
+            // 2. Modifications - Filter out any plans that were locally created (temp UIDs)
+            const updateInputs = Array.from(localModifiedUids)
+                .filter(uid => !localCreatedUids.has(uid)) // CRITICAL: Skip temp UIDs
+                .map(uid => {
+                    const plan = allRatePlans.find(p => p.uid === uid);
+                    if (!plan) return null;
+
+                    const inputData = {
+                        codes: Array.isArray(plan.codes) ? plan.codes.join(',') : plan.codes,
+                        planId: plan.planId,
+                        tariff: plan.tariff,
+                        dnsp: typeof plan.dnsp === 'string' ? parseInt(plan.dnsp) : plan.dnsp,
+                        state: plan.state,
+                        type: parseInt(String(plan.type || 0), 10),
+                        vpp: plan.vpp,
+                        discountApplies: plan.discountApplies ? 1 : 0,
+                        discountPercentage: plan.discountPercentage,
+                        isActive: plan.isActive,
+                        offers: plan.offers.map(o => ({
+                            uid: o.uid.startsWith('temp-') ? undefined : o.uid,
+                            offerName: o.offerName,
+                            anytime: parseFloat(String(o.anytime || 0)),
+                            supplyCharge: parseFloat(String(o.supplyCharge || 0)),
+                            vppOrcharge: parseFloat(String(o.vppOrcharge || 0)),
+                            peak: parseFloat(String(o.peak || 0)),
+                            shoulder: parseFloat(String(o.shoulder || 0)),
+                            offPeak: parseFloat(String(o.offPeak || 0)),
+                            cl1Supply: parseFloat(String(o.cl1Supply || 0)),
+                            cl1Usage: parseFloat(String(o.cl1Usage || 0)),
+                            cl2Supply: parseFloat(String(o.cl2Supply || 0)),
+                            cl2Usage: parseFloat(String(o.cl2Usage || 0)),
+                            demand: parseFloat(String(o.demand || 0)),
+                            demandOp: parseFloat(String(o.demandOp || 0)),
+                            demandP: parseFloat(String(o.demandP || 0)),
+                            demandS: parseFloat(String(o.demandS || 0)),
+                            fit: parseFloat(String(o.fit || 0)),
+                            fitPeak: parseFloat(String(o.fitPeak || 0)),
+                            fitCritical: parseFloat(String(o.fitCritical || 0)),
+                            fitVpp: parseFloat(String(o.fitVpp || 0)),
+                        }))
+                    };
+
+                    return {
+                        uid: plan.uid,
+                        data: inputData
+                    };
+                })
+                .filter((i): i is { uid: string; data: any } => !!i);
+
+            const updatePromise = updateInputs.length > 0 ? updateRatePlans({ variables: { inputs: updateInputs } }) : Promise.resolve();
+
+            // 3. Deletions
+            const deletionPromises = Array.from(localDeletedUids).map(uid => softDeleteRatePlan({ variables: { uid } }));
+
+            // 4. Restorations
+            const restorationPromises = Array.from(localRestoredUids).map(uid => restoreRatePlanMutation({ variables: { uid } }));
+
+            // Execute all save operations
+            await Promise.all([...creationPromises, updatePromise, ...deletionPromises, ...restorationPromises]);
+
+            toast.success('All changes saved successfully');
+
+            // Clear local tracking
+            setLocalModifiedUids(new Set());
+            setLocalCreatedUids(new Set());
+            setLocalDeletedUids(new Set());
+            setLocalRestoredUids(new Set());
+            setLocalOriginals(new Map());
+
+            // Create a global snapshot for version history
+            await createRatesSnapshot({
                 variables: {
-                    ratePlanUid: 'MANUAL_SNAPSHOT',
-                    action: 'SNAPSHOT'
+                    ratePlanUid: 'MANUAL_SAVE_ALL',
+                    action: 'VERSION'
                 }
             });
-            toast.success(data?.createRatesSnapshot?.message || 'System snapshot created successfully');
-            // Refetch to update Save button state
-            setTimeout(() => refetchChanges?.(), 500);
-        } catch (error) {
-            console.error('Failed to create snapshot:', error);
-            toast.error('Failed to create snapshot');
+
+            // Refetch to get real UIDs and update state
+            setTimeout(() => {
+                refetchChanges?.();
+                setAllRatePlans([]); // Reset to force a clean re-fetch if needed, or just let refetch handle it
+                setPage(1);
+                refetch();
+            }, 500);
+
+        } catch (error: any) {
+            console.error('Failed to save changes:', error);
+            toast.error(error.message || 'Failed to save changes');
         }
+    };
+
+    // Helper to compare if plan has changes
+    const hasPlanChanged = (current: any, snapshot: any) => {
+        // Compare basic fields
+        if (current.planId !== snapshot.planId) return true;
+        if (current.tariff !== snapshot.tariff) return true;
+        if (current.state !== snapshot.state) return true;
+
+        // Loose comparison for DNSP numbers vs strings
+        if (String(current.dnsp || '') != String(snapshot.dnsp || '')) return true;
+        if (String(current.type || '') != String(snapshot.type || '')) return true;
+        if (current.vpp != snapshot.vpp) return true;
+
+        const currentDiscount = current.discountApplies ? 1 : 0;
+        const snapshotDiscount = snapshot.discountApplies ? 1 : 0;
+        if (currentDiscount != snapshotDiscount) return true;
+
+        if (current.discountPercentage != snapshot.discountPercentage) return true;
+
+        // Compare codes - Normalize spacing
+        const normalizeCodes = (c: any) => {
+            if (!c) return '';
+            const arr = Array.isArray(c) ? c : String(c).split(',');
+            return arr.map((s: string) => s.trim()).sort().join(',');
+        };
+        if (normalizeCodes(current.codes) !== normalizeCodes(snapshot.codes)) return true;
+
+        // Compare Offers
+        const cOffers = current.offers || [];
+        const sOffers = snapshot.offers || [];
+
+        if (cOffers.length !== sOffers.length) return true;
+
+        for (let i = 0; i < cOffers.length; i++) {
+            const cOffer = cOffers[i];
+            const sOffer = sOffers.find((o: any) => o.offerName === cOffer.offerName) || sOffers[i];
+
+            if (!sOffer) return true;
+
+            const fields = [
+                'anytime', 'supplyCharge', 'vppOrcharge',
+                'peak', 'shoulder', 'offPeak',
+                'cl1Supply', 'cl1Usage', 'cl2Supply', 'cl2Usage',
+                'demand', 'demandOp', 'demandP', 'demandS',
+                'fit', 'fitPeak', 'fitCritical', 'fitVpp'
+            ];
+
+            for (const field of fields) {
+                // Parse float to handle string "0.00" vs number 0
+                const v1 = parseFloat(String(cOffer[field] || 0));
+                const v2 = parseFloat(String(sOffer[field] || 0));
+                if (Math.abs(v1 - v2) > 0.0001) return true; // Float comparison
+            }
+        }
+
+        return false;
+    };
+
+    // Handler for improved local restore flow
+    const handleApplyLocalSnapshot = (snapshotData: any[]) => {
+        const newLocalOriginals = new Map(localOriginals);
+        const newLocalModifiedUids = new Set(localModifiedUids);
+        const newAllRatePlans = [...allRatePlans]; // Clone array
+        let changedCount = 0;
+
+        snapshotData.forEach((snapshotPlan: any) => {
+            // Find corresponding plan in current list
+            const currentPlanIndex = newAllRatePlans.findIndex(p => p.uid === snapshotPlan.uid);
+
+            if (currentPlanIndex !== -1) {
+                const currentPlan = newAllRatePlans[currentPlanIndex];
+
+                // Only update if there are actual changes
+                if (hasPlanChanged(currentPlan, snapshotPlan)) {
+                    // If not already modified, save current state as original
+                    if (!newLocalOriginals.has(currentPlan.uid)) {
+                        newLocalOriginals.set(currentPlan.uid, JSON.parse(JSON.stringify(currentPlan)));
+                    }
+
+                    // Update the plan in the list with snapshot data
+                    newAllRatePlans[currentPlanIndex] = {
+                        ...currentPlan,
+                        ...snapshotPlan,
+                        offers: snapshotPlan.offers || []
+                    };
+
+                    // Mark as locally modified
+                    newLocalModifiedUids.add(currentPlan.uid);
+                    changedCount++;
+                }
+            }
+        });
+
+        if (changedCount === 0) {
+            toast.info('No differences found in this version');
+            return;
+        }
+
+        // Update state
+        setLocalOriginals(newLocalOriginals);
+        setLocalModifiedUids(newLocalModifiedUids);
+        setAllRatePlans(newAllRatePlans);
+        toast.info(`Loaded ${changedCount} changed plans.`);
     };
 
     // History state
@@ -205,6 +473,27 @@ export function RatesPage() {
     });
 
     const hasUnsavedChanges = changesData?.hasRatesChanges?.hasChanges ?? true;
+    const hasLocalChanges = localModifiedUids.size > 0 || localCreatedUids.size > 0 || localDeletedUids.size > 0 || localRestoredUids.size > 0;
+
+    // Navigation Blocking
+    const blocker = useBlocker(
+        ({ currentLocation, nextLocation }) =>
+            hasLocalChanges && currentLocation.pathname !== nextLocation.pathname
+    );
+
+    // Browser Refresh/Close Warning
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasLocalChanges) {
+                e.preventDefault();
+                e.returnValue = ''; // Required for Chrome
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasLocalChanges]);
+
+
     const changedRatePlanUids = useMemo(() => new Set(changesData?.hasRatesChanges?.changedRatePlanUids || []), [changesData]);
     // Map of old records for comparison: uid -> oldRecord object
     const oldRecordsMap = useMemo(() => {
@@ -224,7 +513,15 @@ export function RatesPage() {
     }, [changesData]);
 
     const isFieldChanged = useCallback((row: RatePlan, fieldKey: string) => {
-        const oldRecord = oldRecordsMap.get(row.uid);
+        // Local creations: everything is new
+        if (localCreatedUids.has(row.uid)) return true;
+
+        // Local deletions: status is changed
+        if (fieldKey === 'isDeleted' && localDeletedUids.has(row.uid)) return true;
+
+        // Check local originals first, then backend changes
+        const oldRecord: any = localOriginals.get(row.uid) || oldRecordsMap.get(row.uid);
+
         if (!oldRecord) return false; // New record or no change
 
         // Helper for offers comparison
@@ -258,10 +555,15 @@ export function RatesPage() {
                 }
                 return false;
         }
-    }, [oldRecordsMap]);
+    }, [oldRecordsMap, localOriginals]);
 
     const getOldValue = useCallback((row: RatePlan, fieldKey: string) => {
-        const oldRecord = oldRecordsMap.get(row.uid);
+        // Local creations: no old value
+        if (localCreatedUids.has(row.uid)) return undefined;
+
+        // Check local originals first, then backend changes
+        const oldRecord: any = localOriginals.get(row.uid) || oldRecordsMap.get(row.uid);
+
         if (!oldRecord) return undefined;
 
         if (fieldKey.startsWith('offer_')) {
@@ -269,7 +571,7 @@ export function RatesPage() {
             return oldRecord.offers?.[0]?.[offerKey];
         }
         return oldRecord[fieldKey];
-    }, [oldRecordsMap]);
+    }, [oldRecordsMap, localOriginals]);
     useEffect(() => {
         if (data?.ratePlans?.data) {
             const newData = data.ratePlans.data;
@@ -301,15 +603,15 @@ export function RatesPage() {
 
 
 
-    const handleClearAll = () => {
-        setSearchCode('');
-        setDebouncedSearchCode('');
-        setStateFilter('');
-        setDnspFilter('');
-        setTypeFilter('');
-        setAllRatePlans([]);
-        setPage(1);
-    };
+    // const handleClearAll = () => {
+    //     setSearchCode('');
+    //     setDebouncedSearchCode('');
+    //     setStateFilter('');
+    //     setDnspFilter('');
+    //     setTypeFilter('');
+    //     setAllRatePlans([]);
+    //     setPage(1);
+    // };
 
     // Open Add Rate Modal
     const handleAddRate = () => {
@@ -328,7 +630,7 @@ export function RatesPage() {
         return Object.keys(errors).length === 0;
     };
 
-    // Submit Create Rate
+    // Submit Create Rate (LOCALLY ONLY)
     const handleCreateRate = async () => {
         if (isSubmitting) return; // Prevent multiple calls
         if (!validateForm()) {
@@ -337,17 +639,26 @@ export function RatesPage() {
 
         setIsSubmitting(true);
         try {
-            const input: any = {
-                codes: formData.codes,
-                planId: formData.planId || undefined,
-                tariff: formData.tariff || undefined,
+            const tempUid = `temp-create-${Date.now()}`;
+
+            const newPlan: RatePlan = {
+                id: tempUid,
+                uid: tempUid,
+                codes: formData.codes.split(',').map(c => c.trim()),
+                planId: formData.planId,
+                tariff: formData.tariff,
                 state: formData.state,
-                dnsp: formData.dnsp,
-                type: formData.type,
+                dnsp: String(formData.dnsp) as any,
+                type: String(formData.type) as any,
                 vpp: formData.vpp,
-                discountApplies: formData.discountApplies,
+                discountApplies: formData.discountApplies === 1,
                 discountPercentage: formData.discountPercentage || 0,
+                isActive: true,
+                isDeleted: 0,
+                updatedAt: new Date().toISOString(),
                 offers: [{
+                    id: `temp-offer-${Date.now()}`,
+                    uid: `temp-offer-${Date.now()}`,
                     offerName: formData.offerName || 'Default Offer',
                     anytime: parseFloat(formData.anytime) || 0,
                     supplyCharge: parseFloat(formData.supplyCharge) || 0,
@@ -364,21 +675,25 @@ export function RatesPage() {
                     demandP: parseFloat(formData.demandP) || 0,
                     demandS: parseFloat(formData.demandS) || 0,
                     fit: parseFloat(formData.fit) || 0,
+                    fitPeak: parseFloat(formData.fitPeak) || 0,
+                    fitCritical: parseFloat(formData.fitCritical) || 0,
+                    fitVpp: parseFloat(formData.fitVpp) || 0,
+                    type: '', // placeholder
+                    isActive: true,
+                    isDeleted: false
                 }]
             };
 
-            const { data } = await createRatePlan({ variables: { input } });
-            toast.success(data?.createRatePlan?.message || 'Rate plan created successfully');
+            // Add locally
+            setAllRatePlans(prev => [newPlan, ...prev]);
+            setLocalCreatedUids(prev => new Set(prev).add(tempUid));
+
             setAddModalOpen(false);
             setFormData(initialFormState);
-            // Refresh the list
-            setAllRatePlans([]);
-            setPage(1);
-            refetch(); // Actually reload the data
-            refetchChanges?.(); // Update Save button state
+            toast.success('Rate plan added locally (unsaved)');
         } catch (err: any) {
-            console.error('Failed to create rate plan:', err);
-            toast.error(err.message || 'Failed to create rate plan');
+            console.error('Failed to create rate plan locally:', err);
+            toast.error('Failed to add rate plan locally');
         } finally {
             setIsSubmitting(false);
         }
@@ -422,25 +737,30 @@ export function RatesPage() {
         setEditModalOpen(true);
     }, []);
 
-    // Submit Update Rate
+    // Submit Update Rate (LOCALLY ONLY)
     const handleUpdateRate = async () => {
-        // Use ref for immediate check (state updates are async)
         if (isSubmittingRef.current) return;
         if (!editingRatePlan) return;
         if (!validateForm()) {
             return;
         }
 
-        // Set ref immediately to block any concurrent calls
-        isSubmittingRef.current = true;
         setIsSubmitting(true);
+        isSubmittingRef.current = true;
 
         try {
-            // Build the offer data if an offer exists
+            // 1. Capture Original State if not already captured
+            if (!localOriginals.has(editingRatePlan.uid)) {
+                setLocalOriginals(prev => new Map(prev).set(editingRatePlan.uid, JSON.parse(JSON.stringify(editingRatePlan))));
+            }
+
+            // 2. Construct Updated Object from FormData
             const existingOffer = editingRatePlan.offers?.[0];
-            const offersInput = existingOffer?.uid ? [{
-                uid: existingOffer.uid,
-                offerName: formData.offerName || existingOffer.offerName || 'Default Offer',
+            const updatedOffer: RateOffer = {
+                ...(existingOffer || {}), // Keep existing IDs etc
+                id: existingOffer?.id || 'temp-id',
+                uid: existingOffer?.uid || 'temp-uid',
+                offerName: formData.offerName || existingOffer?.offerName || 'Default Offer',
                 anytime: parseFloat(formData.anytime) || 0,
                 supplyCharge: parseFloat(formData.supplyCharge) || 0,
                 vppOrcharge: parseFloat(formData.vppOrcharge) || 0,
@@ -459,36 +779,40 @@ export function RatesPage() {
                 fitPeak: parseFloat(formData.fitPeak) || 0,
                 fitCritical: parseFloat(formData.fitCritical) || 0,
                 fitVpp: parseFloat(formData.fitVpp) || 0,
-            }] : undefined;
-
-            // Single API call to update both rate plan and offers
-            const planInput: any = {
-                codes: formData.codes,
-                planId: formData.planId || undefined,
-                tariff: formData.tariff || undefined,
-                state: formData.state,
-                dnsp: formData.dnsp,
-                type: formData.type,
-                vpp: formData.vpp,
-                discountApplies: formData.discountApplies,
-                discountPercentage: formData.discountPercentage || 0,
-                offers: offersInput, // Include offers in the same mutation
+                // Required fields for type safety, though might not be edited
+                type: existingOffer?.type || '',
+                isActive: existingOffer?.isActive ?? true,
+                isDeleted: existingOffer?.isDeleted ?? false,
             };
 
-            const { data } = await updateRatePlan({ variables: { uid: editingRatePlan.uid, input: planInput } });
+            const updatedPlan: RatePlan = {
+                ...editingRatePlan,
+                codes: formData.codes.split(',').map(c => c.trim()), // Simple arrays
+                planId: formData.planId,
+                tariff: formData.tariff,
+                state: formData.state,
+                dnsp: String(formData.dnsp), // Ensure string if that's what's expected, though interface says string
+                type: String(formData.type),
+                vpp: formData.vpp,
+                discountApplies: formData.discountApplies === 1,
+                discountPercentage: formData.discountPercentage,
+                offers: [updatedOffer]
+            };
 
-            toast.success(data?.updateRatePlan?.message || 'Rate plan updated successfully');
+            // 3. Update Local State (All Rate Plans)
+            setAllRatePlans(prev => prev.map(p => p.uid === editingRatePlan.uid ? updatedPlan : p));
+
+            // 4. Mark as Modified Locally (Only if NOT a local creation - Creations already track their full state)
+            if (!localCreatedUids.has(editingRatePlan.uid)) {
+                setLocalModifiedUids(prev => new Set(prev).add(editingRatePlan.uid));
+            }
+
             setEditModalOpen(false);
             setEditingRatePlan(null);
             setFormData(initialFormState);
-            // Refresh the list
-            setAllRatePlans([]);
-            setPage(1);
-            refetch(); // Force refresh the list
-            refetchChanges?.(); // Update Save button state
+
         } catch (err: any) {
-            console.error('Failed to update rate plan:', err);
-            toast.error(err.message || 'Failed to update rate plan');
+            console.error('Failed to update rate plan locally:', err);
         } finally {
             isSubmittingRef.current = false;
             setIsSubmitting(false);
@@ -502,7 +826,7 @@ export function RatesPage() {
         setDeleteModalOpen(true);
     }, []);
 
-    // Confirm delete
+    // Confirm delete (LOCALLY ONLY)
     const handleConfirmDelete = async () => {
         if (!ratePlanToDelete) return;
         const codes = Array.isArray(ratePlanToDelete.codes)
@@ -512,17 +836,36 @@ export function RatesPage() {
 
         setIsDeleting(true);
         try {
-            await softDeleteRatePlan({ variables: { uid: ratePlanToDelete.uid } });
-            toast.success('Rate plan deleted successfully');
-            setAllRatePlans(prev =>
-                prev.map(r => r.uid === ratePlanToDelete.uid ? { ...r, isDeleted: 1 } : r)
-            );
+            const uid = ratePlanToDelete.uid;
+
+            if (localCreatedUids.has(uid)) {
+                // If it was locally created, just remove it entirely
+                setAllRatePlans(prev => prev.filter(p => p.uid !== uid));
+                setLocalCreatedUids(prev => {
+                    const next = new Set(prev);
+                    next.delete(uid);
+                    return next;
+                });
+            } else {
+                // Mark as deleted locally
+                setAllRatePlans(prev =>
+                    prev.map(r => r.uid === uid ? { ...r, isDeleted: 1 } : r)
+                );
+                setLocalDeletedUids(prev => new Set(prev).add(uid));
+                // Remove from modified since deletion overrides edits
+                setLocalModifiedUids(prev => {
+                    const next = new Set(prev);
+                    next.delete(uid);
+                    return next;
+                });
+            }
+
             setDeleteModalOpen(false);
             setRatePlanToDelete(null);
-            refetchChanges?.(); // Update Save button state
+            toast.success('Rate plan deleted locally');
         } catch (err: any) {
-            console.error('Failed to delete rate plan:', err);
-            toast.error(err.message || 'Failed to delete rate plan');
+            console.error('Failed to delete rate plan locally:', err);
+            toast.error('Failed to delete locally');
         } finally {
             setIsDeleting(false);
         }
@@ -534,23 +877,37 @@ export function RatesPage() {
         setRestoreModalOpen(true);
     }, []);
 
-    // Confirm restore
+    // Confirm restore (LOCALLY ONLY)
     const handleConfirmRestore = async () => {
         if (!ratePlanToRestore) return;
 
         setIsRestoring(true);
         try {
-            await restoreRatePlanMutation({ variables: { uid: ratePlanToRestore.uid } });
-            toast.success('Rate plan restored successfully');
+            const uid = ratePlanToRestore.uid;
+
+            // Mark as restored locally
             setAllRatePlans(prev =>
-                prev.map(r => r.uid === ratePlanToRestore.uid ? { ...r, isDeleted: 0 } : r)
+                prev.map(r => r.uid === uid ? { ...r, isDeleted: 0 } : r)
             );
+
+            // If it was already deleted in DB, mark for DB restoration
+            if (ratePlanToRestore.isDeleted === 1 || ratePlanToRestore.isDeleted === (true as any)) {
+                setLocalRestoredUids(prev => new Set(prev).add(uid));
+            }
+
+            // Remove from deleted list if it was locally deleted
+            setLocalDeletedUids(prev => {
+                const next = new Set(prev);
+                next.delete(uid);
+                return next;
+            });
+
             setRestoreModalOpen(false);
             setRatePlanToRestore(null);
-            refetchChanges?.(); // Update Save button state
+            toast.success('Rate plan restored locally');
         } catch (err: any) {
-            console.error('Failed to restore rate plan:', err);
-            toast.error(err.message || 'Failed to restore rate plan');
+            console.error('Failed to restore rate plan locally:', err);
+            toast.error('Failed to restore locally');
         } finally {
             setIsRestoring(false);
         }
@@ -569,7 +926,7 @@ export function RatesPage() {
             stickyOffset: 0,
             render: (row: RatePlan) => (
                 <Tooltip content={isFieldChanged(row, 'state') ? `Old: ${getOldValue(row, 'state')}` : null}>
-                    <span className={isFieldChanged(row, 'state') ? 'bg-orange-800 text-orange-950 font-bold px-2 py-0.5 rounded' : ''}>{row.state || '-'}</span>
+                    <span className={isFieldChanged(row, 'state') ? 'bg-orange-800 text-white font-bold px-2 py-0.5 rounded' : ''}>{row.state || '-'}</span>
                 </Tooltip>
             ),
         },
@@ -603,7 +960,7 @@ export function RatesPage() {
                     <Tooltip content={codesChanged ? `Old: ${getOldValue(row, 'codes')}` : null}>
                         <div className={`flex flex-wrap gap-1 ${codesChanged ? 'bg-orange-300 dark:bg-orange-700/50 -m-2 p-2 rounded ring-1 ring-orange-400' : ''}`}>
                             {codes.map((code, idx) => (
-                                <span key={idx} className={`text-xs px-2 py-0.5 rounded ${codesChanged ? 'bg-orange-800 text-orange-950 dark:bg-orange-500/50 dark:text-orange-100 font-bold' : 'bg-gray-100 text-gray-900 dark:bg-zinc-700 dark:text-zinc-100'}`}>
+                                <span key={idx} className={`text-xs px-2 py-0.5 rounded ${codesChanged ? 'bg-orange-800 text-white dark:bg-orange-500/50 dark:text-orange-100 font-bold' : 'bg-gray-100 text-gray-900 dark:bg-zinc-700 dark:text-zinc-100'}`}>
                                     {code}
                                 </span>
                             )) || '-'}
@@ -617,8 +974,8 @@ export function RatesPage() {
             header: 'DNSP',
             width: 'w-[120px]',
             render: (row: RatePlan) => (
-                <div className={isFieldChanged(row, 'dnsp') ? "bg-orange-300 dark:bg-orange-700/50 -m-2 p-2 rounded ring-1 ring-orange-400" : ""}>
-                    <Tooltip content={isFieldChanged(row, 'dnsp') ? `Old: ${getOldValue(row, 'dnsp')}` : null}>
+                <div className={isFieldChanged(row, 'dnsp') ? "bg-orange-800 text-white -m-2 p-2 rounded ring-1 ring-orange-500" : ""}>
+                    <Tooltip content={isFieldChanged(row, 'dnsp') ? `Old: ${DNSP_MAP[String(getOldValue(row, 'dnsp'))] || getOldValue(row, 'dnsp')}` : null}>
                         <StatusField type="dnsp" value={row.dnsp} mode="badge" />
                     </Tooltip>
                 </div>
@@ -628,7 +985,13 @@ export function RatesPage() {
             key: 'type',
             header: 'Type',
             width: 'w-[120px]',
-            render: (row: RatePlan) => <StatusField type="rate_type" value={row.type} mode="badge" />,
+            render: (row: RatePlan) => (
+                <div className={isFieldChanged(row, 'type') ? "bg-orange-800 text-white -m-2 p-2 rounded ring-1 ring-orange-500" : ""}>
+                    <Tooltip content={isFieldChanged(row, 'type') ? `Old: ${RATE_TYPE_MAP[String(getOldValue(row, 'type'))] || getOldValue(row, 'type')}` : null}>
+                        <StatusField type="rate_type" value={row.type} mode="badge" />
+                    </Tooltip>
+                </div>
+            ),
         },
         {
             key: 'anytime',
@@ -850,11 +1213,18 @@ export function RatesPage() {
             key: 'discount',
             header: 'Discount',
             width: 'w-[100px]',
-            render: (row: RatePlan) => (
-                <div className={`w-11 h-6 flex items-center bg-gray-300 rounded-full p-1 cursor-pointer transition-colors ${row.discountApplies ? 'bg-primary' : 'bg-gray-300'}`} onClick={() => console.log('Toggle Discount', row.uid)}>
-                    <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${row.discountApplies ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                </div>
-            ),
+            render: (row: RatePlan) => {
+                const isChanged = isFieldChanged(row, 'discountApplies') || isFieldChanged(row, 'discountPercentage');
+                return (
+                    <div className={isChanged ? "bg-orange-800 -m-2 p-2 rounded ring-1 ring-orange-500" : ""}>
+                        <Tooltip content={isChanged ? `Old: ${getOldValue(row, 'discountApplies') ? 'Yes' : 'No'}` : null}>
+                            <div className={`w-11 h-6 flex items-center bg-gray-300 rounded-full p-1 cursor-pointer transition-colors ${row.discountApplies ? 'bg-primary' : 'bg-gray-300'}`} onClick={() => console.log('Toggle Discount', row.uid)}>
+                                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${row.discountApplies ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                            </div>
+                        </Tooltip>
+                    </div>
+                );
+            },
         },
         {
             key: 'tariff',
@@ -872,7 +1242,7 @@ export function RatesPage() {
             key: 'updatedAt',
             header: 'Updated',
             width: 'w-[150px]',
-            render: (row: RatePlan) => <span className="text-muted-foreground">{formatDateTime(row.updatedAt)}</span>,
+            render: (row: RatePlan) => <span className="text-muted-foreground">{formatSydneyTime(row.updatedAt)}</span>,
         },
         {
             key: 'actions',
@@ -1017,7 +1387,7 @@ export function RatesPage() {
                                 />
                             </div>
 
-                            <Button variant="outline" leftIcon={<FilterIcon size={16} />} className="self-end">
+                            {/* <Button variant="outline" leftIcon={<FilterIcon size={16} />} className="self-end">
                                 Filters
                             </Button>
 
@@ -1028,21 +1398,31 @@ export function RatesPage() {
                             >
                                 <RefreshCwIcon size={14} />
                                 Clear all
-                            </button>
+                            </button> */}
                         </div>
-                        <div>
-                            <Tooltip content={hasUnsavedChanges ? "Unsaved changes - Click to save version" : "All changes saved"}>
+                        <div className="flex items-center gap-2">
+                            {hasLocalChanges && (
                                 <Button
-                                    variant={hasUnsavedChanges ? "default" : "outline"}
+                                    variant="ghost"
+                                    onClick={handleResetLocalChanges}
+                                    leftIcon={<RefreshCwIcon size={16} />}
+                                    className="text-muted-foreground hover:text-foreground"
+                                >
+                                    Reset
+                                </Button>
+                            )}
+                            <Tooltip content={(hasUnsavedChanges || hasLocalChanges) ? "Unsaved changes - Click to save version" : "All changes saved"}>
+                                <Button
+                                    variant={(hasUnsavedChanges || hasLocalChanges) ? "default" : "outline"}
                                     onClick={handleCreateSnapshot}
-                                    isLoading={isSnapshotting}
-                                    disabled={!hasUnsavedChanges || isSnapshotting}
-                                    className={`px-4 gap-2 transition-all duration-300 ${hasUnsavedChanges
+                                    isLoading={isSnapshotting || isUpdating}
+                                    disabled={(!hasUnsavedChanges && !hasLocalChanges) || isSnapshotting || isUpdating}
+                                    className={`px-4 gap-2 transition-all duration-300 ${(hasUnsavedChanges || hasLocalChanges)
                                         ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg border-0'
                                         : 'border-green-300 bg-green-50 text-green-600 cursor-default'}`}
                                 >
-                                    {!isSnapshotting && (
-                                        hasUnsavedChanges ? (
+                                    {!isSnapshotting && !isUpdating && (
+                                        (hasUnsavedChanges || hasLocalChanges) ? (
                                             <>
                                                 <SaveIcon size={16} />
                                                 <span className="text-sm font-medium">Save</span>
@@ -1065,7 +1445,6 @@ export function RatesPage() {
                     </p>
                 </div>
 
-
                 <DataTable
                     columns={columns}
                     data={allRatePlans}
@@ -1078,7 +1457,9 @@ export function RatesPage() {
                     hasMore={hasMore}
                     isLoadingMore={isLoadingMore}
                     onLoadMore={handleLoadMore}
-                    rowClassName={(row: RatePlan) => changedRatePlanUids.has(row.uid) ? '[&>td]:!bg-orange-100 dark:[&>td]:!bg-orange-950 font-medium' : ''}
+
+
+                    rowClassName={(row: RatePlan) => (changedRatePlanUids.has(row.uid) || localModifiedUids.has(row.uid) || localCreatedUids.has(row.uid) || localDeletedUids.has(row.uid) || localRestoredUids.has(row.uid)) ? '[&>td]:!bg-orange-100 dark:[&>td]:!bg-orange-950/50 font-medium' : ''}
                 />
             </div>
 
@@ -1927,7 +2308,30 @@ export function RatesPage() {
                     setPage(1);
                     refetch();
                 }}
+                onApplyLocalSnapshot={handleApplyLocalSnapshot}
             />
+            {/* Navigation Block Confirmation */}
+            <Modal
+                isOpen={blocker.state === 'blocked'}
+                onClose={() => blocker.reset?.()}
+                title={<span className="flex items-center gap-2"><AlertCircleIcon className="text-amber-500" size={20} /> Unsaved Changes</span>}
+                size="sm"
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => blocker.reset?.()}>Stay</Button>
+                        <Button variant="destructive" onClick={() => blocker.proceed?.()}>Leave Page</Button>
+                    </>
+                }
+            >
+                <div className="space-y-2">
+                    <p className="text-sm text-foreground">
+                        You have unsaved changes to your rate plans.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        Are you sure you want to leave this page? Your changes will be lost.
+                    </p>
+                </div>
+            </Modal>
         </div >
     );
 }

@@ -8,10 +8,11 @@ import {
     DNSP_OPTIONS,
     RATE_TYPE_MAP,
     RATE_TYPE_OPTIONS,
-    STATE_OPTIONS
+    STATE_OPTIONS,
+    VPP_OPTIONS
 } from '@/lib/constants';
 
-export type StatusFieldType = 'customer_status' | 'user_status' | 'dnsp' | 'rate_type' | 'state';
+export type StatusFieldType = 'customer_status' | 'user_status' | 'dnsp' | 'rate_type' | 'state' | 'vpp';
 
 interface StatusFieldProps {
     value: string | number | null | undefined;
@@ -54,18 +55,35 @@ export const StatusField: React.FC<StatusFieldProps> = ({
     } else if (type === 'dnsp') {
         const valStr = value !== null && value !== undefined ? String(value) : '';
         label = DNSP_MAP[valStr] || valStr || '-';
-        // DNSP doesn't usually have specific colors, stick to default or add logic
+
+        // Specific colors for DNSPs
+        if (valStr === '0') colorClass = 'text-blue-700 bg-blue-50 dark:bg-blue-900/10 dark:text-blue-400';
+        else if (valStr === '1') colorClass = 'text-orange-700 bg-orange-50 dark:bg-orange-900/10 dark:text-orange-400';
+        else if (valStr === '2') colorClass = 'text-green-700 bg-green-50 dark:bg-green-900/10 dark:text-green-400';
+        else if (valStr === '3') colorClass = 'text-purple-700 bg-purple-50 dark:bg-purple-900/10 dark:text-purple-400';
     } else if (type === 'rate_type') {
         const valStr = String(value ?? '');
         label = RATE_TYPE_MAP[valStr] || valStr || '-';
     } else if (type === 'state') {
         label = String(value || '-');
+    } else if (type === 'vpp') {
+        const valStr = String(value ?? '');
+        label = valStr === '1' ? 'With VPP' : 'No VPP';
+        if (valStr === '1') colorClass = 'text-green-600 bg-green-50 dark:bg-green-900/10 dark:text-green-400';
+        else colorClass = 'text-gray-600 bg-gray-100 dark:bg-gray-800 dark:text-gray-400';
     }
 
     // 2. Render View Mode
     if (mode === 'badge') {
-        // For DNSP/Type/State, maybe just text or simple badge
-        if (type === 'dnsp' || type === 'rate_type' || type === 'state') {
+        // For DNSP/Type/State/VPP, maybe just text or simple badge
+        if (type === 'dnsp' || type === 'rate_type' || type === 'state' || type === 'vpp') {
+            if (type === 'vpp' || type === 'dnsp') {
+                return (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${colorClass} ${className}`}>
+                        {label}
+                    </span>
+                );
+            }
             return <span className={`text-sm ${className}`}>{label}</span>;
         }
         return (
@@ -96,6 +114,8 @@ export const StatusField: React.FC<StatusFieldProps> = ({
         options = RATE_TYPE_OPTIONS;
     } else if (type === 'state') {
         options = STATE_OPTIONS;
+    } else if (type === 'vpp') {
+        options = VPP_OPTIONS;
     }
 
     if (showAllOption) {

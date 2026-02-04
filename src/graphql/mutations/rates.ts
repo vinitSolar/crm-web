@@ -97,3 +97,12 @@ export const RESTORE_RATES_SNAPSHOT = gql`
         restoreRatesSnapshot(historyUid: $historyUid)
     }
 `;
+
+export const UPDATE_RATE_PLANS = gql`
+    ${RATE_PLAN_FIELDS}
+    mutation UpdateRatePlans($inputs: [UpdateRatePlanWithUidInput!]!) {
+        updateRatePlans(inputs: $inputs) {
+            ...RatePlanFields
+        }
+    }
+`;

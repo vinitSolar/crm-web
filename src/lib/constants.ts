@@ -76,14 +76,14 @@ export const DNSP_MAP: Record<string, string> = {
     '0': 'Ausgrid',
     '1': 'Endeavour',
     '2': 'Essential',
-    '3': 'Evoenergy',
+    '3': 'Energex',
 };
 
 export const DNSP_OPTIONS = [
     { value: '0', label: 'Ausgrid' },
     { value: '1', label: 'Endeavour' },
     { value: '2', label: 'Essential' },
-    { value: '3', label: 'Evoenergy' },
+    { value: '3', label: 'Energex' },
 ];
 export const DISCOUNT_OPTIONS = [0, 5, 7, 10, 13, 15].map(i => ({
     value: i.toString(),
@@ -156,7 +156,7 @@ export const DNSP_LABELS: Record<number, string> = {
     0: 'Ausgrid',
     1: 'Endeavour',
     2: 'Essential',
-    3: 'Evoenergy',
+    3: 'Energex',
 };
 
 // --- Options Helpers (derived from labels) ---
@@ -209,4 +209,27 @@ export const EMAIL_TYPE_OPTIONS = [
     { value: 'SIGNATURE_REQUEST', label: 'Signature Request' },
     { value: 'PASSWORD_RESET', label: 'Password Reset' },
     { value: 'ACCOUNT_VERIFICATION', label: 'Account Verification' },
+];
+
+export const BATTERY_BRAND_OPTIONS = [
+    { value: 'Fox ESS', label: 'Fox ESS' },
+    { value: 'NeoVolt', label: 'NeoVolt' },
+    { value: 'Solis-Pylontech', label: 'Solis-Pylontech' },
+    { value: 'Growatt', label: 'Growatt' },
+    { value: 'Tesla', label: 'Tesla' },
+    { value: 'LG Energy Solution', label: 'LG Energy Solution' },
+    { value: 'BYD', label: 'BYD' },
+    { value: 'Sonnen', label: 'Sonnen' },
+    { value: 'AlphaESS', label: 'AlphaESS' },
+    { value: 'Sungrow', label: 'Sungrow' },
+    { value: 'Huawei', label: 'Huawei' },
+    { value: 'Enphase', label: 'Enphase' },
+    { value: 'Senec', label: 'Senec' },
+    { value: 'Fronius', label: 'Fronius' },
+    { value: 'GoodWe', label: 'GoodWe' },
+    { value: 'Delta', label: 'Delta' },
+    { value: 'Redflow', label: 'Redflow' },
+    { value: 'SolaX', label: 'SolaX' },
+    { value: 'Victorn Energy', label: 'Victron Energy' },
+    { value: 'Other', label: 'Other' },
 ];

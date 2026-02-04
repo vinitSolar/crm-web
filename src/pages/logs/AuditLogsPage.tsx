@@ -12,7 +12,7 @@ import {
 } from '@/components/icons';
 import { GET_AUDIT_LOGS, GET_RECORD_AUDIT_HISTORY } from '@/graphql';
 import { cn } from '@/lib/utils';
-import { formatDateTime } from '@/lib/date';
+import { formatSydneyTime } from '@/lib/date';
 
 // Types
 interface AuditLog {
@@ -199,7 +199,7 @@ export const AuditLogsPage = () => {
             key: 'changedAt',
             header: 'Timestamp',
             width: 'w-[180px]',
-            render: (log) => <span className="text-gray-600 dark:text-gray-400 text-sm">{formatDateTime(log.changedAt)}</span>
+            render: (log) => <span className="text-gray-600 dark:text-gray-400 text-sm">{formatSydneyTime(log.changedAt)}</span>
         },
         {
             key: 'tableName',
@@ -393,7 +393,7 @@ export const AuditLogsPage = () => {
                             </div>
                             <div>
                                 <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Changed At</label>
-                                <p className="text-sm text-gray-700 dark:text-gray-300">{formatDateTime(selectedLog.changedAt)}</p>
+                                <p className="text-sm text-gray-700 dark:text-gray-300">{formatSydneyTime(selectedLog.changedAt)}</p>
                             </div>
                             <div className="col-span-2 border-t border-gray-200 dark:border-gray-800 pt-2 mt-1">
                                 <label className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Changed By</label>
@@ -575,7 +575,7 @@ export const AuditLogsPage = () => {
                                                 </span>
                                                 <span className="text-xs text-gray-400 dark:text-gray-500">#{historyData.recordAuditHistory.auditHistory.length - index}</span>
                                             </div>
-                                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{formatDateTime(log.changedAt)}</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{formatSydneyTime(log.changedAt)}</span>
                                         </div>
 
                                         <div className="flex items-center gap-2 mb-3">
