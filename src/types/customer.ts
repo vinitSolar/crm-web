@@ -64,4 +64,8 @@ export interface CustomerFormData {
     // Pricing
     tariffCode: string;
     discount: number;
+
+    // Documents
+    previousBillPath?: string;
+    identityProof?: string;
 }

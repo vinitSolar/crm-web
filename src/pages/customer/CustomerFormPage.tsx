@@ -138,13 +138,9 @@ const initialFormData: CustomerFormData = {
     firstDebitDate: '',
     tariffCode: '',
     discount: 0,
+    previousBillPath: '',
+    identityProof: '',
 };
-
-
-
-
-
-
 
 const streetTypeOptions = [
     { value: 'St', label: 'Street' },
@@ -437,7 +433,7 @@ export const CustomerFormPage = () => {
         return ratePlans
             .filter(rp => {
                 const stateMatch = rp.state?.toLowerCase() === formData.state?.toLowerCase();
-                const activeMatch = !rp.isDeleted;
+                const activeMatch = !rp.isDeleted && rp.isActive !== false;
                 // Only show VPP plans (vpp=1) if customer is a VPP participant
                 // If not a VPP participant, exclude VPP plans entirely
                 const vppMatch = formData.vpp ? rp.vpp === 1 : rp.vpp !== 1;
@@ -1519,6 +1515,28 @@ export const CustomerFormPage = () => {
                                             <Input label="ID Number" placeholder="D123456" value={formData.idNumber} onChange={(e) => updateField('idNumber', e.target.value)} />
                                             <Select label="ID State" options={STATE_OPTIONS} value={formData.idState} onChange={(val) => updateField('idState', val as string)} />
                                             <DatePicker label="ID Expiry" value={formData.idExpiry} onChange={(date) => updateField('idExpiry', date ? date.toISOString().split('T')[0] : '')} minDate={new Date()} />
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                            <Field label="Previous Bill">
+                                                <input
+                                                    type="file"
+                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    onChange={(e) => {
+                                                        // Handle file upload or state update here
+                                                        console.log('Previous Bill selected:', e.target.files?.[0]);
+                                                    }}
+                                                />
+                                            </Field>
+                                            <Field label="Identity Proof">
+                                                <input
+                                                    type="file"
+                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    onChange={(e) => {
+                                                        // Handle file upload or state update here
+                                                        console.log('Identity Proof selected:', e.target.files?.[0]);
+                                                    }}
+                                                />
+                                            </Field>
                                         </div>
                                         <div className="flex flex-wrap gap-6 pt-2">
                                             <div className="flex items-center gap-2">

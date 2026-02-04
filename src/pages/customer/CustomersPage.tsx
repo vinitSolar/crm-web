@@ -10,12 +10,16 @@ import {
     CheckIcon, XIcon, MailIcon, Settings2Icon, PlugIcon, ZapIcon,
     ActivityIcon, InfoIcon
 } from '@/components/icons';
-import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL, CREATE_CUSTOMER, UPDATE_CUSTOMER, GET_ALL_FILTERED_CUSTOMER_IDS } from '@/graphql';
+import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL, CREATE_CUSTOMER, UPDATE_CUSTOMER, GET_ALL_FILTERED_CUSTOMER_IDS, GET_RATES_HISTORY_BY_VERSION, GET_CUSTOMER_NOTES, CREATE_CUSTOMER_NOTE, DELETE_CUSTOMER_NOTE } from '@/graphql';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { Select } from '@/components/ui/Select';
 import { StatusField } from '@/components/common';
 import { ConfirmationPopover } from '@/components/ui/ConfirmationPopover';
 import { formatSydneyTime } from '@/lib/date';
+import {
+    //  apolloClient,
+    secondaryApiAxios
+} from '@/lib/apollo';
 import { cn } from '@/lib/utils';
 import BulkEmailModal from './BulkEmailModal';
 import { SALE_TYPE_LABELS, BILLING_PREF_LABELS, DNSP_LABELS, DNSP_OPTIONS, DISCOUNT_OPTIONS, CUSTOMER_STATUS_OPTIONS, VPP_OPTIONS, VPP_CONNECTED_OPTIONS, ULTIMATE_STATUS_OPTIONS, MSAT_CONNECTED_OPTIONS, ID_TYPE_MAP, BATTERY_BRAND_OPTIONS } from '@/lib/constants';
@@ -249,6 +253,63 @@ interface SearchFilters {
     msatConnected: string;
 }
 
+const RateVersionTooltip = ({ version, children }: { version: string, children: React.ReactNode }) => {
+    const { data, loading } = useQuery(GET_RATES_HISTORY_BY_VERSION, {
+        variables: { version },
+        skip: !version
+    });
+
+    const history = data?.ratesHistoryByVersion;
+    const createdDate = history?.createdAt ? formatSydneyTime(history.createdAt) : 'Unknown';
+    const isActive = history?.activeVersion === 1;
+
+    return (
+        <Tooltip
+            position="bottom"
+            className="whitespace-normal min-w-[220px] p-0 overflow-hidden bg-white dark:bg-neutral-900 border border-border shadow-xl text-foreground"
+            content={
+                loading ? (
+                    <div className="p-3 text-xs text-muted-foreground">Loading details...</div>
+                ) : history ? (
+                    <div className="flex flex-col text-xs">
+                        <div className="px-3 py-2 bg-muted/50 border-b border-border flex items-center gap-2">
+                            <div className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                            <span className="font-semibold">Rate Version Details</span>
+                        </div>
+                        <div className="p-2 space-y-1">
+
+                            <div className="flex justify-between gap-4">
+                                <span className="text-muted-foreground">Status:</span>
+                                <span className={isActive ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                                    {isActive ? 'Current Version' : 'Previous Version'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between gap-4">
+                                <span className="text-muted-foreground">Created:</span>
+                                <span>{createdDate}</span>
+                            </div>
+                            {history.createdByName && (
+                                <div className="flex justify-between gap-4">
+                                    <span className="text-muted-foreground">By:</span>
+                                    <span>{history.createdByName}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="p-3 text-xs text-muted-foreground">No history found</div>
+                )
+            }
+        >
+            <div className="cursor-help inline-flex items-center gap-1 hover:text-primary transition-colors duration-200">
+                {children}
+            </div>
+        </Tooltip>
+    );
+};
+
 export function CustomersPage() {
     const navigate = useNavigate();
     const canView = useAuthStore((state) => state.canViewMenu('customers'));
@@ -292,7 +353,12 @@ export function CustomersPage() {
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
     // Detail Section State
-    const [selectedDetailSection, setSelectedDetailSection] = useState<'info' | 'location' | 'account' | 'rates' | 'solar' | 'debit' | 'vpp' | 'utilmate'>('info');
+    const [selectedDetailSection, setSelectedDetailSection] = useState<'info' | 'location' | 'account' | 'rates' | 'solar' | 'debit' | 'vpp' | 'utilmate' | 'notes'>('info');
+
+    // Notes State
+    const [noteText, setNoteText] = useState('');
+    const [isAddingNote, setIsAddingNote] = useState(false);
+    const [noteModalOpen, setNoteModalOpen] = useState(false);
 
     // Reset section when modal opens/customer changes
     useEffect(() => {
@@ -310,6 +376,47 @@ export function CustomersPage() {
     const [fetchAllFilteredIds] = useLazyQuery(GET_ALL_FILTERED_CUSTOMER_IDS, {
         fetchPolicy: 'network-only',
     });
+
+    // Notes query and mutations
+    const { data: notesData, loading: notesLoading, refetch: refetchNotes } = useQuery(GET_CUSTOMER_NOTES, {
+        variables: { customerUid: selectedCustomerDetails?.uid || '' },
+        skip: !selectedCustomerDetails?.uid || selectedDetailSection !== 'notes',
+        fetchPolicy: 'network-only',
+    });
+
+    const [createNote] = useMutation(CREATE_CUSTOMER_NOTE);
+    const [deleteNote] = useMutation(DELETE_CUSTOMER_NOTE);
+
+    const handleAddNote = async () => {
+        if (!noteText.trim() || !selectedCustomerDetails?.uid) return;
+        setIsAddingNote(true);
+        try {
+            await createNote({
+                variables: {
+                    customerUid: selectedCustomerDetails.uid,
+                    message: noteText.trim(),
+                },
+            });
+            setNoteText('');
+            refetchNotes();
+            toast.success('Note added successfully');
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to add note');
+        } finally {
+            setIsAddingNote(false);
+        }
+    };
+
+    const handleDeleteNote = async (noteUid: string) => {
+        try {
+            await deleteNote({ variables: { uid: noteUid } });
+            refetchNotes();
+            toast.success('Note deleted');
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to delete note');
+        }
+    };
+
 
     // State for selection
     const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
@@ -403,6 +510,7 @@ export function CustomersPage() {
     const [freezingCustomer, setFreezingCustomer] = useState(false);
     const [freezeModalOpen, setFreezeModalOpen] = useState(false);
     const [customerToFreeze, setCustomerToFreeze] = useState<CustomerDetails | null>(null);
+    const [markingNotInterested, setMarkingNotInterested] = useState(false);
     const [updateCustomer] = useMutation(UPDATE_CUSTOMER);
 
     // VPP Form State
@@ -455,7 +563,7 @@ export function CustomersPage() {
 
     const handleSaveVppDetails = async () => {
         if (!selectedCustomerDetails) return;
-
+        console.log('selectedCustomerDetails', selectedCustomerDetails);
         try {
             const input: any = {
                 vppDetails: {
@@ -481,6 +589,22 @@ export function CustomersPage() {
                     input
                 }
             });
+
+            // Call Secondary API
+            try {
+                console.log('Attempting to call secondary API...');
+                const response = await secondaryApiAxios.post('/api/v1/utilmate/user/add-user-battery', {
+                    userId: selectedCustomerDetails.uid,
+                    batteryBrand: vppForm.batteryBrand,
+                    snNumber: vppForm.snNumber,
+                    checkCode: vppForm.checkCode,
+                    batteryUsableCapacity: vppForm.batteryCapacity ? parseFloat(vppForm.batteryCapacity) : 0,
+                    inverterCapacity: vppForm.inverterCapacity ? parseFloat(vppForm.inverterCapacity) : 0
+                });
+                console.log('Secondary API call success:', response.data);
+            } catch (secErr) {
+                console.error('Failed to sync with secondary API', secErr);
+            }
 
             toast.success('VPP details saved successfully');
             setIsEditingVpp(false);
@@ -644,6 +768,32 @@ export function CustomersPage() {
         }
     };
 
+    const handleMarkNotInterested = async () => {
+        if (!selectedCustomerDetails) return;
+        setMarkingNotInterested(true);
+        try {
+            await updateCustomer({
+                variables: {
+                    uid: selectedCustomerDetails.uid,
+                    input: { status: 5 }
+                }
+            });
+            toast.success('Customer marked as Not Interested');
+            // Update local state
+            setSelectedCustomerDetails({
+                ...selectedCustomerDetails,
+                status: 5
+            });
+            // Refresh the list
+            refetch();
+        } catch (error: any) {
+            console.error('Error marking customer as not interested:', error);
+            toast.error(error.message || 'Failed to update customer status');
+        } finally {
+            setMarkingNotInterested(false);
+        }
+    };
+
     const handleVppToggle = async (customerUid: string, newValue: boolean) => {
         // If turning ON, open modal to collect details unless it's just a quick toggle off/on
         // But user requirement says "when tries to turn on... ask this detail first"
@@ -731,6 +881,22 @@ export function CustomersPage() {
                     input
                 }
             });
+
+            // Call Secondary API
+            try {
+                console.log('Attempting to call secondary API from handleConfirmVppConnect...');
+                const response = await secondaryApiAxios.post('/api/v1/utilmate/user/add-user-battery', {
+                    user_id: selectedCustomerDetails.customerId,
+                    battery_brand: vppForm.batteryBrand,
+                    sn_number: vppForm.snNumber,
+                    check_code: vppForm.checkCode,
+                    battery_usable_capacity: vppForm.batteryCapacity ? parseFloat(vppForm.batteryCapacity) : 0,
+                    inverter_capacity: vppForm.inverterCapacity ? parseFloat(vppForm.inverterCapacity) : 0
+                });
+                console.log('Secondary API call success:', response.data);
+            } catch (secErr) {
+                console.error('Failed to sync with secondary API', secErr);
+            }
 
             toast.success('VPP Connected and details saved');
             setVppConnectModalOpen(false);
@@ -893,6 +1059,21 @@ export function CustomersPage() {
                     input
                 }
             });
+
+            // Call Secondary API
+            try {
+                console.log('Attempting to call secondary API for Utilmate Connect...');
+                const response = await secondaryApiAxios.post('/api/v1/utilmate/user/add-user', {
+                    account_number: utilmateForm.accountNumber,
+                    site_identifier: utilmateForm.siteIdentifier,
+                    gee_id: selectedCustomerDetails.customerId || selectedCustomerDetails.uid, // Fallback to UID if customerId is missing
+                    dnsp: selectedCustomerDetails.ratePlan?.dnsp ? (DNSP_LABELS[selectedCustomerDetails.ratePlan.dnsp] || '') : '',
+                    nmi_number: selectedCustomerDetails.address?.nmi || ''
+                });
+                console.log('Secondary API call success (Utilmate):', response.data);
+            } catch (secErr) {
+                console.error('Failed to sync with secondary API', secErr);
+            }
 
             toast.success('Utilmate connected and details saved');
             setUtilmateConnectModalOpen(false);
@@ -1521,7 +1702,7 @@ export function CustomersPage() {
                 onClose={() => { setDetailsModalOpen(false); setReminderSent(false); }}
                 title={selectedCustomerDetails ? (
                     <>
-                        <span className="hidden sm:inline">Customer details · </span>
+                        {/* <span className="hidden sm:inline">Customer details · </span> */}
                         <span>{selectedCustomerDetails.firstName} {selectedCustomerDetails.lastName}</span>
                     </>
                 ) : 'Customer details'}
@@ -1564,19 +1745,33 @@ export function CustomersPage() {
                                     <h3 className="text-sm font-medium text-foreground">Progress timeline</h3>
                                     <p className="text-xs text-muted-foreground">Track each milestone and when it happened.</p>
                                 </div>
-                                {selectedCustomerDetails.status === 3 && (
-                                    <Button
-                                        size="sm"
-                                        className="bg-neutral-900 text-white hover:bg-neutral-800"
-                                        onClick={() => handleFreezeClick(selectedCustomerDetails)}
-                                        disabled={freezingCustomer}
-                                        isLoading={freezingCustomer}
-                                        loadingText="Freezing..."
-                                    >
-                                        {/* <SnowflakeIcon size={16} className="mr-1" /> */}
-                                        Freeze
-                                    </Button>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    {selectedCustomerDetails.status !== 5 && (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="text-red-600 border-red-200 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30"
+                                            onClick={handleMarkNotInterested}
+                                            disabled={markingNotInterested}
+                                            isLoading={markingNotInterested}
+                                            loadingText="Updating..."
+                                        >
+                                            Not Interested
+                                        </Button>
+                                    )}
+                                    {selectedCustomerDetails.status === 3 && (
+                                        <Button
+                                            size="sm"
+                                            className="bg-neutral-900 text-white hover:bg-neutral-800"
+                                            onClick={() => handleFreezeClick(selectedCustomerDetails)}
+                                            disabled={freezingCustomer}
+                                            isLoading={freezingCustomer}
+                                            loadingText="Freezing..."
+                                        >
+                                            Freeze
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                             <div className="relative flex justify-between items-start">
                                 {[
@@ -1781,11 +1976,21 @@ export function CustomersPage() {
                                                 <PlugIcon className="w-4 h-4" />
                                             </div>
                                         ),
-                                    }] : [])
+                                    }] : []),
+                                    {
+                                        id: 'notes',
+                                        label: 'Notes',
+                                        mobileLabel: 'Notes',
+                                        icon: (
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${selectedDetailSection === 'notes' ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
+                                            </div>
+                                        ),
+                                    }
                                 ].map((item) => (
                                     <button
                                         key={item.id}
-                                        onClick={() => setSelectedDetailSection(item.id as 'info' | 'location' | 'account' | 'rates' | 'solar' | 'debit' | 'vpp' | 'utilmate')}
+                                        onClick={() => setSelectedDetailSection(item.id as 'info' | 'location' | 'account' | 'rates' | 'solar' | 'debit' | 'vpp' | 'utilmate' | 'notes')}
                                         className={`flex-1 flex flex-col lg:flex-row items-center lg:w-full gap-1 lg:gap-3 p-2 rounded-xl text-sm font-medium transition-all ${selectedDetailSection === item.id
                                             ? 'bg-card shadow-sm border border-border text-foreground ring-1 ring-primary/5'
                                             : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
@@ -1801,13 +2006,13 @@ export function CustomersPage() {
                             </div>
 
                             {/* Content Area */}
-                            <div className="w-full flex-1 bg-card rounded-xl border border-border p-6 shadow-sm min-h-[500px] flex flex-col">
+                            <div className="w-full flex-1 bg-card rounded-xl border border-border p-4 shadow-sm min-h-[400px] flex flex-col">
                                 {selectedDetailSection === 'info' && (
-                                    <div className="space-y-4 animate-in fade-in duration-300">
-                                        <div className="flex items-center justify-between border-b border-border pb-4">
-                                            <h3 className="text-xl font-semibold text-foreground tracking-tight">Customer Info</h3>
+                                    <div className="space-y-3 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between border-b border-border pb-3">
+                                            <h3 className="text-lg font-semibold text-foreground tracking-tight">Customer Info</h3>
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                             {[
                                                 { label: 'Customer Id', value: selectedCustomerDetails.customerId },
                                                 { label: 'Business', value: selectedCustomerDetails.businessName },
@@ -1820,8 +2025,8 @@ export function CustomersPage() {
                                                 { label: 'ID State', value: selectedCustomerDetails.enrollmentDetails?.idstate },
                                                 { label: 'ID Expiry', value: selectedCustomerDetails.enrollmentDetails?.idexpiry ? formatSydneyTime(selectedCustomerDetails.enrollmentDetails.idexpiry, 'DD/MM/YYYY') : null },
                                             ].map((item, i) => (
-                                                <div key={i} className={`flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50 ${item.fullWidth ? 'col-span-1 sm:col-span-2 lg:col-span-3' : ''}`}>
-                                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
+                                                <div key={i} className={`flex flex-col space-y-0.5 p-1.5 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50 ${item.fullWidth ? 'col-span-1 sm:col-span-2 lg:col-span-3' : ''}`}>
+                                                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
                                                     <span className="text-sm font-medium text-foreground break-words">{item.value || '—'}</span>
                                                 </div>
                                             ))}
@@ -1830,13 +2035,13 @@ export function CustomersPage() {
                                 )}
 
                                 {selectedDetailSection === 'location' && (
-                                    <div className="space-y-4 animate-in fade-in duration-300">
-                                        <div className="flex items-center justify-between border-b border-border pb-4">
-                                            <h3 className="text-xl font-semibold text-foreground tracking-tight">Location & Meter</h3>
+                                    <div className="space-y-3 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between border-b border-border pb-3">
+                                            <h3 className="text-lg font-semibold text-foreground tracking-tight">Location & Meter</h3>
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div className="flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50 col-span-1 sm:col-span-2">
-                                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Address</span>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            <div className="flex flex-col space-y-0.5 p-1.5 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50 col-span-1 sm:col-span-2">
+                                                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Address</span>
                                                 <span className="text-sm font-medium text-foreground break-words">{selectedCustomerDetails.address?.fullAddress || [selectedCustomerDetails.address?.streetNumber, selectedCustomerDetails.address?.streetName, selectedCustomerDetails.address?.suburb].filter(Boolean).join(' ') || '—'}</span>
                                             </div>
                                             {[
@@ -1845,8 +2050,8 @@ export function CustomersPage() {
                                                 { label: 'NMI', value: selectedCustomerDetails.address?.nmi },
                                                 { label: 'Tariff Code', value: selectedCustomerDetails.tariffCode },
                                             ].map((item, i) => (
-                                                <div key={i} className="flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50">
-                                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
+                                                <div key={i} className="flex flex-col space-y-0.5 p-1.5 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50">
+                                                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
                                                     <span className="text-sm font-medium text-foreground">{item.value || '—'}</span>
                                                 </div>
                                             ))}
@@ -1855,22 +2060,22 @@ export function CustomersPage() {
                                 )}
 
                                 {selectedDetailSection === 'account' && (
-                                    <div className="space-y-4 animate-in fade-in duration-300">
-                                        <div className="flex items-center justify-between border-b border-border pb-4">
-                                            <h3 className="text-xl font-semibold text-foreground tracking-tight">Account Settings</h3>
+                                    <div className="space-y-3 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between border-b border-border pb-3">
+                                            <h3 className="text-lg font-semibold text-foreground tracking-tight">Account Settings</h3>
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                             {[
                                                 { label: 'Sale Type', value: SALE_TYPE_LABELS[selectedCustomerDetails.enrollmentDetails?.saletype ?? 0] || 'Direct' },
                                                 { label: 'Billing Preference', value: BILLING_PREF_LABELS[selectedCustomerDetails.enrollmentDetails?.billingpreference ?? 0] || 'eBill' },
                                                 { label: 'Discount', value: selectedCustomerDetails.discount ? `${selectedCustomerDetails.discount}%` : '-' },
-                                                { label: 'Rate Version', value: selectedCustomerDetails.rateVersion ?? '—' },
+                                                { label: 'Rate Version', value: selectedCustomerDetails.rateVersion ? <RateVersionTooltip version={String(selectedCustomerDetails.rateVersion)}>{selectedCustomerDetails.rateVersion}</RateVersionTooltip> : '—' },
                                                 { label: 'Connection Date', value: selectedCustomerDetails.enrollmentDetails?.connectiondate ? formatSydneyTime(selectedCustomerDetails.enrollmentDetails.connectiondate, 'DD/MM/YYYY') : null },
                                                 { label: 'Concession', value: selectedCustomerDetails.enrollmentDetails?.concession === 1 ? 'Yes' : 'No' },
                                                 { label: 'Life Support', value: selectedCustomerDetails.enrollmentDetails?.lifesupport === 1 ? 'Yes' : 'No' },
                                             ].map((item, i) => (
-                                                <div key={i} className="flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50">
-                                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
+                                                <div key={i} className="flex flex-col space-y-0.5 p-1.5 rounded-lg hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50">
+                                                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
                                                     <span className="text-sm font-medium text-foreground">{item.value || '—'}</span>
                                                 </div>
                                             ))}
@@ -1884,6 +2089,14 @@ export function CustomersPage() {
                                             <h3 className="text-lg font-semibold text-foreground">Rate Plan Details</h3>
                                             <div className="flex items-center gap-2">
                                                 <span className="px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground rounded-lg">DNSP: {DNSP_LABELS[selectedCustomerDetails.ratePlan.dnsp ?? -1] || 'Unknown'}</span>
+                                                {selectedCustomerDetails.rateVersion && (
+                                                    <div className="px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg flex items-center gap-1">
+                                                        <span>Ver:</span>
+                                                        <RateVersionTooltip version={String(selectedCustomerDetails.rateVersion)}>
+                                                            <span className="underline decoration-dotted decoration-blue-700/50 dark:decoration-blue-400/50">{selectedCustomerDetails.rateVersion}</span>
+                                                        </RateVersionTooltip>
+                                                    </div>
+                                                )}
                                                 {selectedCustomerDetails.vppDetails?.vpp === 1 && <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-lg">VPP Active</span>}
                                             </div>
                                         </div>
@@ -2358,6 +2571,63 @@ export function CustomersPage() {
                                         )}
                                     </div>
                                 )}
+
+                                {selectedDetailSection === 'notes' && (
+                                    <div className="space-y-3 animate-in fade-in duration-300 flex flex-col h-full">
+                                        <div className="flex items-center justify-between border-b border-border pb-3">
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-foreground tracking-tight">Notes</h3>
+                                                <p className="text-[10px] text-muted-foreground">Internal notes about this customer</p>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                className="bg-neutral-900 text-white hover:bg-neutral-800"
+                                                onClick={() => setNoteModalOpen(true)}
+                                            >
+                                                <PlusIcon className="w-4 h-4 mr-1" />
+                                                Add Note
+                                            </Button>
+                                        </div>
+
+                                        {/* Notes List */}
+                                        <div className="flex-1 overflow-y-auto space-y-2 max-h-[350px]">
+                                            {notesLoading ? (
+                                                <div className="flex items-center justify-center py-6">
+                                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+                                                </div>
+                                            ) : notesData?.customerNotes?.length > 0 ? (
+                                                notesData.customerNotes.map((note: any) => (
+                                                    <div key={note.uid} className="bg-muted/30 border border-border/50 rounded-lg p-3 group hover:bg-muted/50 transition-colors">
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <div className="flex-1 space-y-1">
+                                                                <p className="text-sm text-foreground whitespace-pre-wrap leading-snug">{note.message}</p>
+                                                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                                                    <span className="font-medium">{note.createdByName || 'Unknown'}</span>
+                                                                    <span>•</span>
+                                                                    <span>{formatSydneyTime(note.createdAt)}</span>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleDeleteNote(note.uid)}
+                                                                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition-all"
+                                                                title="Delete note"
+                                                            >
+                                                                <XIcon className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="text-center py-8">
+                                                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mx-auto mb-2">
+                                                        <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground">No notes yet</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -2551,6 +2821,49 @@ export function CustomersPage() {
                             />
                         </div>
                     </div>
+                </div>
+            </Modal>
+
+            {/* Add Note Modal */}
+            <Modal
+                isOpen={noteModalOpen}
+                onClose={() => { setNoteModalOpen(false); setNoteText(''); }}
+                title="Add Note"
+                size="sm"
+                footer={
+                    <>
+                        <Button
+                            variant="ghost"
+                            onClick={() => { setNoteModalOpen(false); setNoteText(''); }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-neutral-900 text-white hover:bg-neutral-800"
+                            onClick={async () => {
+                                await handleAddNote();
+                                setNoteModalOpen(false);
+                            }}
+                            disabled={!noteText.trim() || isAddingNote}
+                            isLoading={isAddingNote}
+                            loadingText="Adding..."
+                        >
+                            Add Note
+                        </Button>
+                    </>
+                }
+            >
+                <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                        Add an internal note about this customer.
+                    </p>
+                    <textarea
+                        value={noteText}
+                        onChange={(e) => setNoteText(e.target.value)}
+                        placeholder="Write a note..."
+                        className="w-full min-h-[120px] p-3 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                        autoFocus
+                    />
                 </div>
             </Modal>
         </div>
