@@ -66,6 +66,16 @@ export interface CustomerFormData {
     discount: number;
 
     // Documents
-    previousBillPath?: string;
-    identityProof?: string;
+    previousBill?: CustomerDocument | null;
+    identityProof?: CustomerDocument | null;
+}
+
+export interface CustomerDocument {
+    id: number | string;
+    uid?: string;
+    path: string;
+    filename?: string;
+    url?: string;
+    size?: number;
+    contentType?: string;
 }

@@ -42,6 +42,11 @@ import {
 } from '@/components/icons';
 import { sendVerification, checkVerification } from '@/lib/twilio';
 import { calculateDiscountedRate } from '@/lib/rate-utils';
+import {
+    uploadDocument,
+    // getDocumentPreviewUrl, isImageFile, isPdfFile,
+} from '@/lib/document-upload';
+import DocumentPreview from '@/components/common/DocumentPreview';
 import LocationAutocomplete from '../LocationAutocomplete';
 import { Modal } from '@/components/common/Modal';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -81,7 +86,7 @@ const ToggleSwitch = ({ checked, onChange }: { checked: boolean, onChange: (chec
 // TYPES
 // ============================================================================
 
-import type { CustomerFormData, RatePlan } from '@/types';
+import type { CustomerFormData, RatePlan, CustomerDocument } from '@/types';
 
 // ============================================================================
 // CONSTANTS
@@ -138,8 +143,13 @@ const initialFormData: CustomerFormData = {
     firstDebitDate: '',
     tariffCode: '',
     discount: 0,
-    previousBillPath: '',
-    identityProof: '',
+    previousBill: null,
+    identityProof: null,
+};
+
+const generateGEECustomerId = () => {
+    const randomNum = Math.floor(10000 + Math.random() * 90000);
+    return `GEE${randomNum}`;
 };
 
 const streetTypeOptions = [
@@ -202,6 +212,12 @@ const SummaryItem = ({ icon: Icon, label, value, className }: { icon: any, label
         </div>
     </div>
 );
+
+// ============================================================================
+// DOCUMENT PREVIEW COMPONENT
+// ============================================================================
+
+
 
 // ============================================================================
 // RATE DETAILS COMPONENT
@@ -287,19 +303,19 @@ const RateDetailsView = ({ offer, discount }: { offer: any, discount: number }) 
                         {(offer.fitPeak || 0) > 0 && (
                             <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center">
                                 <div className="text-teal-800 dark:text-teal-300 font-bold text-sm">${offer.fitPeak.toFixed(4)}/kWh</div>
-                                <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Peak</div>
+                                <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">PREMIUM FIT</div>
                             </div>
                         )}
                         {(offer.fitCritical || 0) > 0 && (
                             <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center">
                                 <div className="text-teal-800 dark:text-teal-300 font-bold text-sm">${offer.fitCritical.toFixed(4)}/kWh</div>
-                                <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Critical</div>
+                                <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">CRITICAL EVENT FIT</div>
                             </div>
                         )}
                         {(offer.fitVpp || 0) > 0 && (
                             <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center">
                                 <div className="text-teal-800 dark:text-teal-300 font-bold text-sm">${offer.fitVpp.toFixed(4)}/kWh</div>
-                                <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT VPP</div>
+                                <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">BASE FIT</div>
                             </div>
                         )}
                     </div>
@@ -377,6 +393,11 @@ export const CustomerFormPage = () => {
         skip: !isEditMode,
         fetchPolicy: 'network-only',
     });
+
+    // Document upload state
+    const [generatedCustomerId] = useState(() => isEditMode ? (customerData?.customer?.customerId || generateGEECustomerId()) : generateGEECustomerId());
+    const [uploadingPreviousBill, setUploadingPreviousBill] = useState(false);
+    const [uploadingIdentityProof, setUploadingIdentityProof] = useState(false);
 
     const { data: activeRatesData } = useQuery(GET_ACTIVE_RATES_HISTORY, {
         fetchPolicy: 'cache-first',
@@ -502,6 +523,8 @@ export const CustomerFormPage = () => {
                 firstDebitDate: c.debitDetails?.firstDebitDate ? c.debitDetails.firstDebitDate.split('T')[0] : '',
                 tariffCode: c.tariffCode || '',
                 discount: c.discount || 0,
+                previousBill: c.previousBill || null,
+                identityProof: c.identityProof || null,
             });
 
             if (c.phoneVerifiedAt) {
@@ -866,7 +889,10 @@ export const CustomerFormPage = () => {
                     vppSignupBonus: formData.vppSignupBonus ? parseFloat(formData.vppSignupBonus) : undefined,
                 },
                 debitDetails: undefined,
+                previousBill: formData.previousBill?.uid,
+                identityProof: formData.identityProof?.uid,
                 rateVersion: activeRateVersion,
+                customerId: isEditMode ? undefined : generatedCustomerId,
             };
 
             if (isEditMode) {
@@ -1518,24 +1544,83 @@ export const CustomerFormPage = () => {
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                                             <Field label="Previous Bill">
-                                                <input
-                                                    type="file"
-                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                                    onChange={(e) => {
-                                                        // Handle file upload or state update here
-                                                        console.log('Previous Bill selected:', e.target.files?.[0]);
-                                                    }}
-                                                />
+                                                <div className="space-y-2">
+                                                    <input
+                                                        type="file"
+                                                        accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                        disabled={uploadingPreviousBill}
+                                                        onChange={async (e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (!file) return;
+
+                                                            setUploadingPreviousBill(true);
+                                                            try {
+                                                                // Use generatedCustomerId for new customers, or existing customerId/uid for edits
+                                                                // For new customers, we use generatedCustomerId for both customerId and uid params to ensure folder creation matches
+                                                                const targetId = isEditMode ? (customerData?.customer?.customerId || uid) : generatedCustomerId;
+                                                                const result = await uploadDocument(file, targetId!, 'previous_bill', isEditMode ? (uid || undefined) : generatedCustomerId, 'Previous Bill');
+                                                                updateField('previousBill', {
+                                                                    id: result.id,
+                                                                    uid: result.uid,
+                                                                    filename: result.filename,
+                                                                    path: result.path,
+                                                                    size: result.size,
+                                                                    mimeType: result.contentType || 'application/pdf',
+                                                                    createdAt: new Date().toISOString()
+                                                                } as CustomerDocument);
+                                                                toast.success('Previous bill uploaded successfully');
+                                                            } catch (error) {
+                                                                toast.error(error instanceof Error ? error.message : 'Failed to upload file');
+                                                            } finally {
+                                                                setUploadingPreviousBill(false);
+                                                            }
+                                                        }}
+                                                    />
+                                                    {uploadingPreviousBill && <p className="text-xs text-muted-foreground animate-pulse">Uploading...</p>}
+                                                    {formData.previousBill && !uploadingPreviousBill && (
+                                                        <DocumentPreview path={formData.previousBill.path} label="Previous Bill" />
+                                                    )}
+                                                </div>
                                             </Field>
                                             <Field label="Identity Proof">
-                                                <input
-                                                    type="file"
-                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                                    onChange={(e) => {
-                                                        // Handle file upload or state update here
-                                                        console.log('Identity Proof selected:', e.target.files?.[0]);
-                                                    }}
-                                                />
+                                                <div className="space-y-2">
+                                                    <input
+                                                        type="file"
+                                                        accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+                                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                        disabled={uploadingIdentityProof}
+                                                        onChange={async (e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (!file) return;
+
+                                                            setUploadingIdentityProof(true);
+                                                            try {
+                                                                // Use generatedCustomerId for new customers, or existing customerId/uid for edits
+                                                                const targetId = isEditMode ? (customerData?.customer?.customerId || uid) : generatedCustomerId;
+                                                                const result = await uploadDocument(file, targetId!, 'identity_proof', isEditMode ? (uid || undefined) : generatedCustomerId, 'Identity Proof');
+                                                                updateField('identityProof', {
+                                                                    id: result.id,
+                                                                    uid: result.uid,
+                                                                    filename: result.filename,
+                                                                    path: result.path,
+                                                                    size: result.size,
+                                                                    mimeType: result.contentType || 'application/pdf',
+                                                                    createdAt: new Date().toISOString()
+                                                                } as CustomerDocument);
+                                                                toast.success('Identity proof uploaded successfully');
+                                                            } catch (error) {
+                                                                toast.error(error instanceof Error ? error.message : 'Failed to upload file');
+                                                            } finally {
+                                                                setUploadingIdentityProof(false);
+                                                            }
+                                                        }}
+                                                    />
+                                                    {uploadingIdentityProof && <p className="text-xs text-muted-foreground animate-pulse">Uploading...</p>}
+                                                    {formData.identityProof && !uploadingIdentityProof && (
+                                                        <DocumentPreview path={formData.identityProof.path} label="Identity Proof" />
+                                                    )}
+                                                </div>
                                             </Field>
                                         </div>
                                         <div className="flex flex-wrap gap-6 pt-2">
@@ -1690,6 +1775,21 @@ export const CustomerFormPage = () => {
                                                 <div className="flex gap-4">
                                                     {formData.concession && <span className="px-2 py-1 bg-card rounded border border-amber-200 dark:border-amber-700 text-xs font-medium text-amber-900 dark:text-amber-300">Concession Card Holder</span>}
                                                     {formData.lifeSupport && <span className="px-2 py-1 bg-card rounded border border-amber-200 dark:border-amber-700 text-xs font-medium text-amber-900 dark:text-amber-300">Life Support Equipment</span>}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Uploaded Documents */}
+                                        {(formData.previousBill || formData.identityProof) && (
+                                            <div className="md:col-span-2 p-4 bg-muted/50 rounded-lg">
+                                                <h3 className="font-medium mb-3 flex items-center gap-2"><IdCardIcon size={16} className="text-blue-600" /> Uploaded Documents</h3>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {formData.previousBill && (
+                                                        <DocumentPreview path={formData.previousBill.path} label="Previous Bill" />
+                                                    )}
+                                                    {formData.identityProof && (
+                                                        <DocumentPreview path={formData.identityProof.path} label="Identity Proof" />
+                                                    )}
                                                 </div>
                                             </div>
                                         )}

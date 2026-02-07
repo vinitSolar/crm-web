@@ -1165,7 +1165,7 @@ export function RatesPage() {
         },
         {
             key: 'fitPeak',
-            header: 'FIT-Peak',
+            header: 'Premium FIT',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_fitPeak') ? `Old: ${getOldValue(row, 'offer_fitPeak')}` : null}>
@@ -1177,7 +1177,7 @@ export function RatesPage() {
         },
         {
             key: 'fitCritical',
-            header: 'FIT-Critical',
+            header: 'CRITICAL EVENT FIT',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_fitCritical') ? `Old: ${getOldValue(row, 'offer_fitCritical')}` : null}>
@@ -1189,7 +1189,7 @@ export function RatesPage() {
         },
         {
             key: 'fitVpp',
-            header: 'FIT-VPP',
+            header: 'BASE FIT',
             width: 'w-[100px]',
             render: (row: RatePlan) => (
                 <Tooltip fullWidth content={isFieldChanged(row, 'offer_fitVpp') ? `Old: ${getOldValue(row, 'offer_fitVpp')}` : null}>
@@ -1801,17 +1801,17 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-VPP</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">BASE FIT</label>
                                 <Input
                                     type="number"
                                     step="0.01"
                                     placeholder="0.00"
-                                    value={formData.vppOrcharge}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, vppOrcharge: e.target.value }))}
+                                    value={formData.fitVpp}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, fitVpp: e.target.value }))}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-Peak</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">PREMIUM FIT</label>
                                 <Input
                                     type="number"
                                     step="0.01"
@@ -1821,7 +1821,7 @@ export function RatesPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">FIT-Critical</label>
+                                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">CRITICAL EVENT FIT</label>
                                 <Input
                                     type="number"
                                     step="0.01"

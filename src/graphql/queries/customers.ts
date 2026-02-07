@@ -35,6 +35,30 @@ export const GET_CUSTOMERS = gql`
                 isDeleted
                 createdAt
                 updatedAt
+                previousBill {
+                    id
+                    filename
+                    path
+                    size
+                    mimeType
+                    createdAt
+                    createdBy
+                    createdByUser {
+                        name
+                    }
+                }
+                identityProof {
+                    id
+                    filename
+                    path
+                    size
+                    mimeType
+                    createdAt
+                    createdBy
+                    createdByUser {
+                        name
+                    }
+                }
                 createdBy
                 updatedBy
                 deletedBy
@@ -221,6 +245,30 @@ export const GET_CUSTOMERS_LIST = gql`
                 isDeleted
                 createdAt
                 updatedAt
+                previousBill {
+                    id
+                    filename
+                    path
+                    size
+                    mimeType
+                    createdAt
+                    createdBy
+                    createdByUser {
+                        name
+                    }
+                }
+                identityProof {
+                    id
+                    filename
+                    path
+                    size
+                    mimeType
+                    createdAt
+                    createdBy
+                    createdByUser {
+                        name
+                    }
+                }
                 createdBy
                 updatedBy
                 deletedBy
@@ -435,6 +483,38 @@ export const GET_CUSTOMER_BY_ID = gql`
             isDeleted
             createdAt
             updatedAt
+            previousBill {
+                id
+                uid
+                customerUid
+                filename
+                path
+                size
+                mimeType
+                createdAt
+                updatedAt
+                createdBy
+                createdByUser {
+                    uid
+                    name
+                }
+            }
+            identityProof {
+                id
+                uid
+                customerUid
+                filename
+                path
+                size
+                mimeType
+                createdAt
+                updatedAt
+                createdBy
+                createdByUser {
+                    uid
+                    name
+                }
+            }
             address {
                 id
                 customerUid
@@ -559,6 +639,25 @@ export const GET_CUSTOMER_BY_ID = gql`
                 isDeleted
                 createdAt
                 updatedAt
+            }
+            documents {
+                id
+                uid
+                customerUid
+                type
+                name
+                filename
+                path
+                size
+                mimeType
+                startDate
+                endDate
+                createdAt
+                createdBy
+                createdByUser {
+                    uid
+                    name
+                }
             }
         }
     }
@@ -731,6 +830,23 @@ export const GET_CUSTOMER_BY_CUSTOMER_ID = gql`
                 concession
                 lifesupport
                 billingpreference
+            }
+            documents {
+                id
+                uid
+                customerUid
+                type
+                name
+                filename
+                path
+                size
+                mimeType
+                createdAt
+                createdBy
+                createdByUser {
+                    uid
+                    name
+                }
             }
         }
     }

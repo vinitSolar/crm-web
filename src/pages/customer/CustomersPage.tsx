@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useLazyQuery, useMutation } from '@apollo/client';
 import { calculateDiscountedRate } from '../../lib/rate-utils';
@@ -8,7 +8,8 @@ import { DataTable, type Column, Modal } from '@/components/common';
 import {
     PlusIcon, PencilIcon,
     CheckIcon, XIcon, MailIcon, Settings2Icon, PlugIcon, ZapIcon,
-    ActivityIcon, InfoIcon
+    ActivityIcon, InfoIcon, IdCardIcon,
+    EyeIcon, TrashIcon, UploadIcon
 } from '@/components/icons';
 import { GET_CUSTOMERS_CURSOR, GET_CUSTOMER_BY_ID, SOFT_DELETE_CUSTOMER, SEND_REMINDER_EMAIL, CREATE_CUSTOMER, UPDATE_CUSTOMER, GET_ALL_FILTERED_CUSTOMER_IDS, GET_RATES_HISTORY_BY_VERSION, GET_CUSTOMER_NOTES, CREATE_CUSTOMER_NOTE, DELETE_CUSTOMER_NOTE } from '@/graphql';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -18,10 +19,12 @@ import { ConfirmationPopover } from '@/components/ui/ConfirmationPopover';
 import { formatSydneyTime } from '@/lib/date';
 import {
     //  apolloClient,
-    secondaryApiAxios
+    secondaryApiAxios,
+    apiAxios
 } from '@/lib/apollo';
 import { cn } from '@/lib/utils';
 import BulkEmailModal from './BulkEmailModal';
+
 import { SALE_TYPE_LABELS, BILLING_PREF_LABELS, DNSP_LABELS, DNSP_OPTIONS, DISCOUNT_OPTIONS, CUSTOMER_STATUS_OPTIONS, VPP_OPTIONS, VPP_CONNECTED_OPTIONS, ULTIMATE_STATUS_OPTIONS, MSAT_CONNECTED_OPTIONS, ID_TYPE_MAP, BATTERY_BRAND_OPTIONS } from '@/lib/constants';
 import { toast } from 'react-toastify';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -49,6 +52,8 @@ interface Customer {
     status: number | string;
     tariffCode?: string;
     discount?: string;
+    previousBill?: { path: string; filename?: string };
+    identityProof?: { path: string; filename?: string };
     createdAt: string;
     rateVersion?: number;
     address?: CustomerAddress;
@@ -98,6 +103,8 @@ interface CustomerDetails {
     dob?: string;
     propertyType?: number;
     status: number;
+    previousBill?: { uid: string; path: string; filename?: string };
+    identityProof?: { uid: string; path: string; filename?: string };
     discount?: number;
     tariffCode?: string;
     signDate?: string;
@@ -212,7 +219,30 @@ interface CustomerDetails {
         firstDebitDate?: string;
         optIn?: number;
     };
+    documents?: Array<{
+        id: string;
+        uid: string;
+        type?: string;
+        name?: string;
+        filename?: string;
+        path?: string;
+        size?: number;
+        mimeType?: string;
+        createdAt: string;
+        createdBy?: string;
+        createdByUser?: {
+            name: string;
+        };
+    }>;
 }
+
+const DOCUMENT_TYPE_OPTIONS = [
+    { label: 'Solar Contract', value: 'solar_contract' },
+    { label: 'Connection Approval', value: 'connection_approval' },
+    { label: 'Electrical Certificate', value: 'electrical_certificate' },
+    { label: 'Site Photos', value: 'site_photos' },
+    { label: 'Other', value: 'other' }
+];
 
 
 
@@ -331,8 +361,6 @@ export function CustomersPage() {
         msatConnected: '',
     });
 
-
-
     const [debouncedFilters, setDebouncedFilters] = useState(searchFilters);
     const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
 
@@ -353,12 +381,21 @@ export function CustomersPage() {
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
     // Detail Section State
-    const [selectedDetailSection, setSelectedDetailSection] = useState<'info' | 'location' | 'account' | 'rates' | 'solar' | 'debit' | 'vpp' | 'utilmate' | 'notes'>('info');
+    const [selectedDetailSection, setSelectedDetailSection] = useState<'info' | 'location' | 'account' | 'rates' | 'solar' | 'debit' | 'vpp' | 'utilmate' | 'notes' | 'documents' | 'electricity_bills'>('info');
 
     // Notes State
     const [noteText, setNoteText] = useState('');
     const [isAddingNote, setIsAddingNote] = useState(false);
     const [noteModalOpen, setNoteModalOpen] = useState(false);
+
+    // Document operations state
+    const [isDeletingDocument, setIsDeletingDocument] = useState<string | null>(null);
+    const [isUploadingDocument, setIsUploadingDocument] = useState<string | null>(null);
+    const [isAddingDocument, setIsAddingDocument] = useState(false);
+    const [newDocumentType, setNewDocumentType] = useState<string>('');
+    const previousBillInputRef = useRef<HTMLInputElement>(null);
+    const identityProofInputRef = useRef<HTMLInputElement>(null);
+    const newDocumentInputRef = useRef<HTMLInputElement>(null);
 
     // Reset section when modal opens/customer changes
     useEffect(() => {
@@ -370,6 +407,7 @@ export function CustomersPage() {
     // Lazy query for customer details
     const [fetchCustomerDetails] = useLazyQuery(GET_CUSTOMER_BY_ID, {
         fetchPolicy: 'network-only',
+        errorPolicy: 'all',
     });
 
     // Lazy query for fetching all filtered customer IDs (for Select All)
@@ -414,6 +452,89 @@ export function CustomersPage() {
             toast.success('Note deleted');
         } catch (error: any) {
             toast.error(error.message || 'Failed to delete note');
+        }
+    };
+
+    // Document handlers
+    const handleDeleteDocument = async (docPath: string) => {
+        if (!selectedCustomerDetails?.customerId) return;
+
+        setIsDeletingDocument(docPath);
+        try {
+            // Use the full docPath directly - the API uses wildcard routing to handle nested paths
+            // encodeURIComponent ensures special characters are properly encoded
+            await apiAxios.delete(`/api/documents/${encodeURIComponent(docPath).replace(/%2F/g, '/')}`);
+
+            // Refetch customer details to update UI
+            const result = await fetchCustomerDetails({
+                variables: { uid: selectedCustomerDetails.uid }
+            });
+            if (result.data?.customer) {
+                setSelectedCustomerDetails(result.data.customer);
+            }
+
+            toast.success('Document deleted successfully');
+        } catch (error: any) {
+            console.error('Error deleting document:', error);
+            toast.error(error.response?.data?.error || 'Failed to delete document');
+        } finally {
+            setIsDeletingDocument(null);
+        }
+    };
+
+    const handleUploadDocument = async (documentType: string, file: File, startDate?: string, endDate?: string) => {
+        if (!file) return;
+        if (!selectedCustomerDetails?.customerId || !selectedCustomerDetails?.uid) return;
+
+        setIsUploadingDocument(documentType);
+        try {
+            const formData = new FormData();
+            formData.append('customerId', selectedCustomerDetails.customerId);
+            formData.append('customer_uid', selectedCustomerDetails.uid);
+            let apiDocType = documentType;
+            let docName = documentType;
+
+            if (documentType === 'previousBill') {
+                apiDocType = 'previous_bill';
+                docName = 'Previous Bill';
+            } else if (documentType === 'identityProof') {
+                apiDocType = 'identity_proof';
+                docName = 'Identity Proof';
+            } else {
+                // For other documents, try to find a nice label or just use the type
+                const option = DOCUMENT_TYPE_OPTIONS.find(o => o.value === documentType);
+                docName = option ? option.label : documentType;
+            }
+
+            formData.append('documentType', apiDocType);
+            formData.append('name', docName);
+            if (startDate) formData.append('startDate', startDate);
+            if (endDate) formData.append('endDate', endDate);
+            formData.append('file', file);
+
+            await apiAxios.post('/api/documents/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            // Refetch customer details to update UI
+            const result = await fetchCustomerDetails({
+                variables: { uid: selectedCustomerDetails.uid }
+            });
+            if (result.data?.customer) {
+                setSelectedCustomerDetails(result.data.customer);
+            }
+
+            toast.success('Document uploaded successfully');
+            setIsAddingDocument(false);
+            setNewDocumentType('');
+            // Reset dates
+            setBillStartDate('');
+            setBillEndDate('');
+        } catch (error: any) {
+            console.error('Error uploading document:', error);
+            toast.error(error.response?.data?.error || 'Failed to upload document');
+        } finally {
+            setIsUploadingDocument(null);
         }
     };
 
@@ -524,6 +645,10 @@ export function CustomersPage() {
         inverterCapacity: '',
         checkCode: ''
     });
+
+    // Date state for electricity bill upload
+    const [billStartDate, setBillStartDate] = useState<string>('');
+    const [billEndDate, setBillEndDate] = useState<string>('');
     const [vppConnectModalOpen, setVppConnectModalOpen] = useState(false);
     const [utilmateConnectModalOpen, setUtilmateConnectModalOpen] = useState(false);
 
@@ -615,6 +740,7 @@ export function CustomersPage() {
                 vppDetails: {
                     ...selectedCustomerDetails.vppDetails,
                     vpp: 1,
+                    vppConnected: input.vppDetails.vppConnected,
                     vppSignupBonus: input.vppDetails.vppSignupBonus
                 },
                 batteryDetails: input.batteryDetails
@@ -1156,11 +1282,21 @@ export function CustomersPage() {
         setSelectedCustomerDetails(null);
 
         try {
-            const { data } = await fetchCustomerDetails({
+            const result = await fetchCustomerDetails({
                 variables: { uid: customer.uid }
             });
-            if (data?.customer) {
-                setSelectedCustomerDetails(data.customer);
+
+            console.log('fetchCustomerDetails result:', result);
+
+            if (result.error) {
+                console.error('GraphQL error:', result.error);
+            }
+
+            if (result.data?.customer) {
+                console.log('Setting customer details:', result.data.customer);
+                setSelectedCustomerDetails(result.data.customer);
+            } else {
+                console.warn('No customer data in response:', result.data);
             }
         } catch (err) {
             console.error('Failed to fetch customer details:', err);
@@ -1781,7 +1917,7 @@ export function CustomersPage() {
                                         { label: 'VPP connect', date: null, completed: selectedCustomerDetails.vppDetails?.vppConnected === 1, showToggle: true, disabled: selectedCustomerDetails.status < 2, step: 3 },
                                     ] : []),
                                     { label: 'Connected to MSAT', date: null, completed: selectedCustomerDetails.msatDetails?.msatConnected === 1, showToggle: true, disabled: selectedCustomerDetails.vppDetails?.vpp === 1 && selectedCustomerDetails.vppDetails?.vppConnected !== 1, step: 4 },
-                                    { label: 'Utilmate Connect', date: null, completed: selectedCustomerDetails.utilmateDetails?.utilmateConnected === 1, showToggle: true, disabled: selectedCustomerDetails.msatDetails?.msatConnected !== 1, step: 5 },
+                                    { label: 'Utilmate Connect', date: null, completed: selectedCustomerDetails.utilmateDetails?.utilmateConnected === 1, showToggle: true, disabled: selectedCustomerDetails.vppDetails?.vpp === 1 && selectedCustomerDetails.msatDetails?.msatConnected !== 1, step: 5 },
                                 ].map((item, index, arr) => (
                                     <div key={index} className="relative flex flex-col items-center" style={{ width: `${100 / arr.length}%` }}>
                                         {index > 0 && (
@@ -1978,6 +2114,36 @@ export function CustomersPage() {
                                         ),
                                     }] : []),
                                     {
+                                        id: 'electricity_bills',
+                                        label: 'Electricity Bills',
+                                        mobileLabel: 'Bills',
+                                        icon: (
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${selectedDetailSection === 'electricity_bills' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                                <ZapIcon className="w-4 h-4" />
+                                            </div>
+                                        ),
+                                        badge: (selectedCustomerDetails.documents?.some(d => d.type === '2')) ? (
+                                            <span className="ml-auto px-2 py-0.5 text-[10px] font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-400 rounded-full hidden lg:block">
+                                                {selectedCustomerDetails.documents?.filter(d => d.type === '2').length}
+                                            </span>
+                                        ) : undefined
+                                    },
+                                    {
+                                        id: 'documents',
+                                        label: 'Documents',
+                                        mobileLabel: 'Docs',
+                                        icon: (
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${selectedDetailSection === 'documents' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}>
+                                                <IdCardIcon className="w-4 h-4" />
+                                            </div>
+                                        ),
+                                        badge: (selectedCustomerDetails.previousBill?.path || selectedCustomerDetails.identityProof?.path) ? (
+                                            <span className="ml-auto px-2 py-0.5 text-[10px] font-medium bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-400 rounded-full hidden lg:block">
+                                                Active
+                                            </span>
+                                        ) : undefined
+                                    },
+                                    {
                                         id: 'notes',
                                         label: 'Notes',
                                         mobileLabel: 'Notes',
@@ -1990,7 +2156,7 @@ export function CustomersPage() {
                                 ].map((item) => (
                                     <button
                                         key={item.id}
-                                        onClick={() => setSelectedDetailSection(item.id as 'info' | 'location' | 'account' | 'rates' | 'solar' | 'debit' | 'vpp' | 'utilmate' | 'notes')}
+                                        onClick={() => setSelectedDetailSection(item.id as 'info' | 'location' | 'account' | 'rates' | 'solar' | 'debit' | 'vpp' | 'utilmate' | 'notes' | 'documents' | 'electricity_bills')}
                                         className={`flex-1 flex flex-col lg:flex-row items-center lg:w-full gap-1 lg:gap-3 p-2 rounded-xl text-sm font-medium transition-all ${selectedDetailSection === item.id
                                             ? 'bg-card shadow-sm border border-border text-foreground ring-1 ring-primary/5'
                                             : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
@@ -2007,6 +2173,398 @@ export function CustomersPage() {
 
                             {/* Content Area */}
                             <div className="w-full flex-1 bg-card rounded-xl border border-border p-4 shadow-sm min-h-[400px] flex flex-col">
+                                {selectedDetailSection === 'electricity_bills' && (
+                                    <div className="space-y-4 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between border-b border-border pb-4">
+                                            <div>
+                                                <h3 className="text-xl font-semibold text-foreground tracking-tight">Electricity Bills</h3>
+                                                <p className="text-[10px] text-muted-foreground">Manage electricity bill documents</p>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                className="bg-neutral-900 text-white hover:bg-neutral-800"
+                                                onClick={() => setIsAddingDocument(true)}
+                                            >
+                                                <PlusIcon className="w-4 h-4 mr-1" />
+                                                Add Bill
+                                            </Button>
+                                        </div>
+
+                                        {/* Hidden file input for bill upload */}
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+                                            className="hidden"
+                                            ref={newDocumentInputRef}
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handleUploadDocument('electricity_bill', file, billStartDate, billEndDate);
+                                                e.target.value = '';
+                                            }}
+                                        />
+
+                                        <Modal
+                                            isOpen={isAddingDocument}
+                                            onClose={() => setIsAddingDocument(false)}
+                                            title="Upload Electricity Bill"
+                                            size="md"
+                                        >
+                                            <div className="space-y-4">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-medium text-foreground">Start Date</label>
+                                                        <Input
+                                                            type="date"
+                                                            value={billStartDate}
+                                                            onChange={(e) => setBillStartDate(e.target.value)}
+                                                            className="w-full"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-medium text-foreground">End Date</label>
+                                                        <Input
+                                                            type="date"
+                                                            value={billEndDate}
+                                                            onChange={(e) => setBillEndDate(e.target.value)}
+                                                            className="w-full"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-end gap-3 pt-4">
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() => setIsAddingDocument(false)}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        className="bg-neutral-900 text-white hover:bg-neutral-800"
+                                                        disabled={isUploadingDocument !== null}
+                                                        onClick={() => newDocumentInputRef.current?.click()}
+                                                        isLoading={isUploadingDocument === 'electricity_bill'}
+                                                    >
+                                                        <UploadIcon className="w-4 h-4 mr-2" />
+                                                        Select File & Upload
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </Modal>
+
+                                        <div className="overflow-hidden rounded-xl border border-border bg-background">
+                                            <div className="overflow-auto max-h-[300px]">
+                                                <table className="w-full text-left text-sm">
+                                                    <thead className="bg-muted/50 border-b border-border">
+                                                        <tr>
+                                                            <th className="px-4 py-3 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Document Name</th>
+                                                            <th className="px-4 py-3 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Start Date</th>
+                                                            <th className="px-4 py-3 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">End Date</th>
+                                                            <th className="px-4 py-3 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Uploaded By</th>
+                                                            <th className="px-4 py-3 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Uploaded At</th>
+                                                            <th className="px-4 py-3 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] text-right">Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-border">
+                                                        {(selectedCustomerDetails.documents?.filter(d => d.type === '2') || []).length > 0 ? (
+                                                            selectedCustomerDetails.documents?.filter(d => d.type === '2').map((doc, idx) => (
+                                                                <tr key={idx} className="hover:bg-muted/30 transition-colors group">
+                                                                    <td className="px-4 py-3">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="w-8 h-8 rounded flex items-center justify-center bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-400">
+                                                                                <ZapIcon className="w-4 h-4" />
+                                                                            </div>
+                                                                            <div className="flex flex-col">
+                                                                                <span className="font-medium text-foreground">{doc.name || 'Electricity Bill'}</span>
+                                                                                <span className="text-xs text-muted-foreground truncate max-w-[180px]" title={doc.filename}>{doc.filename}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                                                                        {(doc as any).startDate ? formatSydneyTime((doc as any).startDate, 'DD/MM/YYYY') : <span className="text-muted-foreground italic">—</span>}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                                                                        {(doc as any).endDate ? formatSydneyTime((doc as any).endDate, 'DD/MM/YYYY') : <span className="text-muted-foreground italic">—</span>}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-muted-foreground">
+                                                                        <span className="text-foreground font-medium">{(doc as any).createdByUser?.name || (doc as any).createdBy || 'System'}</span>
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                                                                        {doc.createdAt ? formatSydneyTime(doc.createdAt) : <span className="text-muted-foreground italic">—</span>}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-right">
+                                                                        <div className="flex items-center justify-end gap-2">
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                className="h-8 px-3 text-xs font-medium border-border hover:bg-muted transition-colors"
+                                                                                onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/documents/${encodeURIComponent(doc.path!).replace(/%2F/g, '/')}`, '_blank')}
+                                                                            >
+                                                                                <EyeIcon className="w-3.5 h-3.5 mr-1.5" />
+                                                                                View
+                                                                            </Button>
+                                                                            <ConfirmationPopover
+                                                                                title="Delete Bill"
+                                                                                description="Are you sure you want to delete this bill? This action cannot be undone."
+                                                                                confirmText="Delete"
+                                                                                onConfirm={() => handleDeleteDocument(doc.path!)}
+                                                                                confirmVariant="destructive"
+                                                                            >
+                                                                                <Button
+                                                                                    variant="outline"
+                                                                                    size="sm"
+                                                                                    className="h-8 px-3 text-xs font-medium border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30"
+                                                                                    disabled={isDeletingDocument === doc.path}
+                                                                                    isLoading={isDeletingDocument === doc.path}
+                                                                                    loadingText="Deleting..."
+                                                                                >
+                                                                                    <TrashIcon className="w-3.5 h-3.5 mr-1.5" />
+                                                                                    Delete
+                                                                                </Button>
+                                                                            </ConfirmationPopover>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                        ) : (
+                                                            <tr>
+                                                                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-xs">
+                                                                    No electricity bills uploaded yet.
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {selectedDetailSection === 'documents' && (
+                                    <div className="space-y-4 animate-in fade-in duration-300">
+                                        <div className="flex items-center justify-between border-b border-border pb-4">
+                                            <div>
+                                                <h3 className="text-xl font-semibold text-foreground tracking-tight">Documents</h3>
+                                                <p className="text-[10px] text-muted-foreground">Manage customer documents</p>
+                                            </div>
+                                            {!isAddingDocument && (
+                                                <Button
+                                                    size="sm"
+                                                    className="bg-neutral-900 text-white hover:bg-neutral-800"
+                                                    onClick={() => setIsAddingDocument(true)}
+                                                >
+                                                    <PlusIcon className="w-4 h-4 mr-1" />
+                                                    Add Document
+                                                </Button>
+                                            )}
+                                        </div>
+
+                                        {/* Hidden file inputs for upload */}
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+                                            className="hidden"
+                                            ref={previousBillInputRef}
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handleUploadDocument('previousBill', file);
+                                                e.target.value = '';
+                                            }}
+                                        />
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+                                            className="hidden"
+                                            ref={identityProofInputRef}
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handleUploadDocument('identityProof', file);
+                                                e.target.value = '';
+                                            }}
+                                        />
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+                                            className="hidden"
+                                            ref={newDocumentInputRef}
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file && newDocumentType) handleUploadDocument(newDocumentType, file);
+                                                e.target.value = '';
+                                            }}
+                                        />
+
+                                        {isAddingDocument && (
+                                            <div className="bg-muted/30 border border-dashed border-border rounded-xl p-4 space-y-4 animate-in fade-in slide-in-from-top-2">
+                                                <div className="flex items-end gap-3">
+                                                    <div className="flex-1 space-y-2">
+                                                        <label className="text-xs font-semibold uppercase text-muted-foreground">Document Type</label>
+                                                        <Select
+                                                            options={DOCUMENT_TYPE_OPTIONS}
+                                                            value={newDocumentType}
+                                                            onChange={(val) => setNewDocumentType(val as string)}
+                                                            placeholder="Select Type..."
+                                                            className="w-full bg-background"
+                                                        />
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => {
+                                                                setIsAddingDocument(false);
+                                                                setNewDocumentType('');
+                                                            }}
+                                                            className="border-input hover:bg-accent hover:text-accent-foreground"
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                        <Button
+                                                            className="bg-neutral-900 text-white hover:bg-neutral-800"
+                                                            disabled={!newDocumentType || isUploadingDocument !== null}
+                                                            onClick={() => newDocumentInputRef.current?.click()}
+                                                            isLoading={isUploadingDocument !== null && isUploadingDocument === newDocumentType}
+                                                        >
+                                                            <UploadIcon className="w-4 h-4 mr-2" />
+                                                            Select File & Upload
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="overflow-hidden rounded-xl border border-border bg-background">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="bg-muted/50 border-b border-border">
+                                                    <tr>
+                                                        <th className="px-4 py-3 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Document Type</th>
+                                                        <th className="px-4 py-3 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Uploaded By</th>
+                                                        <th className="px-4 py-3 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Uploaded At</th>
+                                                        <th className="px-4 py-3 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] text-right">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-border">
+                                                    {[
+                                                        {
+                                                            doc: selectedCustomerDetails.previousBill,
+                                                            label: 'Previous Bill',
+                                                            type: 'previousBill'
+                                                        },
+                                                        {
+                                                            doc: selectedCustomerDetails.identityProof,
+                                                            label: 'Identity Proof',
+                                                            type: 'identityProof'
+                                                        },
+                                                        ...(selectedCustomerDetails.documents?.filter(d =>
+                                                            d.uid !== selectedCustomerDetails.previousBill?.uid &&
+                                                            d.uid !== selectedCustomerDetails.identityProof?.uid &&
+                                                            d.type !== '2' // Exclude electricity bills
+                                                        ).map(d => {
+                                                            const option = DOCUMENT_TYPE_OPTIONS.find(o => o.value === d.type);
+                                                            // If type is generic '0' or mismatched, prioritize the saved name
+                                                            const label = (d.type === '0' || !option) && d.name ? d.name : (option ? option.label : d.type || 'Document');
+
+                                                            return {
+                                                                doc: d,
+                                                                label: label,
+                                                                type: d.type || 'other'
+                                                            };
+                                                        }) || [])
+                                                    ].map((item, idx) => (
+                                                        <tr key={idx} className="hover:bg-muted/30 transition-colors group">
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className={cn(
+                                                                        "w-8 h-8 rounded flex items-center justify-center",
+                                                                        item.doc?.path ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                                                                    )}>
+                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                        </svg>
+                                                                    </div>
+                                                                    <div className="flex flex-col">
+                                                                        <span className="font-medium text-foreground">{item.label}</span>
+                                                                        {item.doc?.filename && (
+                                                                            <span className="text-xs text-muted-foreground truncate max-w-[180px]" title={item.doc.filename}>
+                                                                                {item.doc.filename}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-muted-foreground">
+                                                                {item.doc?.path ? (
+                                                                    <span className="text-foreground font-medium">
+                                                                        {(item.doc as any).createdByUser?.name || (item.doc as any).createdBy || 'System'}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-muted-foreground italic">—</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                                                                {item.doc?.path && (item.doc as any).createdAt
+                                                                    ? formatSydneyTime((item.doc as any).createdAt)
+                                                                    : <span className="text-muted-foreground italic">—</span>
+                                                                }
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right">
+                                                                <div className="flex items-center justify-end gap-2">
+                                                                    {item.doc?.path ? (
+                                                                        <>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                className="h-8 px-3 text-xs font-medium border-border hover:bg-muted transition-colors"
+                                                                                onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/documents/${encodeURIComponent(item.doc!.path!).replace(/%2F/g, '/')}`, '_blank')}
+                                                                            >
+                                                                                <EyeIcon className="w-3.5 h-3.5 mr-1.5" />
+                                                                                View
+                                                                            </Button>
+                                                                            <ConfirmationPopover
+                                                                                title="Delete Document"
+                                                                                description={`Are you sure you want to delete this ${item.label}? This action cannot be undone.`}
+                                                                                confirmText="Delete"
+                                                                                onConfirm={() => handleDeleteDocument(item.doc!.path!)}
+                                                                                confirmVariant="destructive"
+                                                                            >
+                                                                                <Button
+                                                                                    variant="outline"
+                                                                                    size="sm"
+                                                                                    className="h-8 px-3 text-xs font-medium border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30"
+                                                                                    disabled={isDeletingDocument === item.doc!.path}
+                                                                                    isLoading={isDeletingDocument === item.doc!.path}
+                                                                                    loadingText="Deleting..."
+                                                                                >
+                                                                                    <TrashIcon className="w-3.5 h-3.5 mr-1.5" />
+                                                                                    Delete
+                                                                                </Button>
+                                                                            </ConfirmationPopover>
+                                                                        </>
+                                                                    ) : (
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            className="h-8 px-3 text-xs font-medium border-primary/50 text-primary hover:bg-primary/10"
+                                                                            // Only allow upload for mapped types if it is specifically previousBill or identityProof
+                                                                            onClick={() => {
+                                                                                if (item.type === 'previousBill') previousBillInputRef.current?.click();
+                                                                                else if (item.type === 'identityProof') identityProofInputRef.current?.click();
+                                                                            }}
+                                                                            disabled={isUploadingDocument === item.type}
+                                                                            isLoading={isUploadingDocument === item.type}
+                                                                            loadingText="Uploading..."
+                                                                        >
+                                                                            <UploadIcon className="w-3.5 h-3.5 mr-1.5" />
+                                                                            Upload
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                    </div>
+                                )}
                                 {selectedDetailSection === 'info' && (
                                     <div className="space-y-3 animate-in fade-in duration-300">
                                         <div className="flex items-center justify-between border-b border-border pb-3">
@@ -2188,19 +2746,19 @@ export function CustomersPage() {
                                                                             {(offer.fitPeak ?? 0) > 0 && (
                                                                                 <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
                                                                                     <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitPeak ?? 0).toFixed(4)}/kWh</div>
-                                                                                    <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Peak</div>
+                                                                                    <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">PREMIUM FIT</div>
                                                                                 </div>
                                                                             )}
                                                                             {(offer.fitCritical ?? 0) > 0 && (
                                                                                 <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
                                                                                     <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitCritical ?? 0).toFixed(4)}/kWh</div>
-                                                                                    <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Critical</div>
+                                                                                    <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">CRITICAL EVENT FIT</div>
                                                                                 </div>
                                                                             )}
                                                                             {(offer.fitVpp ?? 0) > 0 && (
                                                                                 <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
                                                                                     <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(offer.fitVpp ?? 0).toFixed(4)}/kWh</div>
-                                                                                    <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT VPP</div>
+                                                                                    <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">BASE FIT</div>
                                                                                 </div>
                                                                             )}
                                                                         </div>

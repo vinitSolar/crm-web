@@ -2,7 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLazyQuery, useMutation } from '@apollo/client';
 import { GET_CUSTOMER_BY_CUSTOMER_ID } from '@/graphql/queries/customers';
-import { UPDATE_CUSTOMER, UPLOAD_FILE } from '@/graphql/mutations/customers';
+import {
+    UPDATE_CUSTOMER,
+    //  UPLOAD_FILE 
+} from '@/graphql/mutations/customers';
 import { Button } from '@/components/ui/Button';
 import { toast } from 'react-toastify';
 import {
@@ -92,7 +95,7 @@ export const OfferAccessPage = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const sigPadRef = useRef<any>(null);
 
-    const [uploadFile] = useMutation(UPLOAD_FILE);
+    // const [uploadFile] = useMutation(UPLOAD_FILE);
     const [updateCustomer] = useMutation(UPDATE_CUSTOMER);
 
     const [fetchCustomer, { loading: fetchingCustomer }] = useLazyQuery(GET_CUSTOMER_BY_CUSTOMER_ID, {
@@ -661,34 +664,8 @@ export const OfferAccessPage = () => {
             }
 
 
-
-            // 2. Upload "Signed PDF" (Mocking PDF content with signature image for now as per constraints)
-            // Ideally we would generate a real PDF here using jspdf, but we are using the signature image as the "file" content 
-            // to fulfill the "upload a sign as a pdf" request within current dependency limits.
-            // The filename says .pdf so the backend might process it or just store it. 
-            // If the backend validates strict PDF content, this might fail, but this is the best effort without `jspdf`.
-
-            const signedFilename = 'GEE Agreement.pdf';
-            const uploadRes = await uploadFile({
-                variables: {
-                    input: {
-                        fileContent: signatureBase64, // Sending signature as the "PDF" content
-                        filename: signedFilename,
-                        customerUid: customerData.uid,
-                        folder: `signedpdfFiles/${customerData.uid}`,
-                        documentType: 'signed_offer'
-                    }
-                }
-            });
-
-            if (!uploadRes.data?.uploadFile) {
-                throw new Error('Upload failed - no data returned');
-            }
-
-            const signedPdfPath = uploadRes.data.uploadFile.path;
-            const signatureUrl = uploadRes.data.uploadFile.url;
+            // 2. Prepare Audit Info
             const pdfAudit = {
-                ...uploadRes.data.uploadFile.pdfAudit,
                 userAgent: navigator.userAgent,
                 timestamp: new Date().toISOString()
             };
@@ -719,8 +696,7 @@ export const OfferAccessPage = () => {
 
             const updateInput: any = {
                 signDate: new Date().toISOString(),
-                signedPdfPath: signedPdfPath,
-                signatureUrl: signatureUrl,
+                signatureBase64: signatureBase64,
                 pdfAudit: JSON.stringify(pdfAudit),
                 emailSent: 1,
                 status: 3,
@@ -1084,19 +1060,19 @@ export const OfferAccessPage = () => {
                                                 {(activeOffer.fitPeak ?? 0) > 0 && (
                                                     <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
                                                         <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(activeOffer.fitPeak ?? 0).toFixed(4)}/kWh</div>
-                                                        <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Peak</div>
+                                                        <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">PREMIUM FIT</div>
                                                     </div>
                                                 )}
                                                 {(activeOffer.fitCritical ?? 0) > 0 && (
                                                     <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
                                                         <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(activeOffer.fitCritical ?? 0).toFixed(4)}/kWh</div>
-                                                        <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT Critical</div>
+                                                        <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">CRITICAL EVENT FIT</div>
                                                     </div>
                                                 )}
                                                 {(activeOffer.fitVpp ?? 0) > 0 && (
                                                     <div className="bg-teal-100 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-3 text-center space-y-0.5">
                                                         <div className="text-teal-800 dark:text-teal-300 font-bold text-base tracking-tight">${(activeOffer.fitVpp ?? 0).toFixed(4)}/kWh</div>
-                                                        <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">FiT VPP</div>
+                                                        <div className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider opacity-80">BASE FIT</div>
                                                     </div>
                                                 )}
                                             </div>
